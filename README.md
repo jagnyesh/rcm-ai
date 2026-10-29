@@ -21,7 +21,7 @@ A denial analyst working a medical-necessity denial (CARC 50, CARC 11) must deci
 
 Full downloads live in `data/raw/` (gitignored). Committed fixture slices live in `data/fixtures/`, each pinned by sha256 and source location in `data/fixtures/MANIFEST.json`; `verify_fixtures` fails on an edited or unlisted fixture.
 
-**Source format notes (FY2027 tabular XML):** Excludes1 targets are free text with a trailing code reference in one of three forms: `(E10.-)` subtree, `(P70.2)` exact, `(E11.0-E11.8)` range. All 43 Excludes1 notes in E08–E13 parse. Across the full file, 428 of 5,411 notes (7.9%) use forms the parser doesn't handle yet (multi-code lists, lead-in notes with no code). It raises on these rather than dropping them.
+**Source format notes (FY2027 tabular XML):** Excludes1 targets are free text with a trailing code reference in one of three forms: `(E10.-)` subtree, `(P70.2)` exact, `(E11.0-E11.8)` range (range ends may carry a wildcard, as in `(I63.3-I63.5-)`). All 43 Excludes1 notes in E08–E13 sit under a `diag` and parse. Across the full file there are 5,411 notes: 5,259 under a `diag`, 150 under a `section`, 2 under a `chapter`. Of the `diag` notes, 412 use forms `parse_code_ref` doesn't handle yet (multi-code lists, lead-in notes with no code, and one malformed source reference, `F98.2.-F98.3`); `parse_tabular` raises on these rather than dropping them. `parse_tabular` doesn't read section- or chapter-level notes at all yet, so those 152 are skipped without an error. The E08–E13 slice has none.
 
 **Cross-source findings that shape the graph:**
 

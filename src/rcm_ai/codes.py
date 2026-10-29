@@ -24,7 +24,7 @@ class CptScan:
 def scan_fixtures_for_cpt(fixtures_dir: Path) -> CptScan:
     checked, found = 0, []
     for path in sorted(fixtures_dir.rglob("*.csv")):
-        with path.open(encoding="latin-1", newline="") as fh:
+        with path.open(encoding="utf-8", newline="") as fh:
             reader = csv.DictReader(fh)
             if _PROCEDURE_COLUMN not in (reader.fieldnames or []):
                 continue

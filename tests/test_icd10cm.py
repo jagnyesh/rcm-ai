@@ -1,6 +1,8 @@
 from pathlib import Path
 
-from rcm_ai.icd10cm import CodeRef, parse_tabular
+import pytest
+
+from rcm_ai.icd10cm import CodeRef, parse_code_ref, parse_tabular
 from rcm_ai.provenance import verify_fixtures
 
 FIXTURES = Path(__file__).resolve().parents[1] / "data" / "fixtures"
@@ -38,3 +40,24 @@ def test_excludes1_notes_become_code_references_of_all_three_source_forms():
 
 def test_every_excludes1_note_in_the_slice_is_parsed_none_dropped():
     assert len(_slice().excludes1) == 43
+
+
+# Regression: ISSUE-001 — wildcard range ends and malformed refs parsed silently
+# Found by /qa on 2026-10-29
+@pytest.mark.parametrize(
+    "note, expected",
+    [
+        ("cerebral infarction (I63.3-I63.5-)", CodeRef("range", "I63.3", "I63.5")),
+        ("atherosclerosis of the extremities (I70.2--I70.7-)", CodeRef("range", "I70.2", "I70.7")),
+        ("type 1 diabetes mellitus (E10.-)", CodeRef("subtree", "E10")),
+        ("gestational diabetes (O24.4-)", CodeRef("subtree", "O24.4")),
+    ],
+)
+def test_range_end_wildcards_are_dropped_and_subtree_wildcards_kept(note, expected):
+    assert parse_code_ref(note) == expected
+
+
+@pytest.mark.parametrize("note", ["eating disorders (F98.2.-F98.3)", "pain (NOS)", "diabetes (E10.-E11.-)"])
+def test_a_trailing_reference_that_is_not_code_shaped_raises_instead_of_parsing(note):
+    with pytest.raises(ValueError):
+        parse_code_ref(note)

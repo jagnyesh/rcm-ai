@@ -1,3 +1,4 @@
+import json
 import shutil
 from pathlib import Path
 
@@ -46,3 +47,18 @@ def test_macos_finder_metadata_in_the_fixtures_dir_is_ignored(tmp_path):
     (fixtures / "cdc" / ".DS_Store").write_bytes(b"\x00")
 
     assert len(verify_fixtures(fixtures)) == 3
+
+
+# Regression: ISSUE-002 — manifest record_count was never checked
+# Found by /qa on 2026-10-29
+@pytest.mark.parametrize(
+    "fixture", ["cdc/icd10cm-tabular-2027-E08-E13.xml", "cms/lcd_x_hcpc_code-L33822-v70.csv"]
+)
+def test_a_manifest_record_count_that_disagrees_with_the_fixture_is_rejected(tmp_path, fixture):
+    fixtures = _copy_fixtures(tmp_path)
+    manifest = json.loads((fixtures / "MANIFEST.json").read_text())
+    next(e for e in manifest["fixtures"] if e["path"] == fixture)["record_count"] = 999
+    (fixtures / "MANIFEST.json").write_text(json.dumps(manifest))
+
+    with pytest.raises(ProvenanceError, match="999"):
+        verify_fixtures(fixtures)
