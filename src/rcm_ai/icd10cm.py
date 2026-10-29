@@ -33,19 +33,24 @@ class Tabular:
 
 
 _TRAILING_REF = re.compile(r"\(([A-Z0-9.\-]+)\)\s*$")
+_CODE = r"[A-Z][0-9][0-9A-Z](?:\.[0-9A-Z]{1,4})?"
+# "-" or ".-" after a code means "and everything under it"; a range end may carry one too
+# ("I63.3-I63.5-"), and a range already spans its ends' subtrees, so it is dropped there.
+_REF = re.compile(rf"(?P<start>{_CODE})(?P<wild>\.?-)?(?:-(?P<end>{_CODE})(?:\.?-)?)?")
 
 
 def parse_code_ref(note: str) -> CodeRef:
     m = _TRAILING_REF.search(note)
     if m is None:
         raise ValueError(f"no code reference in note: {note!r}")
-    ref = m.group(1)
-    if ref.endswith("-"):
-        return CodeRef("subtree", ref.rstrip("-").rstrip("."))
-    if "-" in ref:
-        start, end = ref.split("-")
-        return CodeRef("range", start, end)
-    return CodeRef("exact", ref)
+    ref = _REF.fullmatch(m.group(1))
+    if ref is None:
+        raise ValueError(f"unrecognized code reference {m.group(1)!r} in note: {note!r}")
+    if ref["end"]:
+        return CodeRef("range", ref["start"], ref["end"])
+    if ref["wild"]:
+        return CodeRef("subtree", ref["start"])
+    return CodeRef("exact", ref["start"])
 
 
 def parse_tabular(path: Path) -> Tabular:
