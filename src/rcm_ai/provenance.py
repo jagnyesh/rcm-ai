@@ -1,5 +1,7 @@
+import csv
 import hashlib
 import json
+import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -22,6 +24,15 @@ class FixtureSource:
     sha256: str
 
 
+def _count_records(path: Path, kind: str) -> int:
+    if kind == "diag":
+        return sum(1 for _ in ET.parse(path).getroot().iter("diag"))
+    if kind == "csv_row":
+        with path.open(encoding="utf-8", newline="") as fh:
+            return sum(1 for _ in csv.DictReader(fh))
+    raise ProvenanceError(f"{path.name}: unknown record_kind {kind!r}")
+
+
 def verify_fixtures(fixtures_dir: Path) -> list[FixtureSource]:
     entries = json.loads((fixtures_dir / MANIFEST).read_text())["fixtures"]
     records = [
@@ -32,6 +43,9 @@ def verify_fixtures(fixtures_dir: Path) -> list[FixtureSource]:
         actual = hashlib.sha256((fixtures_dir / r.path).read_bytes()).hexdigest()
         if actual != r.sha256:
             raise ProvenanceError(f"{r.path}: sha256 {actual} != manifest {r.sha256}")
+        count = _count_records(fixtures_dir / r.path, r.record_kind)
+        if count != r.record_count:
+            raise ProvenanceError(f"{r.path}: {count} records != manifest {r.record_count}")
     on_disk = {
         p.relative_to(fixtures_dir).as_posix()
         for p in fixtures_dir.rglob("*")
