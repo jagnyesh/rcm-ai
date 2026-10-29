@@ -1,0 +1,8 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.env
+# Full public-source downloads stay local; only small fixture slices are committed.
+data/raw/
+.DS_Store

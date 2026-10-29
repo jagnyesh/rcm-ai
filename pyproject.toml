@@ -1,0 +1,21 @@
+[project]
+name = "rcm-ai"
+version = "0.1.0"
+description = "Graph-grounded triage of Medicare medical-necessity denials (synthetic data only)"
+authors = [
+    { name = "Jagnyesh", email = "jagnyesh@gmail.com" }
+]
+requires-python = ">=3.13"
+dependencies = []
+
+[project.scripts]
+rcm-ai = "rcm_ai:main"
+
+[build-system]
+requires = ["uv_build>=0.9.5,<0.10.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.2.0",
+]

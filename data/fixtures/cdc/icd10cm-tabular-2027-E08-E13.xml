@@ -1,0 +1,1875 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Verbatim excerpt of section E08-E13 from CDC NCHS ICD-10-CM FY2027 tabular XML; see data/fixtures/MANIFEST.json. -->
+<ICD10CM.tabular>
+  <version>2027</version>
+    <section id="E08-E13">
+      <desc>Diabetes mellitus (E08-E13)</desc>
+      <diag>
+        <name>E08</name>
+        <desc>Diabetes mellitus due to underlying condition</desc>
+        <codeFirst>
+          <note>the underlying condition, such as:</note>
+          <note>congenital rubella (P35.0)</note>
+          <note>Cushing's syndrome (E24.-)</note>
+          <note>cystic fibrosis (E84.-)</note>
+          <note>malignant neoplasm (C00-C96)</note>
+          <note>malnutrition (E40-E46)</note>
+          <note>pancreatitis and other diseases of the pancreas (K85-K86.-)</note>
+        </codeFirst>
+        <useAdditionalCode>
+          <note>code to identify control using:</note>
+          <note>injectable non-insulin antidiabetic drugs (Z79.85)</note>
+          <note>insulin (Z79.4)</note>
+          <note>oral antidiabetic drugs (Z79.84)</note>
+          <note>oral hypoglycemic drugs (Z79.84)</note>
+        </useAdditionalCode>
+        <excludes1>
+          <note>drug or chemical induced diabetes mellitus (E09.-)</note>
+          <note>gestational diabetes (O24.4-)</note>
+          <note>neonatal diabetes mellitus (P70.2)</note>
+          <note>postpancreatectomy diabetes mellitus (E13.-)</note>
+          <note>postprocedural diabetes mellitus (E13.-)</note>
+          <note>secondary diabetes mellitus NEC (E13.-)</note>
+          <note>type 1 diabetes mellitus (E10.-)</note>
+          <note>type 2 diabetes mellitus (E11.-)</note>
+        </excludes1>
+        <diag>
+          <name>E08.0</name>
+          <desc>Diabetes mellitus due to underlying condition with hyperosmolarity</desc>
+          <diag>
+            <name>E08.00</name>
+            <desc>Diabetes mellitus due to underlying condition with hyperosmolarity without nonketotic hyperglycemic-hyperosmolar coma (NKHHC)</desc>
+          </diag>
+          <diag>
+            <name>E08.01</name>
+            <desc>Diabetes mellitus due to underlying condition with hyperosmolarity with coma</desc>
+          </diag>
+        </diag>
+        <diag>
+          <name>E08.1</name>
+          <desc>Diabetes mellitus due to underlying condition with ketoacidosis</desc>
+          <diag>
+            <name>E08.10</name>
+            <desc>Diabetes mellitus due to underlying condition with ketoacidosis without coma</desc>
+          </diag>
+          <diag>
+            <name>E08.11</name>
+            <desc>Diabetes mellitus due to underlying condition with ketoacidosis with coma</desc>
+          </diag>
+        </diag>
+        <diag>
+          <name>E08.2</name>
+          <desc>Diabetes mellitus due to underlying condition with kidney complications</desc>
+          <diag>
+            <name>E08.21</name>
+            <desc>Diabetes mellitus due to underlying condition with diabetic nephropathy</desc>
+            <inclusionTerm>
+              <note>Diabetes mellitus due to underlying condition with intercapillary glomerulosclerosis</note>
+              <note>Diabetes mellitus due to underlying condition with intracapillary glomerulonephrosis</note>
+              <note>Diabetes mellitus due to underlying condition with Kimmelstiel-Wilson disease</note>
+            </inclusionTerm>
+          </diag>
+          <diag>
+            <name>E08.22</name>
+            <desc>Diabetes mellitus due to underlying condition with diabetic chronic kidney disease</desc>
+            <useAdditionalCode>
+              <note>code to identify stage of chronic kidney disease (N18.1-N18.6)</note>
+            </useAdditionalCode>
+          </diag>
+          <diag>
+            <name>E08.29</name>
+            <desc>Diabetes mellitus due to underlying condition with other diabetic kidney complication</desc>
+            <inclusionTerm>
+              <note>Renal tubular degeneration in diabetes mellitus due to underlying condition</note>
+            </inclusionTerm>
+          </diag>
+        </diag>
+        <diag>
+          <name>E08.3</name>
+          <desc>Diabetes mellitus due to underlying condition with ophthalmic complications</desc>
+          <diag>
+            <name>E08.31</name>
+            <desc>Diabetes mellitus due to underlying condition with unspecified diabetic retinopathy</desc>
+            <diag>
+              <name>E08.311</name>
+              <desc>Diabetes mellitus due to underlying condition with unspecified diabetic retinopathy with macular edema</desc>
+            </diag>
+            <diag>
+              <name>E08.319</name>
+              <desc>Diabetes mellitus due to underlying condition with unspecified diabetic retinopathy without macular edema</desc>
+            </diag>
+          </diag>
+          <diag>
+            <name>E08.32</name>
+            <desc>Diabetes mellitus due to underlying condition with mild nonproliferative diabetic retinopathy</desc>
+            <inclusionTerm>
+              <note>Diabetes mellitus due to underlying condition with nonproliferative diabetic retinopathy NOS</note>
+            </inclusionTerm>
+            <sevenChrNote>
+              <note>One of the following 7th characters is to be assigned to codes in subcategory E08.32 to designate laterality of the disease:</note>
+            </sevenChrNote>
+            <sevenChrDef>
+              <extension char="1">right eye</extension>
+              <extension char="2">left eye</extension>
+              <extension char="3">bilateral</extension>
+              <extension char="9">unspecified eye</extension>
+            </sevenChrDef>
+            <diag>
+              <name>E08.321</name>
+              <desc>Diabetes mellitus due to underlying condition with mild nonproliferative diabetic retinopathy with macular edema</desc>
+            </diag>
+            <diag>
+              <name>E08.329</name>
+              <desc>Diabetes mellitus due to underlying condition with mild nonproliferative diabetic retinopathy without macular edema</desc>
+            </diag>
+          </diag>
+          <diag>
+            <name>E08.33</name>
+            <desc>Diabetes mellitus due to underlying condition with moderate nonproliferative diabetic retinopathy</desc>
+            <sevenChrNote>
+              <note>One of the following 7th characters is to be assigned to codes in subcategory E08.33 to designate laterality of the disease:</note>
+            </sevenChrNote>
+            <sevenChrDef>
+              <extension char="1">right eye</extension>
+              <extension char="2">left eye</extension>
+              <extension char="3">bilateral</extension>
+              <extension char="9">unspecified eye</extension>
+            </sevenChrDef>
+            <diag>
+              <name>E08.331</name>
+              <desc>Diabetes mellitus due to underlying condition with moderate nonproliferative diabetic retinopathy with macular edema</desc>
+            </diag>
+            <diag>
+              <name>E08.339</name>
+              <desc>Diabetes mellitus due to underlying condition with moderate nonproliferative diabetic retinopathy without macular edema</desc>
+            </diag>
+          </diag>
+          <diag>
+            <name>E08.34</name>
+            <desc>Diabetes mellitus due to underlying condition with severe nonproliferative diabetic retinopathy</desc>
+            <sevenChrNote>
+              <note>One of the following 7th characters is to be assigned to codes in subcategory E08.34 to designate laterality of the disease:</note>
+            </sevenChrNote>
+            <sevenChrDef>
+              <extension char="1">right eye</extension>
+              <extension char="2">left eye</extension>
+              <extension char="3">bilateral</extension>
+              <extension char="9">unspecified eye</extension>
+            </sevenChrDef>
+            <diag>
+              <name>E08.341</name>
+              <desc>Diabetes mellitus due to underlying condition with severe nonproliferative diabetic retinopathy with macular edema</desc>
+            </diag>
+            <diag>
+              <name>E08.349</name>
+              <desc>Diabetes mellitus due to underlying condition with severe nonproliferative diabetic retinopathy without macular edema</desc>
+            </diag>
+          </diag>
+          <diag>
+            <name>E08.35</name>
+            <desc>Diabetes mellitus due to underlying condition with proliferative diabetic retinopathy</desc>
+            <sevenChrNote>
+              <note>One of the following 7th characters is to be assigned to codes in subcategory E08.35 to designate laterality of the disease:</note>
+            </sevenChrNote>
+            <sevenChrDef>
+              <extension char="1">right eye</extension>
+              <extension char="2">left eye</extension>
+              <extension char="3">bilateral</extension>
+              <extension char="9">unspecified eye</extension>
+            </sevenChrDef>
+            <diag>
+              <name>E08.351</name>
+              <desc>Diabetes mellitus due to underlying condition with proliferative diabetic retinopathy with macular edema</desc>
+            </diag>
+            <diag>
+              <name>E08.352</name>
+              <desc>Diabetes mellitus due to underlying condition with proliferative diabetic retinopathy with traction retinal detachment involving the macula</desc>
+            </diag>
+            <diag>
+              <name>E08.353</name>
+              <desc>Diabetes mellitus due to underlying condition with proliferative diabetic retinopathy with traction retinal detachment not involving the macula</desc>
+            </diag>
+            <diag>
+              <name>E08.354</name>
+              <desc>Diabetes mellitus due to underlying condition with proliferative diabetic retinopathy with combined traction retinal detachment and rhegmatogenous retinal detachment</desc>
+            </diag>
+            <diag>
+              <name>E08.355</name>
+              <desc>Diabetes mellitus due to underlying condition with stable proliferative diabetic retinopathy</desc>
+            </diag>
+            <diag>
+              <name>E08.359</name>
+              <desc>Diabetes mellitus due to underlying condition with proliferative diabetic retinopathy without macular edema</desc>
+            </diag>
+          </diag>
+          <diag>
+            <name>E08.36</name>
+            <desc>Diabetes mellitus due to underlying condition with diabetic cataract</desc>
+          </diag>
+          <diag>
+            <name>E08.37</name>
+            <desc>Diabetes mellitus due to underlying condition with diabetic macular edema, resolved following treatment</desc>
+            <sevenChrNote>
+              <note>One of the following 7th characters is to be assigned to code E08.37 to designate laterality of the disease:</note>
+            </sevenChrNote>
+            <sevenChrDef>
+              <extension char="1">right eye</extension>
+              <extension char="2">left eye</extension>
+              <extension char="3">bilateral</extension>
+              <extension char="9">unspecified eye</extension>
+            </sevenChrDef>
+          </diag>
+          <diag>
+            <name>E08.39</name>
+            <desc>Diabetes mellitus due to underlying condition with other diabetic ophthalmic complication</desc>
+            <useAdditionalCode>
+              <note>code to identify manifestation, such as:</note>
+              <note>diabetic glaucoma (H40-H42)</note>
+            </useAdditionalCode>
+          </diag>
+        </diag>
+        <diag>
+          <name>E08.4</name>
+          <desc>Diabetes mellitus due to underlying condition with neurological complications</desc>
+          <diag>
+            <name>E08.40</name>
+            <desc>Diabetes mellitus due to underlying condition with diabetic neuropathy, unspecified</desc>
+          </diag>
+          <diag>
+            <name>E08.41</name>
+            <desc>Diabetes mellitus due to underlying condition with diabetic mononeuropathy</desc>
+          </diag>
+          <diag>
+            <name>E08.42</name>
+            <desc>Diabetes mellitus due to underlying condition with diabetic polyneuropathy</desc>
+            <inclusionTerm>
+              <note>Diabetes mellitus due to underlying condition with diabetic neuralgia</note>
+            </inclusionTerm>
+          </diag>
+          <diag>
+            <name>E08.43</name>
+            <desc>Diabetes mellitus due to underlying condition with diabetic autonomic (poly)neuropathy</desc>
+            <inclusionTerm>
+              <note>Diabetes mellitus due to underlying condition with diabetic gastroparesis</note>
+            </inclusionTerm>
+          </diag>
+          <diag>
+            <name>E08.44</name>
+            <desc>Diabetes mellitus due to underlying condition with diabetic amyotrophy</desc>
+          </diag>
+          <diag>
+            <name>E08.49</name>
+            <desc>Diabetes mellitus due to underlying condition with other diabetic neurological complication</desc>
+          </diag>
+        </diag>
+        <diag>
+          <name>E08.5</name>
+          <desc>Diabetes mellitus due to underlying condition with circulatory complications</desc>
+          <diag>
+            <name>E08.51</name>
+            <desc>Diabetes mellitus due to underlying condition with diabetic peripheral angiopathy without gangrene</desc>
+          </diag>
+          <diag>
+            <name>E08.52</name>
+            <desc>Diabetes mellitus due to underlying condition with diabetic peripheral angiopathy with gangrene</desc>
+            <inclusionTerm>
+              <note>Diabetes mellitus due to underlying condition with diabetic gangrene</note>
+            </inclusionTerm>
+          </diag>
+          <diag>
+            <name>E08.59</name>
+            <desc>Diabetes mellitus due to underlying condition with other circulatory complications</desc>
+          </diag>
+        </diag>
+        <diag>
+          <name>E08.6</name>
+          <desc>Diabetes mellitus due to underlying condition with other specified complications</desc>
+          <diag>
+            <name>E08.61</name>
+            <desc>Diabetes mellitus due to underlying condition with diabetic arthropathy</desc>
+            <diag>
+              <name>E08.610</name>
+              <desc>Diabetes mellitus due to underlying condition with diabetic neuropathic arthropathy</desc>
+              <inclusionTerm>
+                <note>Diabetes mellitus due to underlying condition with Charcôt's joints</note>
+              </inclusionTerm>
+            </diag>
+            <diag>
+              <name>E08.618</name>
+              <desc>Diabetes mellitus due to underlying condition with other diabetic arthropathy</desc>
+            </diag>
+          </diag>
+          <diag>
+            <name>E08.62</name>
+            <desc>Diabetes mellitus due to underlying condition with skin complications</desc>
+            <diag>
+              <name>E08.620</name>
+              <desc>Diabetes mellitus due to underlying condition with diabetic dermatitis</desc>
+              <inclusionTerm>
+                <note>Diabetes mellitus due to underlying condition with diabetic necrobiosis lipoidica</note>
+              </inclusionTerm>
+            </diag>
+            <diag>
+              <name>E08.621</name>
+              <desc>Diabetes mellitus due to underlying condition with foot ulcer</desc>
+              <useAdditionalCode>
+                <note>code to identify site of ulcer (L97.4-, L97.5-)</note>
+              </useAdditionalCode>
+            </diag>
+            <diag>
+              <name>E08.622</name>
+              <desc>Diabetes mellitus due to underlying condition with other skin ulcer</desc>
+              <useAdditionalCode>
+                <note>code to identify site of ulcer (L97.1-L97.9, L98.41-L98.49)</note>
+              </useAdditionalCode>
+            </diag>
+            <diag>
+              <name>E08.628</name>
+              <desc>Diabetes mellitus due to underlying condition with other skin complications</desc>
+            </diag>
+          </diag>
+          <diag>
+            <name>E08.63</name>
+            <desc>Diabetes mellitus due to underlying condition with oral complications</desc>
+            <diag>
+              <name>E08.630</name>
+              <desc>Diabetes mellitus due to underlying condition with periodontal disease</desc>
+            </diag>
+            <diag>
+              <name>E08.638</name>
+              <desc>Diabetes mellitus due to underlying condition with other oral complications</desc>
+            </diag>
+          </diag>
+          <diag>
+            <name>E08.64</name>
+            <desc>Diabetes mellitus due to underlying condition with hypoglycemia</desc>
+            <useAdditionalCode>
+              <note>code for hypoglycemia level, if applicable (E16.A-)</note>
+            </useAdditionalCode>
+            <diag>
+              <name>E08.641</name>
+              <desc>Diabetes mellitus due to underlying condition with hypoglycemia with coma</desc>
+            </diag>
+            <diag>
+              <name>E08.649</name>
+              <desc>Diabetes mellitus due to underlying condition with hypoglycemia without coma</desc>
+            </diag>
+          </diag>
+          <diag>
+            <name>E08.65</name>
+            <desc>Diabetes mellitus due to underlying condition with hyperglycemia</desc>
+          </diag>
+          <diag>
+            <name>E08.69</name>
+            <desc>Diabetes mellitus due to underlying condition with other specified complication</desc>
+            <useAdditionalCode>
+              <note>code to identify complication</note>
+            </useAdditionalCode>
+          </diag>
+        </diag>
+        <diag>
+          <name>E08.8</name>
+          <desc>Diabetes mellitus due to underlying condition with unspecified complications</desc>
+        </diag>
+        <diag>
+          <name>E08.9</name>
+          <desc>Diabetes mellitus due to underlying condition without complications</desc>
+        </diag>
+      </diag>
+      <diag>
+        <name>E09</name>
+        <desc>Drug or chemical induced diabetes mellitus</desc>
+        <codeFirst>
+          <note>poisoning due to drug or toxin, if applicable (T36-T65 with fifth or sixth character 1-4)</note>
+        </codeFirst>
+        <useAdditionalCode>
+          <note>code for adverse effect, if applicable, to identify drug (T36-T50 with fifth or sixth character 5)</note>
+        </useAdditionalCode>
+        <useAdditionalCode>
+          <note>code to identify control using:</note>
+          <note>injectable non-insulin antidiabetic drugs (Z79.85)</note>
+          <note>insulin (Z79.4)</note>
+          <note>oral antidiabetic drugs (Z79.84)</note>
+          <note>oral hypoglycemic drugs (Z79.84)</note>
+        </useAdditionalCode>
+        <excludes1>
+          <note>diabetes mellitus due to underlying condition (E08.-)</note>
+          <note>gestational diabetes (O24.4-)</note>
+          <note>neonatal diabetes mellitus (P70.2)</note>
+          <note>postpancreatectomy diabetes mellitus (E13.-)</note>
+          <note>postprocedural diabetes mellitus (E13.-)</note>
+          <note>secondary diabetes mellitus NEC (E13.-)</note>
+          <note>type 1 diabetes mellitus (E10.-)</note>
+          <note>type 2 diabetes mellitus (E11.-)</note>
+        </excludes1>
+        <diag>
+          <name>E09.0</name>
+          <desc>Drug or chemical induced diabetes mellitus with hyperosmolarity</desc>
+          <diag>
+            <name>E09.00</name>
+            <desc>Drug or chemical induced diabetes mellitus with hyperosmolarity without nonketotic hyperglycemic-hyperosmolar coma (NKHHC)</desc>
+          </diag>
+          <diag>
+            <name>E09.01</name>
+            <desc>Drug or chemical induced diabetes mellitus with hyperosmolarity with coma</desc>
+          </diag>
+        </diag>
+        <diag>
+          <name>E09.1</name>
+          <desc>Drug or chemical induced diabetes mellitus with ketoacidosis</desc>
+          <diag>
+            <name>E09.10</name>
+            <desc>Drug or chemical induced diabetes mellitus with ketoacidosis without coma</desc>
+          </diag>
+          <diag>
+            <name>E09.11</name>
+            <desc>Drug or chemical induced diabetes mellitus with ketoacidosis with coma</desc>
+          </diag>
+        </diag>
+        <diag>
+          <name>E09.2</name>
+          <desc>Drug or chemical induced diabetes mellitus with kidney complications</desc>
+          <diag>
+            <name>E09.21</name>
+            <desc>Drug or chemical induced diabetes mellitus with diabetic nephropathy</desc>
+            <inclusionTerm>
+              <note>Drug or chemical induced diabetes mellitus with intercapillary glomerulosclerosis</note>
+              <note>Drug or chemical induced diabetes mellitus with intracapillary glomerulonephrosis</note>
+              <note>Drug or chemical induced diabetes mellitus with Kimmelstiel-Wilson disease</note>
+            </inclusionTerm>
+          </diag>
+          <diag>
+            <name>E09.22</name>
+            <desc>Drug or chemical induced diabetes mellitus with diabetic chronic kidney disease</desc>
+            <useAdditionalCode>
+              <note>code to identify stage of chronic kidney disease (N18.1-N18.6)</note>
+            </useAdditionalCode>
+          </diag>
+          <diag>
+            <name>E09.29</name>
+            <desc>Drug or chemical induced diabetes mellitus with other diabetic kidney complication</desc>
+            <inclusionTerm>
+              <note>Drug or chemical induced diabetes mellitus with renal tubular degeneration</note>
+            </inclusionTerm>
+          </diag>
+        </diag>
+        <diag>
+          <name>E09.3</name>
+          <desc>Drug or chemical induced diabetes mellitus with ophthalmic complications</desc>
+          <diag>
+            <name>E09.31</name>
+            <desc>Drug or chemical induced diabetes mellitus with unspecified diabetic retinopathy</desc>
+            <diag>
+              <name>E09.311</name>
+              <desc>Drug or chemical induced diabetes mellitus with unspecified diabetic retinopathy with macular edema</desc>
+            </diag>
+            <diag>
+              <name>E09.319</name>
+              <desc>Drug or chemical induced diabetes mellitus with unspecified diabetic retinopathy without macular edema</desc>
+            </diag>
+          </diag>
+          <diag>
+            <name>E09.32</name>
+            <desc>Drug or chemical induced diabetes mellitus with mild nonproliferative diabetic retinopathy</desc>
+            <inclusionTerm>
+              <note>Drug or chemical induced diabetes mellitus with nonproliferative diabetic retinopathy NOS</note>
+            </inclusionTerm>
+            <sevenChrNote>
+              <note>One of the following 7th characters is to be assigned to codes in subcategory E09.32 to designate laterality of the disease:</note>
+            </sevenChrNote>
+            <sevenChrDef>
+              <extension char="1">right eye</extension>
+              <extension char="2">left eye</extension>
+              <extension char="3">bilateral</extension>
+              <extension char="9">unspecified eye</extension>
+            </sevenChrDef>
+            <diag>
+              <name>E09.321</name>
+              <desc>Drug or chemical induced diabetes mellitus with mild nonproliferative diabetic retinopathy with macular edema</desc>
+            </diag>
+            <diag>
+              <name>E09.329</name>
+              <desc>Drug or chemical induced diabetes mellitus with mild nonproliferative diabetic retinopathy without macular edema</desc>
+            </diag>
+          </diag>
+          <diag>
+            <name>E09.33</name>
+            <desc>Drug or chemical induced diabetes mellitus with moderate nonproliferative diabetic retinopathy</desc>
+            <sevenChrNote>
+              <note>One of the following 7th characters is to be assigned to codes in subcategory E09.33 to designate laterality of the disease:</note>
+            </sevenChrNote>
+            <sevenChrDef>
+              <extension char="1">right eye</extension>
+              <extension char="2">left eye</extension>
+              <extension char="3">bilateral</extension>
+              <extension char="9">unspecified eye</extension>
+            </sevenChrDef>
+            <diag>
+              <name>E09.331</name>
+              <desc>Drug or chemical induced diabetes mellitus with moderate nonproliferative diabetic retinopathy with macular edema</desc>
+            </diag>
+            <diag>
+              <name>E09.339</name>
+              <desc>Drug or chemical induced diabetes mellitus with moderate nonproliferative diabetic retinopathy without macular edema</desc>
+            </diag>
+          </diag>
+          <diag>
+            <name>E09.34</name>
+            <desc>Drug or chemical induced diabetes mellitus with severe nonproliferative diabetic retinopathy</desc>
+            <sevenChrNote>
+              <note>One of the following 7th characters is to be assigned to codes in subcategory E09.34 to designate laterality of the disease:</note>
+            </sevenChrNote>
+            <sevenChrDef>
+              <extension char="1">right eye</extension>
+              <extension char="2">left eye</extension>
+              <extension char="3">bilateral</extension>
+              <extension char="9">unspecified eye</extension>
+            </sevenChrDef>
+            <diag>
+              <name>E09.341</name>
+              <desc>Drug or chemical induced diabetes mellitus with severe nonproliferative diabetic retinopathy with macular edema</desc>
+            </diag>
+            <diag>
+              <name>E09.349</name>
+              <desc>Drug or chemical induced diabetes mellitus with severe nonproliferative diabetic retinopathy without macular edema</desc>
+            </diag>
+          </diag>
+          <diag>
+            <name>E09.35</name>
+            <desc>Drug or chemical induced diabetes mellitus with proliferative diabetic retinopathy</desc>
+            <sevenChrNote>
+              <note>One of the following 7th characters is to be assigned to codes in subcategory E09.35 to designate laterality of the disease:</note>
+            </sevenChrNote>
+            <sevenChrDef>
+              <extension char="1">right eye</extension>
+              <extension char="2">left eye</extension>
+              <extension char="3">bilateral</extension>
+              <extension char="9">unspecified eye</extension>
+            </sevenChrDef>
+            <diag>
+              <name>E09.351</name>
+              <desc>Drug or chemical induced diabetes mellitus with proliferative diabetic retinopathy with macular edema</desc>
+            </diag>
+            <diag>
+              <name>E09.352</name>
+              <desc>Drug or chemical induced diabetes mellitus with proliferative diabetic retinopathy with traction retinal detachment involving the macula</desc>
+            </diag>
+            <diag>
+              <name>E09.353</name>
+              <desc>Drug or chemical induced diabetes mellitus with proliferative diabetic retinopathy with traction retinal detachment not involving the macula</desc>
+            </diag>
+            <diag>
+              <name>E09.354</name>
+              <desc>Drug or chemical induced diabetes mellitus with proliferative diabetic retinopathy with combined traction retinal detachment and rhegmatogenous retinal detachment</desc>
+            </diag>
+            <diag>
+              <name>E09.355</name>
+              <desc>Drug or chemical induced diabetes mellitus with stable proliferative diabetic retinopathy</desc>
+            </diag>
+            <diag>
+              <name>E09.359</name>
+              <desc>Drug or chemical induced diabetes mellitus with proliferative diabetic retinopathy without macular edema</desc>
+            </diag>
+          </diag>
+          <diag>
+            <name>E09.36</name>
+            <desc>Drug or chemical induced diabetes mellitus with diabetic cataract</desc>
+          </diag>
+          <diag>
+            <name>E09.37</name>
+            <desc>Drug or chemical induced diabetes mellitus with diabetic macular edema, resolved following treatment</desc>
+            <sevenChrNote>
+              <note>One of the following 7th characters is to be assigned to code E09.37 to designate laterality of the disease:</note>
+            </sevenChrNote>
+            <sevenChrDef>
+              <extension char="1">right eye</extension>
+              <extension char="2">left eye</extension>
+              <extension char="3">bilateral</extension>
+              <extension char="9">unspecified eye</extension>
+            </sevenChrDef>
+          </diag>
+          <diag>
+            <name>E09.39</name>
+            <desc>Drug or chemical induced diabetes mellitus with other diabetic ophthalmic complication</desc>
+            <useAdditionalCode>
+              <note>code to identify manifestation, such as:</note>
+              <note>diabetic glaucoma (H40-H42)</note>
+            </useAdditionalCode>
+          </diag>
+        </diag>
+        <diag>
+          <name>E09.4</name>
+          <desc>Drug or chemical induced diabetes mellitus with neurological complications</desc>
+          <diag>
+            <name>E09.40</name>
+            <desc>Drug or chemical induced diabetes mellitus with neurological complications with diabetic neuropathy, unspecified</desc>
+          </diag>
+          <diag>
+            <name>E09.41</name>
+            <desc>Drug or chemical induced diabetes mellitus with neurological complications with diabetic mononeuropathy</desc>
+          </diag>
+          <diag>
+            <name>E09.42</name>
+            <desc>Drug or chemical induced diabetes mellitus with neurological complications with diabetic polyneuropathy</desc>
+            <inclusionTerm>
+              <note>Drug or chemical induced diabetes mellitus with diabetic neuralgia</note>
+            </inclusionTerm>
+          </diag>
+          <diag>
+            <name>E09.43</name>
+            <desc>Drug or chemical induced diabetes mellitus with neurological complications with diabetic autonomic (poly)neuropathy</desc>
+            <inclusionTerm>
+              <note>Drug or chemical induced diabetes mellitus with diabetic gastroparesis</note>
+            </inclusionTerm>
+          </diag>
+          <diag>
+            <name>E09.44</name>
+            <desc>Drug or chemical induced diabetes mellitus with neurological complications with diabetic amyotrophy</desc>
+          </diag>
+          <diag>
+            <name>E09.49</name>
+            <desc>Drug or chemical induced diabetes mellitus with neurological complications with other diabetic neurological complication</desc>
+          </diag>
+        </diag>
+        <diag>
+          <name>E09.5</name>
+          <desc>Drug or chemical induced diabetes mellitus with circulatory complications</desc>
+          <diag>
+            <name>E09.51</name>
+            <desc>Drug or chemical induced diabetes mellitus with diabetic peripheral angiopathy without gangrene</desc>
+          </diag>
+          <diag>
+            <name>E09.52</name>
+            <desc>Drug or chemical induced diabetes mellitus with diabetic peripheral angiopathy with gangrene</desc>
+            <inclusionTerm>
+              <note>Drug or chemical induced diabetes mellitus with diabetic gangrene</note>
+            </inclusionTerm>
+          </diag>
+          <diag>
+            <name>E09.59</name>
+            <desc>Drug or chemical induced diabetes mellitus with other circulatory complications</desc>
+          </diag>
+        </diag>
+        <diag>
+          <name>E09.6</name>
+          <desc>Drug or chemical induced diabetes mellitus with other specified complications</desc>
+          <diag>
+            <name>E09.61</name>
+            <desc>Drug or chemical induced diabetes mellitus with diabetic arthropathy</desc>
+            <diag>
+              <name>E09.610</name>
+              <desc>Drug or chemical induced diabetes mellitus with diabetic neuropathic arthropathy</desc>
+              <inclusionTerm>
+                <note>Drug or chemical induced diabetes mellitus with Charcôt's joints</note>
+              </inclusionTerm>
+            </diag>
+            <diag>
+              <name>E09.618</name>
+              <desc>Drug or chemical induced diabetes mellitus with other diabetic arthropathy</desc>
+            </diag>
+          </diag>
+          <diag>
+            <name>E09.62</name>
+            <desc>Drug or chemical induced diabetes mellitus with skin complications</desc>
+            <diag>
+              <name>E09.620</name>
+              <desc>Drug or chemical induced diabetes mellitus with diabetic dermatitis</desc>
+              <inclusionTerm>
+                <note>Drug or chemical induced diabetes mellitus with diabetic necrobiosis lipoidica</note>
+              </inclusionTerm>
+            </diag>
+            <diag>
+              <name>E09.621</name>
+              <desc>Drug or chemical induced diabetes mellitus with foot ulcer</desc>
+              <useAdditionalCode>
+                <note>code to identify site of ulcer (L97.4-, L97.5-)</note>
+              </useAdditionalCode>
+            </diag>
+            <diag>
+              <name>E09.622</name>
+              <desc>Drug or chemical induced diabetes mellitus with other skin ulcer</desc>
+              <useAdditionalCode>
+                <note>code to identify site of ulcer (L97.1-L97.9, L98.41-L98.49)</note>
+              </useAdditionalCode>
+            </diag>
+            <diag>
+              <name>E09.628</name>
+              <desc>Drug or chemical induced diabetes mellitus with other skin complications</desc>
+            </diag>
+          </diag>
+          <diag>
+            <name>E09.63</name>
+            <desc>Drug or chemical induced diabetes mellitus with oral complications</desc>
+            <diag>
+              <name>E09.630</name>
+              <desc>Drug or chemical induced diabetes mellitus with periodontal disease</desc>
+            </diag>
+            <diag>
+              <name>E09.638</name>
+              <desc>Drug or chemical induced diabetes mellitus with other oral complications</desc>
+            </diag>
+          </diag>
+          <diag>
+            <name>E09.64</name>
+            <desc>Drug or chemical induced diabetes mellitus with hypoglycemia</desc>
+            <useAdditionalCode>
+              <note>code for hypoglycemia level, if applicable (E16.A-)</note>
+            </useAdditionalCode>
+            <diag>
+              <name>E09.641</name>
+              <desc>Drug or chemical induced diabetes mellitus with hypoglycemia with coma</desc>
+            </diag>
+            <diag>
+              <name>E09.649</name>
+              <desc>Drug or chemical induced diabetes mellitus with hypoglycemia without coma</desc>
+            </diag>
+          </diag>
+          <diag>
+            <name>E09.65</name>
+            <desc>Drug or chemical induced diabetes mellitus with hyperglycemia</desc>
+          </diag>
+          <diag>
+            <name>E09.69</name>
+            <desc>Drug or chemical induced diabetes mellitus with other specified complication</desc>
+            <useAdditionalCode>
+              <note>code to identify complication</note>
+            </useAdditionalCode>
+          </diag>
+        </diag>
+        <diag>
+          <name>E09.8</name>
+          <desc>Drug or chemical induced diabetes mellitus with unspecified complications</desc>
+        </diag>
+        <diag>
+          <name>E09.9</name>
+          <desc>Drug or chemical induced diabetes mellitus without complications</desc>
+        </diag>
+      </diag>
+      <diag>
+        <name>E10</name>
+        <desc>Type 1 diabetes mellitus</desc>
+        <includes>
+          <note>brittle diabetes (mellitus)</note>
+          <note>diabetes (mellitus) due to autoimmune process</note>
+          <note>diabetes (mellitus) due to immune mediated pancreatic islet beta-cell destruction</note>
+          <note>idiopathic diabetes (mellitus)</note>
+          <note>juvenile onset diabetes (mellitus)</note>
+          <note>ketosis-prone diabetes (mellitus)</note>
+        </includes>
+        <excludes1>
+          <note>diabetes mellitus due to underlying condition (E08.-)</note>
+          <note>drug or chemical induced diabetes mellitus (E09.-)</note>
+          <note>gestational diabetes (O24.4-)</note>
+          <note>hyperglycemia NOS (R73.9)</note>
+          <note>neonatal diabetes mellitus (P70.2)</note>
+          <note>postpancreatectomy diabetes mellitus (E13.-)</note>
+          <note>postprocedural diabetes mellitus (E13.-)</note>
+          <note>secondary diabetes mellitus NEC (E13.-)</note>
+          <note>type 2 diabetes mellitus (E11.-)</note>
+        </excludes1>
+        <diag>
+          <name>E10.1</name>
+          <desc>Type 1 diabetes mellitus with ketoacidosis</desc>
+          <diag>
+            <name>E10.10</name>
+            <desc>Type 1 diabetes mellitus with ketoacidosis without coma</desc>
+          </diag>
+          <diag>
+            <name>E10.11</name>
+            <desc>Type 1 diabetes mellitus with ketoacidosis with coma</desc>
+          </diag>
+        </diag>
+        <diag>
+          <name>E10.2</name>
+          <desc>Type 1 diabetes mellitus with kidney complications</desc>
+          <diag>
+            <name>E10.21</name>
+            <desc>Type 1 diabetes mellitus with diabetic nephropathy</desc>
+            <inclusionTerm>
+              <note>Type 1 diabetes mellitus with intercapillary glomerulosclerosis</note>
+              <note>Type 1 diabetes mellitus with intracapillary glomerulonephrosis</note>
+              <note>Type 1 diabetes mellitus with Kimmelstiel-Wilson disease</note>
+            </inclusionTerm>
+          </diag>
+          <diag>
+            <name>E10.22</name>
+            <desc>Type 1 diabetes mellitus with diabetic chronic kidney disease</desc>
+            <useAdditionalCode>
+              <note>code to identify stage of chronic kidney disease (N18.1-N18.6)</note>
+            </useAdditionalCode>
+          </diag>
+          <diag>
+            <name>E10.29</name>
+            <desc>Type 1 diabetes mellitus with other diabetic kidney complication</desc>
+            <inclusionTerm>
+              <note>Type 1 diabetes mellitus with renal tubular degeneration</note>
+            </inclusionTerm>
+          </diag>
+        </diag>
+        <diag>
+          <name>E10.3</name>
+          <desc>Type 1 diabetes mellitus with ophthalmic complications</desc>
+          <diag>
+            <name>E10.31</name>
+            <desc>Type 1 diabetes mellitus with unspecified diabetic retinopathy</desc>
+            <diag>
+              <name>E10.311</name>
+              <desc>Type 1 diabetes mellitus with unspecified diabetic retinopathy with macular edema</desc>
+            </diag>
+            <diag>
+              <name>E10.319</name>
+              <desc>Type 1 diabetes mellitus with unspecified diabetic retinopathy without macular edema</desc>
+            </diag>
+          </diag>
+          <diag>
+            <name>E10.32</name>
+            <desc>Type 1 diabetes mellitus with mild nonproliferative diabetic retinopathy</desc>
+            <inclusionTerm>
+              <note>Type 1 diabetes mellitus with nonproliferative diabetic retinopathy NOS</note>
+            </inclusionTerm>
+            <sevenChrNote>
+              <note>One of the following 7th characters is to be assigned to codes in subcategory E10.32 to designate laterality of the disease:</note>
+            </sevenChrNote>
+            <sevenChrDef>
+              <extension char="1">right eye</extension>
+              <extension char="2">left eye</extension>
+              <extension char="3">bilateral</extension>
+              <extension char="9">unspecified eye</extension>
+            </sevenChrDef>
+            <diag>
+              <name>E10.321</name>
+              <desc>Type 1 diabetes mellitus with mild nonproliferative diabetic retinopathy with macular edema</desc>
+            </diag>
+            <diag>
+              <name>E10.329</name>
+              <desc>Type 1 diabetes mellitus with mild nonproliferative diabetic retinopathy without macular edema</desc>
+            </diag>
+          </diag>
+          <diag>
+            <name>E10.33</name>
+            <desc>Type 1 diabetes mellitus with moderate nonproliferative diabetic retinopathy</desc>
+            <sevenChrNote>
+              <note>One of the following 7th characters is to be assigned to codes in subcategory E10.33 to designate laterality of the disease:</note>
+            </sevenChrNote>
+            <sevenChrDef>
+              <extension char="1">right eye</extension>
+              <extension char="2">left eye</extension>
+              <extension char="3">bilateral</extension>
+              <extension char="9">unspecified eye</extension>
+            </sevenChrDef>
+            <diag>
+              <name>E10.331</name>
+              <desc>Type 1 diabetes mellitus with moderate nonproliferative diabetic retinopathy with macular edema</desc>
+            </diag>
+            <diag>
+              <name>E10.339</name>
+              <desc>Type 1 diabetes mellitus with moderate nonproliferative diabetic retinopathy without macular edema</desc>
+            </diag>
+          </diag>
+          <diag>
+            <name>E10.34</name>
+            <desc>Type 1 diabetes mellitus with severe nonproliferative diabetic retinopathy</desc>
+            <sevenChrNote>
+              <note>One of the following 7th characters is to be assigned to codes in subcategory E10.34 to designate laterality of the disease:</note>
+            </sevenChrNote>
+            <sevenChrDef>
+              <extension char="1">right eye</extension>
+              <extension char="2">left eye</extension>
+              <extension char="3">bilateral</extension>
+              <extension char="9">unspecified eye</extension>
+            </sevenChrDef>
+            <diag>
+              <name>E10.341</name>
+              <desc>Type 1 diabetes mellitus with severe nonproliferative diabetic retinopathy with macular edema</desc>
+            </diag>
+            <diag>
+              <name>E10.349</name>
+              <desc>Type 1 diabetes mellitus with severe nonproliferative diabetic retinopathy without macular edema</desc>
+            </diag>
+          </diag>
+          <diag>
+            <name>E10.35</name>
+            <desc>Type 1 diabetes mellitus with proliferative diabetic retinopathy</desc>
+            <sevenChrNote>
+              <note>One of the following 7th characters is to be assigned to codes in subcategory E10.35 to designate laterality of the disease:</note>
+            </sevenChrNote>
+            <sevenChrDef>
+              <extension char="1">right eye</extension>
+              <extension char="2">left eye</extension>
+              <extension char="3">bilateral</extension>
+              <extension char="9">unspecified eye</extension>
+            </sevenChrDef>
+            <diag>
+              <name>E10.351</name>
+              <desc>Type 1 diabetes mellitus with proliferative diabetic retinopathy with macular edema</desc>
+            </diag>
+            <diag>
+              <name>E10.352</name>
+              <desc>Type 1 diabetes mellitus with proliferative diabetic retinopathy with traction retinal detachment involving the macula</desc>
+            </diag>
+            <diag>
+              <name>E10.353</name>
+              <desc>Type 1 diabetes mellitus with proliferative diabetic retinopathy with traction retinal detachment not involving the macula</desc>
+            </diag>
+            <diag>
+              <name>E10.354</name>
+              <desc>Type 1 diabetes mellitus with proliferative diabetic retinopathy with combined traction retinal detachment and rhegmatogenous retinal detachment</desc>
+            </diag>
+            <diag>
+              <name>E10.355</name>
+              <desc>Type 1 diabetes mellitus with stable proliferative diabetic retinopathy</desc>
+            </diag>
+            <diag>
+              <name>E10.359</name>
+              <desc>Type 1 diabetes mellitus with proliferative diabetic retinopathy without macular edema</desc>
+            </diag>
+          </diag>
+          <diag>
+            <name>E10.36</name>
+            <desc>Type 1 diabetes mellitus with diabetic cataract</desc>
+          </diag>
+          <diag>
+            <name>E10.37</name>
+            <desc>Type 1 diabetes mellitus with diabetic macular edema, resolved following treatment</desc>
+            <sevenChrNote>
+              <note>One of the following 7th characters is to be assigned to code E10.37 to designate laterality of the disease:</note>
+            </sevenChrNote>
+            <sevenChrDef>
+              <extension char="1">right eye</extension>
+              <extension char="2">left eye</extension>
+              <extension char="3">bilateral</extension>
+              <extension char="9">unspecified eye</extension>
+            </sevenChrDef>
+          </diag>
+          <diag>
+            <name>E10.39</name>
+            <desc>Type 1 diabetes mellitus with other diabetic ophthalmic complication</desc>
+            <useAdditionalCode>
+              <note>code to identify manifestation, such as:</note>
+              <note>diabetic glaucoma (H40-H42)</note>
+            </useAdditionalCode>
+          </diag>
+        </diag>
+        <diag>
+          <name>E10.4</name>
+          <desc>Type 1 diabetes mellitus with neurological complications</desc>
+          <diag>
+            <name>E10.40</name>
+            <desc>Type 1 diabetes mellitus with diabetic neuropathy, unspecified</desc>
+          </diag>
+          <diag>
+            <name>E10.41</name>
+            <desc>Type 1 diabetes mellitus with diabetic mononeuropathy</desc>
+          </diag>
+          <diag>
+            <name>E10.42</name>
+            <desc>Type 1 diabetes mellitus with diabetic polyneuropathy</desc>
+            <inclusionTerm>
+              <note>Type 1 diabetes mellitus with diabetic neuralgia</note>
+            </inclusionTerm>
+          </diag>
+          <diag>
+            <name>E10.43</name>
+            <desc>Type 1 diabetes mellitus with diabetic autonomic (poly)neuropathy</desc>
+            <inclusionTerm>
+              <note>Type 1 diabetes mellitus with diabetic gastroparesis</note>
+            </inclusionTerm>
+          </diag>
+          <diag>
+            <name>E10.44</name>
+            <desc>Type 1 diabetes mellitus with diabetic amyotrophy</desc>
+          </diag>
+          <diag>
+            <name>E10.49</name>
+            <desc>Type 1 diabetes mellitus with other diabetic neurological complication</desc>
+          </diag>
+        </diag>
+        <diag>
+          <name>E10.5</name>
+          <desc>Type 1 diabetes mellitus with circulatory complications</desc>
+          <diag>
+            <name>E10.51</name>
+            <desc>Type 1 diabetes mellitus with diabetic peripheral angiopathy without gangrene</desc>
+          </diag>
+          <diag>
+            <name>E10.52</name>
+            <desc>Type 1 diabetes mellitus with diabetic peripheral angiopathy with gangrene</desc>
+            <inclusionTerm>
+              <note>Type 1 diabetes mellitus with diabetic gangrene</note>
+            </inclusionTerm>
+          </diag>
+          <diag>
+            <name>E10.59</name>
+            <desc>Type 1 diabetes mellitus with other circulatory complications</desc>
+          </diag>
+        </diag>
+        <diag>
+          <name>E10.6</name>
+          <desc>Type 1 diabetes mellitus with other specified complications</desc>
+          <diag>
+            <name>E10.61</name>
+            <desc>Type 1 diabetes mellitus with diabetic arthropathy</desc>
+            <diag>
+              <name>E10.610</name>
+              <desc>Type 1 diabetes mellitus with diabetic neuropathic arthropathy</desc>
+              <inclusionTerm>
+                <note>Type 1 diabetes mellitus with Charcôt's joints</note>
+              </inclusionTerm>
+            </diag>
+            <diag>
+              <name>E10.618</name>
+              <desc>Type 1 diabetes mellitus with other diabetic arthropathy</desc>
+            </diag>
+          </diag>
+          <diag>
+            <name>E10.62</name>
+            <desc>Type 1 diabetes mellitus with skin complications</desc>
+            <diag>
+              <name>E10.620</name>
+              <desc>Type 1 diabetes mellitus with diabetic dermatitis</desc>
+              <inclusionTerm>
+                <note>Type 1 diabetes mellitus with diabetic necrobiosis lipoidica</note>
+              </inclusionTerm>
+            </diag>
+            <diag>
+              <name>E10.621</name>
+              <desc>Type 1 diabetes mellitus with foot ulcer</desc>
+              <useAdditionalCode>
+                <note>code to identify site of ulcer (L97.4-, L97.5-)</note>
+              </useAdditionalCode>
+            </diag>
+            <diag>
+              <name>E10.622</name>
+              <desc>Type 1 diabetes mellitus with other skin ulcer</desc>
+              <useAdditionalCode>
+                <note>code to identify site of ulcer (L97.1-L97.9, L98.41-L98.49)</note>
+              </useAdditionalCode>
+            </diag>
+            <diag>
+              <name>E10.628</name>
+              <desc>Type 1 diabetes mellitus with other skin complications</desc>
+            </diag>
+          </diag>
+          <diag>
+            <name>E10.63</name>
+            <desc>Type 1 diabetes mellitus with oral complications</desc>
+            <diag>
+              <name>E10.630</name>
+              <desc>Type 1 diabetes mellitus with periodontal disease</desc>
+            </diag>
+            <diag>
+              <name>E10.638</name>
+              <desc>Type 1 diabetes mellitus with other oral complications</desc>
+            </diag>
+          </diag>
+          <diag>
+            <name>E10.64</name>
+            <desc>Type 1 diabetes mellitus with hypoglycemia</desc>
+            <useAdditionalCode>
+              <note>code for hypoglycemia level, if applicable (E16.A-)</note>
+            </useAdditionalCode>
+            <diag>
+              <name>E10.641</name>
+              <desc>Type 1 diabetes mellitus with hypoglycemia with coma</desc>
+            </diag>
+            <diag>
+              <name>E10.649</name>
+              <desc>Type 1 diabetes mellitus with hypoglycemia without coma</desc>
+            </diag>
+          </diag>
+          <diag>
+            <name>E10.65</name>
+            <desc>Type 1 diabetes mellitus with hyperglycemia</desc>
+          </diag>
+          <diag>
+            <name>E10.69</name>
+            <desc>Type 1 diabetes mellitus with other specified complication</desc>
+            <useAdditionalCode>
+              <note>code to identify complication</note>
+            </useAdditionalCode>
+          </diag>
+        </diag>
+        <diag>
+          <name>E10.8</name>
+          <desc>Type 1 diabetes mellitus with unspecified complications</desc>
+        </diag>
+        <diag>
+          <name>E10.9</name>
+          <desc>Type 1 diabetes mellitus without complications</desc>
+        </diag>
+        <diag>
+          <name>E10.A</name>
+          <desc>Type 1 diabetes mellitus, presymptomatic</desc>
+          <inclusionTerm>
+            <note>Early-stage type 1 diabetes mellitus</note>
+          </inclusionTerm>
+          <diag>
+            <name>E10.A0</name>
+            <desc>Type 1 diabetes mellitus, presymptomatic, unspecified</desc>
+          </diag>
+          <diag>
+            <name>E10.A1</name>
+            <desc>Type 1 diabetes mellitus, presymptomatic, Stage 1</desc>
+            <inclusionTerm>
+              <note>Multiple confirmed islet autoantibodies with normoglycemia</note>
+            </inclusionTerm>
+          </diag>
+          <diag>
+            <name>E10.A2</name>
+            <desc>Type 1 diabetes mellitus, presymptomatic, Stage 2</desc>
+            <inclusionTerm>
+              <note>Confirmed islet autoimmunity with dysglycemia</note>
+            </inclusionTerm>
+          </diag>
+        </diag>
+      </diag>
+      <diag>
+        <name>E11</name>
+        <desc>Type 2 diabetes mellitus</desc>
+        <includes>
+          <note>diabetes (mellitus) due to insulin secretory defect</note>
+          <note>diabetes NOS</note>
+          <note>insulin resistant diabetes (mellitus)</note>
+        </includes>
+        <useAdditionalCode>
+          <note>code to identify control using:</note>
+          <note>injectable non-insulin antidiabetic drugs (Z79.85)</note>
+          <note>insulin (Z79.4)</note>
+          <note>oral antidiabetic drugs (Z79.84)</note>
+          <note>oral hypoglycemic drugs (Z79.84)</note>
+        </useAdditionalCode>
+        <excludes1>
+          <note>diabetes mellitus due to underlying condition (E08.-)</note>
+          <note>drug or chemical induced diabetes mellitus (E09.-)</note>
+          <note>gestational diabetes (O24.4-)</note>
+          <note>neonatal diabetes mellitus (P70.2)</note>
+          <note>postpancreatectomy diabetes mellitus (E13.-)</note>
+          <note>postprocedural diabetes mellitus (E13.-)</note>
+          <note>secondary diabetes mellitus NEC (E13.-)</note>
+          <note>type 1 diabetes mellitus (E10.-)</note>
+        </excludes1>
+        <diag>
+          <name>E11.0</name>
+          <desc>Type 2 diabetes mellitus with hyperosmolarity</desc>
+          <diag>
+            <name>E11.00</name>
+            <desc>Type 2 diabetes mellitus with hyperosmolarity without nonketotic hyperglycemic-hyperosmolar coma (NKHHC)</desc>
+          </diag>
+          <diag>
+            <name>E11.01</name>
+            <desc>Type 2 diabetes mellitus with hyperosmolarity with coma</desc>
+          </diag>
+        </diag>
+        <diag>
+          <name>E11.1</name>
+          <desc>Type 2 diabetes mellitus with ketoacidosis</desc>
+          <diag>
+            <name>E11.10</name>
+            <desc>Type 2 diabetes mellitus with ketoacidosis without coma</desc>
+          </diag>
+          <diag>
+            <name>E11.11</name>
+            <desc>Type 2 diabetes mellitus with ketoacidosis with coma</desc>
+          </diag>
+        </diag>
+        <diag>
+          <name>E11.2</name>
+          <desc>Type 2 diabetes mellitus with kidney complications</desc>
+          <diag>
+            <name>E11.21</name>
+            <desc>Type 2 diabetes mellitus with diabetic nephropathy</desc>
+            <inclusionTerm>
+              <note>Type 2 diabetes mellitus with intercapillary glomerulosclerosis</note>
+              <note>Type 2 diabetes mellitus with intracapillary glomerulonephrosis</note>
+              <note>Type 2 diabetes mellitus with Kimmelstiel-Wilson disease</note>
+            </inclusionTerm>
+          </diag>
+          <diag>
+            <name>E11.22</name>
+            <desc>Type 2 diabetes mellitus with diabetic chronic kidney disease</desc>
+            <useAdditionalCode>
+              <note>code to identify stage of chronic kidney disease (N18.1-N18.6)</note>
+            </useAdditionalCode>
+          </diag>
+          <diag>
+            <name>E11.29</name>
+            <desc>Type 2 diabetes mellitus with other diabetic kidney complication</desc>
+            <inclusionTerm>
+              <note>Type 2 diabetes mellitus with renal tubular degeneration</note>
+            </inclusionTerm>
+          </diag>
+        </diag>
+        <diag>
+          <name>E11.3</name>
+          <desc>Type 2 diabetes mellitus with ophthalmic complications</desc>
+          <diag>
+            <name>E11.31</name>
+            <desc>Type 2 diabetes mellitus with unspecified diabetic retinopathy</desc>
+            <diag>
+              <name>E11.311</name>
+              <desc>Type 2 diabetes mellitus with unspecified diabetic retinopathy with macular edema</desc>
+            </diag>
+            <diag>
+              <name>E11.319</name>
+              <desc>Type 2 diabetes mellitus with unspecified diabetic retinopathy without macular edema</desc>
+            </diag>
+          </diag>
+          <diag>
+            <name>E11.32</name>
+            <desc>Type 2 diabetes mellitus with mild nonproliferative diabetic retinopathy</desc>
+            <inclusionTerm>
+              <note>Type 2 diabetes mellitus with nonproliferative diabetic retinopathy NOS</note>
+            </inclusionTerm>
+            <sevenChrNote>
+              <note>One of the following 7th characters is to be assigned to codes in subcategory E11.32 to designate laterality of the disease:</note>
+            </sevenChrNote>
+            <sevenChrDef>
+              <extension char="1">right eye</extension>
+              <extension char="2">left eye</extension>
+              <extension char="3">bilateral</extension>
+              <extension char="9">unspecified eye</extension>
+            </sevenChrDef>
+            <diag>
+              <name>E11.321</name>
+              <desc>Type 2 diabetes mellitus with mild nonproliferative diabetic retinopathy with macular edema</desc>
+            </diag>
+            <diag>
+              <name>E11.329</name>
+              <desc>Type 2 diabetes mellitus with mild nonproliferative diabetic retinopathy without macular edema</desc>
+            </diag>
+          </diag>
+          <diag>
+            <name>E11.33</name>
+            <desc>Type 2 diabetes mellitus with moderate nonproliferative diabetic retinopathy</desc>
+            <sevenChrNote>
+              <note>One of the following 7th characters is to be assigned to codes in subcategory E11.33 to designate laterality of the disease:</note>
+            </sevenChrNote>
+            <sevenChrDef>
+              <extension char="1">right eye</extension>
+              <extension char="2">left eye</extension>
+              <extension char="3">bilateral</extension>
+              <extension char="9">unspecified eye</extension>
+            </sevenChrDef>
+            <diag>
+              <name>E11.331</name>
+              <desc>Type 2 diabetes mellitus with moderate nonproliferative diabetic retinopathy with macular edema</desc>
+            </diag>
+            <diag>
+              <name>E11.339</name>
+              <desc>Type 2 diabetes mellitus with moderate nonproliferative diabetic retinopathy without macular edema</desc>
+            </diag>
+          </diag>
+          <diag>
+            <name>E11.34</name>
+            <desc>Type 2 diabetes mellitus with severe nonproliferative diabetic retinopathy</desc>
+            <sevenChrNote>
+              <note>One of the following 7th characters is to be assigned to codes in subcategory E11.34 to designate laterality of the disease:</note>
+            </sevenChrNote>
+            <sevenChrDef>
+              <extension char="1">right eye</extension>
+              <extension char="2">left eye</extension>
+              <extension char="3">bilateral</extension>
+              <extension char="9">unspecified eye</extension>
+            </sevenChrDef>
+            <diag>
+              <name>E11.341</name>
+              <desc>Type 2 diabetes mellitus with severe nonproliferative diabetic retinopathy with macular edema</desc>
+            </diag>
+            <diag>
+              <name>E11.349</name>
+              <desc>Type 2 diabetes mellitus with severe nonproliferative diabetic retinopathy without macular edema</desc>
+            </diag>
+          </diag>
+          <diag>
+            <name>E11.35</name>
+            <desc>Type 2 diabetes mellitus with proliferative diabetic retinopathy</desc>
+            <sevenChrNote>
+              <note>One of the following 7th characters is to be assigned to codes in subcategory E11.35 to designate laterality of the disease:</note>
+            </sevenChrNote>
+            <sevenChrDef>
+              <extension char="1">right eye</extension>
+              <extension char="2">left eye</extension>
+              <extension char="3">bilateral</extension>
+              <extension char="9">unspecified eye</extension>
+            </sevenChrDef>
+            <diag>
+              <name>E11.351</name>
+              <desc>Type 2 diabetes mellitus with proliferative diabetic retinopathy with macular edema</desc>
+            </diag>
+            <diag>
+              <name>E11.352</name>
+              <desc>Type 2 diabetes mellitus with proliferative diabetic retinopathy with traction retinal detachment involving the macula</desc>
+            </diag>
+            <diag>
+              <name>E11.353</name>
+              <desc>Type 2 diabetes mellitus with proliferative diabetic retinopathy with traction retinal detachment not involving the macula</desc>
+            </diag>
+            <diag>
+              <name>E11.354</name>
+              <desc>Type 2 diabetes mellitus with proliferative diabetic retinopathy with combined traction retinal detachment and rhegmatogenous retinal detachment</desc>
+            </diag>
+            <diag>
+              <name>E11.355</name>
+              <desc>Type 2 diabetes mellitus with stable proliferative diabetic retinopathy</desc>
+            </diag>
+            <diag>
+              <name>E11.359</name>
+              <desc>Type 2 diabetes mellitus with proliferative diabetic retinopathy without macular edema</desc>
+            </diag>
+          </diag>
+          <diag>
+            <name>E11.36</name>
+            <desc>Type 2 diabetes mellitus with diabetic cataract</desc>
+          </diag>
+          <diag>
+            <name>E11.37</name>
+            <desc>Type 2 diabetes mellitus with diabetic macular edema, resolved following treatment</desc>
+            <sevenChrNote>
+              <note>One of the following 7th characters is to be assigned to code E11.37 to designate laterality of the disease:</note>
+            </sevenChrNote>
+            <sevenChrDef>
+              <extension char="1">right eye</extension>
+              <extension char="2">left eye</extension>
+              <extension char="3">bilateral</extension>
+              <extension char="9">unspecified eye</extension>
+            </sevenChrDef>
+          </diag>
+          <diag>
+            <name>E11.39</name>
+            <desc>Type 2 diabetes mellitus with other diabetic ophthalmic complication</desc>
+            <useAdditionalCode>
+              <note>code to identify manifestation, such as:</note>
+              <note>diabetic glaucoma (H40-H42)</note>
+            </useAdditionalCode>
+          </diag>
+        </diag>
+        <diag>
+          <name>E11.4</name>
+          <desc>Type 2 diabetes mellitus with neurological complications</desc>
+          <diag>
+            <name>E11.40</name>
+            <desc>Type 2 diabetes mellitus with diabetic neuropathy, unspecified</desc>
+          </diag>
+          <diag>
+            <name>E11.41</name>
+            <desc>Type 2 diabetes mellitus with diabetic mononeuropathy</desc>
+          </diag>
+          <diag>
+            <name>E11.42</name>
+            <desc>Type 2 diabetes mellitus with diabetic polyneuropathy</desc>
+            <inclusionTerm>
+              <note>Type 2 diabetes mellitus with diabetic neuralgia</note>
+            </inclusionTerm>
+          </diag>
+          <diag>
+            <name>E11.43</name>
+            <desc>Type 2 diabetes mellitus with diabetic autonomic (poly)neuropathy</desc>
+            <inclusionTerm>
+              <note>Type 2 diabetes mellitus with diabetic gastroparesis</note>
+            </inclusionTerm>
+          </diag>
+          <diag>
+            <name>E11.44</name>
+            <desc>Type 2 diabetes mellitus with diabetic amyotrophy</desc>
+          </diag>
+          <diag>
+            <name>E11.49</name>
+            <desc>Type 2 diabetes mellitus with other diabetic neurological complication</desc>
+          </diag>
+        </diag>
+        <diag>
+          <name>E11.5</name>
+          <desc>Type 2 diabetes mellitus with circulatory complications</desc>
+          <diag>
+            <name>E11.51</name>
+            <desc>Type 2 diabetes mellitus with diabetic peripheral angiopathy without gangrene</desc>
+          </diag>
+          <diag>
+            <name>E11.52</name>
+            <desc>Type 2 diabetes mellitus with diabetic peripheral angiopathy with gangrene</desc>
+            <inclusionTerm>
+              <note>Type 2 diabetes mellitus with diabetic gangrene</note>
+            </inclusionTerm>
+          </diag>
+          <diag>
+            <name>E11.59</name>
+            <desc>Type 2 diabetes mellitus with other circulatory complications</desc>
+          </diag>
+        </diag>
+        <diag>
+          <name>E11.6</name>
+          <desc>Type 2 diabetes mellitus with other specified complications</desc>
+          <diag>
+            <name>E11.61</name>
+            <desc>Type 2 diabetes mellitus with diabetic arthropathy</desc>
+            <diag>
+              <name>E11.610</name>
+              <desc>Type 2 diabetes mellitus with diabetic neuropathic arthropathy</desc>
+              <inclusionTerm>
+                <note>Type 2 diabetes mellitus with Charcôt's joints</note>
+              </inclusionTerm>
+            </diag>
+            <diag>
+              <name>E11.618</name>
+              <desc>Type 2 diabetes mellitus with other diabetic arthropathy</desc>
+            </diag>
+          </diag>
+          <diag>
+            <name>E11.62</name>
+            <desc>Type 2 diabetes mellitus with skin complications</desc>
+            <diag>
+              <name>E11.620</name>
+              <desc>Type 2 diabetes mellitus with diabetic dermatitis</desc>
+              <inclusionTerm>
+                <note>Type 2 diabetes mellitus with diabetic necrobiosis lipoidica</note>
+              </inclusionTerm>
+            </diag>
+            <diag>
+              <name>E11.621</name>
+              <desc>Type 2 diabetes mellitus with foot ulcer</desc>
+              <useAdditionalCode>
+                <note>code to identify site of ulcer (L97.4-, L97.5-)</note>
+              </useAdditionalCode>
+            </diag>
+            <diag>
+              <name>E11.622</name>
+              <desc>Type 2 diabetes mellitus with other skin ulcer</desc>
+              <useAdditionalCode>
+                <note>code to identify site of ulcer (L97.1-L97.9, L98.41-L98.49)</note>
+              </useAdditionalCode>
+            </diag>
+            <diag>
+              <name>E11.628</name>
+              <desc>Type 2 diabetes mellitus with other skin complications</desc>
+            </diag>
+          </diag>
+          <diag>
+            <name>E11.63</name>
+            <desc>Type 2 diabetes mellitus with oral complications</desc>
+            <diag>
+              <name>E11.630</name>
+              <desc>Type 2 diabetes mellitus with periodontal disease</desc>
+            </diag>
+            <diag>
+              <name>E11.638</name>
+              <desc>Type 2 diabetes mellitus with other oral complications</desc>
+            </diag>
+          </diag>
+          <diag>
+            <name>E11.64</name>
+            <desc>Type 2 diabetes mellitus with hypoglycemia</desc>
+            <useAdditionalCode>
+              <note>code for hypoglycemia level, if applicable (E16.A-)</note>
+            </useAdditionalCode>
+            <diag>
+              <name>E11.641</name>
+              <desc>Type 2 diabetes mellitus with hypoglycemia with coma</desc>
+            </diag>
+            <diag>
+              <name>E11.649</name>
+              <desc>Type 2 diabetes mellitus with hypoglycemia without coma</desc>
+            </diag>
+          </diag>
+          <diag>
+            <name>E11.65</name>
+            <desc>Type 2 diabetes mellitus with hyperglycemia</desc>
+          </diag>
+          <diag>
+            <name>E11.69</name>
+            <desc>Type 2 diabetes mellitus with other specified complication</desc>
+            <useAdditionalCode>
+              <note>code to identify complication</note>
+            </useAdditionalCode>
+          </diag>
+        </diag>
+        <diag>
+          <name>E11.8</name>
+          <desc>Type 2 diabetes mellitus with unspecified complications</desc>
+        </diag>
+        <diag>
+          <name>E11.9</name>
+          <desc>Type 2 diabetes mellitus without complications</desc>
+          <excludes1>
+            <note>type 2 diabetes mellitus, without complications in remission (E11.A)</note>
+          </excludes1>
+        </diag>
+        <diag>
+          <name>E11.A</name>
+          <desc>Type 2 diabetes mellitus without complications in remission</desc>
+          <excludes1>
+            <note>type 2 diabetes mellitus, with complications  (E11.0-E11.8)</note>
+            <note>type 2 diabetes mellitus, without complications not in remission (E11.9)</note>
+          </excludes1>
+        </diag>
+      </diag>
+      <diag>
+        <name>E13</name>
+        <desc>Other specified diabetes mellitus</desc>
+        <includes>
+          <note>diabetes mellitus due to genetic defects of beta-cell function</note>
+          <note>diabetes mellitus due to genetic defects in insulin action</note>
+          <note>postpancreatectomy diabetes mellitus</note>
+          <note>postprocedural diabetes mellitus</note>
+          <note>secondary diabetes mellitus NEC</note>
+        </includes>
+        <useAdditionalCode>
+          <note>code to identify control using:</note>
+          <note>injectable non-insulin antidiabetic drugs (Z79.85)</note>
+          <note>insulin (Z79.4)</note>
+          <note>oral antidiabetic drugs (Z79.84)</note>
+          <note>oral hypoglycemic drugs (Z79.84)</note>
+        </useAdditionalCode>
+        <excludes1>
+          <note>diabetes (mellitus) due to autoimmune process (E10.-)</note>
+          <note>diabetes (mellitus) due to immune mediated pancreatic islet beta-cell destruction (E10.-)</note>
+          <note>diabetes mellitus due to underlying condition (E08.-)</note>
+          <note>drug or chemical induced diabetes mellitus (E09.-)</note>
+          <note>gestational diabetes (O24.4-)</note>
+          <note>neonatal diabetes mellitus (P70.2)</note>
+          <note>type 1 diabetes mellitus (E10.-)</note>
+        </excludes1>
+        <diag>
+          <name>E13.0</name>
+          <desc>Other specified diabetes mellitus with hyperosmolarity</desc>
+          <diag>
+            <name>E13.00</name>
+            <desc>Other specified diabetes mellitus with hyperosmolarity without nonketotic hyperglycemic-hyperosmolar coma (NKHHC)</desc>
+          </diag>
+          <diag>
+            <name>E13.01</name>
+            <desc>Other specified diabetes mellitus with hyperosmolarity with coma</desc>
+          </diag>
+        </diag>
+        <diag>
+          <name>E13.1</name>
+          <desc>Other specified diabetes mellitus with ketoacidosis</desc>
+          <diag>
+            <name>E13.10</name>
+            <desc>Other specified diabetes mellitus with ketoacidosis without coma</desc>
+          </diag>
+          <diag>
+            <name>E13.11</name>
+            <desc>Other specified diabetes mellitus with ketoacidosis with coma</desc>
+          </diag>
+        </diag>
+        <diag>
+          <name>E13.2</name>
+          <desc>Other specified diabetes mellitus with kidney complications</desc>
+          <diag>
+            <name>E13.21</name>
+            <desc>Other specified diabetes mellitus with diabetic nephropathy</desc>
+            <inclusionTerm>
+              <note>Other specified diabetes mellitus with intercapillary glomerulosclerosis</note>
+              <note>Other specified diabetes mellitus with intracapillary glomerulonephrosis</note>
+              <note>Other specified diabetes mellitus with Kimmelstiel-Wilson disease</note>
+            </inclusionTerm>
+          </diag>
+          <diag>
+            <name>E13.22</name>
+            <desc>Other specified diabetes mellitus with diabetic chronic kidney disease</desc>
+            <useAdditionalCode>
+              <note>code to identify stage of chronic kidney disease (N18.1-N18.6)</note>
+            </useAdditionalCode>
+          </diag>
+          <diag>
+            <name>E13.29</name>
+            <desc>Other specified diabetes mellitus with other diabetic kidney complication</desc>
+            <inclusionTerm>
+              <note>Other specified diabetes mellitus with renal tubular degeneration</note>
+            </inclusionTerm>
+          </diag>
+        </diag>
+        <diag>
+          <name>E13.3</name>
+          <desc>Other specified diabetes mellitus with ophthalmic complications</desc>
+          <diag>
+            <name>E13.31</name>
+            <desc>Other specified diabetes mellitus with unspecified diabetic retinopathy</desc>
+            <diag>
+              <name>E13.311</name>
+              <desc>Other specified diabetes mellitus with unspecified diabetic retinopathy with macular edema</desc>
+            </diag>
+            <diag>
+              <name>E13.319</name>
+              <desc>Other specified diabetes mellitus with unspecified diabetic retinopathy without macular edema</desc>
+            </diag>
+          </diag>
+          <diag>
+            <name>E13.32</name>
+            <desc>Other specified diabetes mellitus with mild nonproliferative diabetic retinopathy</desc>
+            <inclusionTerm>
+              <note>Other specified diabetes mellitus with nonproliferative diabetic retinopathy NOS</note>
+            </inclusionTerm>
+            <sevenChrNote>
+              <note>One of the following 7th characters is to be assigned to codes in subcategory E13.32 to designate laterality of the disease:</note>
+            </sevenChrNote>
+            <sevenChrDef>
+              <extension char="1">right eye</extension>
+              <extension char="2">left eye</extension>
+              <extension char="3">bilateral</extension>
+              <extension char="9">unspecified eye</extension>
+            </sevenChrDef>
+            <diag>
+              <name>E13.321</name>
+              <desc>Other specified diabetes mellitus with mild nonproliferative diabetic retinopathy with macular edema</desc>
+            </diag>
+            <diag>
+              <name>E13.329</name>
+              <desc>Other specified diabetes mellitus with mild nonproliferative diabetic retinopathy without macular edema</desc>
+            </diag>
+          </diag>
+          <diag>
+            <name>E13.33</name>
+            <desc>Other specified diabetes mellitus with moderate nonproliferative diabetic retinopathy</desc>
+            <sevenChrNote>
+              <note>One of the following 7th characters is to be assigned to codes in subcategory E13.33 to designate laterality of the disease:</note>
+            </sevenChrNote>
+            <sevenChrDef>
+              <extension char="1">right eye</extension>
+              <extension char="2">left eye</extension>
+              <extension char="3">bilateral</extension>
+              <extension char="9">unspecified eye</extension>
+            </sevenChrDef>
+            <diag>
+              <name>E13.331</name>
+              <desc>Other specified diabetes mellitus with moderate nonproliferative diabetic retinopathy with macular edema</desc>
+            </diag>
+            <diag>
+              <name>E13.339</name>
+              <desc>Other specified diabetes mellitus with moderate nonproliferative diabetic retinopathy without macular edema</desc>
+            </diag>
+          </diag>
+          <diag>
+            <name>E13.34</name>
+            <desc>Other specified diabetes mellitus with severe nonproliferative diabetic retinopathy</desc>
+            <sevenChrNote>
+              <note>One of the following 7th characters is to be assigned to codes in subcategory E13.34 to designate laterality of the disease:</note>
+            </sevenChrNote>
+            <sevenChrDef>
+              <extension char="1">right eye</extension>
+              <extension char="2">left eye</extension>
+              <extension char="3">bilateral</extension>
+              <extension char="9">unspecified eye</extension>
+            </sevenChrDef>
+            <diag>
+              <name>E13.341</name>
+              <desc>Other specified diabetes mellitus with severe nonproliferative diabetic retinopathy with macular edema</desc>
+            </diag>
+            <diag>
+              <name>E13.349</name>
+              <desc>Other specified diabetes mellitus with severe nonproliferative diabetic retinopathy without macular edema</desc>
+            </diag>
+          </diag>
+          <diag>
+            <name>E13.35</name>
+            <desc>Other specified diabetes mellitus with proliferative diabetic retinopathy</desc>
+            <sevenChrNote>
+              <note>One of the following 7th characters is to be assigned to codes in subcategory E13.35 to designate laterality of the disease:</note>
+            </sevenChrNote>
+            <sevenChrDef>
+              <extension char="1">right eye</extension>
+              <extension char="2">left eye</extension>
+              <extension char="3">bilateral</extension>
+              <extension char="9">unspecified eye</extension>
+            </sevenChrDef>
+            <diag>
+              <name>E13.351</name>
+              <desc>Other specified diabetes mellitus with proliferative diabetic retinopathy with macular edema</desc>
+            </diag>
+            <diag>
+              <name>E13.352</name>
+              <desc>Other specified diabetes mellitus with proliferative diabetic retinopathy with traction retinal detachment involving the macula</desc>
+            </diag>
+            <diag>
+              <name>E13.353</name>
+              <desc>Other specified diabetes mellitus with proliferative diabetic retinopathy with traction retinal detachment not involving the macula</desc>
+            </diag>
+            <diag>
+              <name>E13.354</name>
+              <desc>Other specified diabetes mellitus with proliferative diabetic retinopathy with combined traction retinal detachment and rhegmatogenous retinal detachment</desc>
+            </diag>
+            <diag>
+              <name>E13.355</name>
+              <desc>Other specified diabetes mellitus with stable proliferative diabetic retinopathy</desc>
+            </diag>
+            <diag>
+              <name>E13.359</name>
+              <desc>Other specified diabetes mellitus with proliferative diabetic retinopathy without macular edema</desc>
+            </diag>
+          </diag>
+          <diag>
+            <name>E13.36</name>
+            <desc>Other specified diabetes mellitus with diabetic cataract</desc>
+          </diag>
+          <diag>
+            <name>E13.37</name>
+            <desc>Other specified diabetes mellitus with diabetic macular edema, resolved following treatment</desc>
+            <sevenChrNote>
+              <note>One of the following 7th characters is to be assigned to code E13.37 to designate laterality of the disease:</note>
+            </sevenChrNote>
+            <sevenChrDef>
+              <extension char="1">right eye</extension>
+              <extension char="2">left eye</extension>
+              <extension char="3">bilateral</extension>
+              <extension char="9">unspecified eye</extension>
+            </sevenChrDef>
+          </diag>
+          <diag>
+            <name>E13.39</name>
+            <desc>Other specified diabetes mellitus with other diabetic ophthalmic complication</desc>
+            <useAdditionalCode>
+              <note>code to identify manifestation, such as:</note>
+              <note>diabetic glaucoma (H40-H42)</note>
+            </useAdditionalCode>
+          </diag>
+        </diag>
+        <diag>
+          <name>E13.4</name>
+          <desc>Other specified diabetes mellitus with neurological complications</desc>
+          <diag>
+            <name>E13.40</name>
+            <desc>Other specified diabetes mellitus with diabetic neuropathy, unspecified</desc>
+          </diag>
+          <diag>
+            <name>E13.41</name>
+            <desc>Other specified diabetes mellitus with diabetic mononeuropathy</desc>
+          </diag>
+          <diag>
+            <name>E13.42</name>
+            <desc>Other specified diabetes mellitus with diabetic polyneuropathy</desc>
+            <inclusionTerm>
+              <note>Other specified diabetes mellitus with diabetic neuralgia</note>
+            </inclusionTerm>
+          </diag>
+          <diag>
+            <name>E13.43</name>
+            <desc>Other specified diabetes mellitus with diabetic autonomic (poly)neuropathy</desc>
+            <inclusionTerm>
+              <note>Other specified diabetes mellitus with diabetic gastroparesis</note>
+            </inclusionTerm>
+          </diag>
+          <diag>
+            <name>E13.44</name>
+            <desc>Other specified diabetes mellitus with diabetic amyotrophy</desc>
+          </diag>
+          <diag>
+            <name>E13.49</name>
+            <desc>Other specified diabetes mellitus with other diabetic neurological complication</desc>
+          </diag>
+        </diag>
+        <diag>
+          <name>E13.5</name>
+          <desc>Other specified diabetes mellitus with circulatory complications</desc>
+          <diag>
+            <name>E13.51</name>
+            <desc>Other specified diabetes mellitus with diabetic peripheral angiopathy without gangrene</desc>
+          </diag>
+          <diag>
+            <name>E13.52</name>
+            <desc>Other specified diabetes mellitus with diabetic peripheral angiopathy with gangrene</desc>
+            <inclusionTerm>
+              <note>Other specified diabetes mellitus with diabetic gangrene</note>
+            </inclusionTerm>
+          </diag>
+          <diag>
+            <name>E13.59</name>
+            <desc>Other specified diabetes mellitus with other circulatory complications</desc>
+          </diag>
+        </diag>
+        <diag>
+          <name>E13.6</name>
+          <desc>Other specified diabetes mellitus with other specified complications</desc>
+          <diag>
+            <name>E13.61</name>
+            <desc>Other specified diabetes mellitus with diabetic arthropathy</desc>
+            <diag>
+              <name>E13.610</name>
+              <desc>Other specified diabetes mellitus with diabetic neuropathic arthropathy</desc>
+              <inclusionTerm>
+                <note>Other specified diabetes mellitus with Charcôt's joints</note>
+              </inclusionTerm>
+            </diag>
+            <diag>
+              <name>E13.618</name>
+              <desc>Other specified diabetes mellitus with other diabetic arthropathy</desc>
+            </diag>
+          </diag>
+          <diag>
+            <name>E13.62</name>
+            <desc>Other specified diabetes mellitus with skin complications</desc>
+            <diag>
+              <name>E13.620</name>
+              <desc>Other specified diabetes mellitus with diabetic dermatitis</desc>
+              <inclusionTerm>
+                <note>Other specified diabetes mellitus with diabetic necrobiosis lipoidica</note>
+              </inclusionTerm>
+            </diag>
+            <diag>
+              <name>E13.621</name>
+              <desc>Other specified diabetes mellitus with foot ulcer</desc>
+              <useAdditionalCode>
+                <note>code to identify site of ulcer (L97.4-, L97.5-)</note>
+              </useAdditionalCode>
+            </diag>
+            <diag>
+              <name>E13.622</name>
+              <desc>Other specified diabetes mellitus with other skin ulcer</desc>
+              <useAdditionalCode>
+                <note>code to identify site of ulcer (L97.1-L97.9, L98.41-L98.49)</note>
+              </useAdditionalCode>
+            </diag>
+            <diag>
+              <name>E13.628</name>
+              <desc>Other specified diabetes mellitus with other skin complications</desc>
+            </diag>
+          </diag>
+          <diag>
+            <name>E13.63</name>
+            <desc>Other specified diabetes mellitus with oral complications</desc>
+            <diag>
+              <name>E13.630</name>
+              <desc>Other specified diabetes mellitus with periodontal disease</desc>
+            </diag>
+            <diag>
+              <name>E13.638</name>
+              <desc>Other specified diabetes mellitus with other oral complications</desc>
+            </diag>
+          </diag>
+          <diag>
+            <name>E13.64</name>
+            <desc>Other specified diabetes mellitus with hypoglycemia</desc>
+            <useAdditionalCode>
+              <note>code for hypoglycemia level, if applicable (E16.A-)</note>
+            </useAdditionalCode>
+            <diag>
+              <name>E13.641</name>
+              <desc>Other specified diabetes mellitus with hypoglycemia with coma</desc>
+            </diag>
+            <diag>
+              <name>E13.649</name>
+              <desc>Other specified diabetes mellitus with hypoglycemia without coma</desc>
+            </diag>
+          </diag>
+          <diag>
+            <name>E13.65</name>
+            <desc>Other specified diabetes mellitus with hyperglycemia</desc>
+          </diag>
+          <diag>
+            <name>E13.69</name>
+            <desc>Other specified diabetes mellitus with other specified complication</desc>
+            <useAdditionalCode>
+              <note>code to identify complication</note>
+            </useAdditionalCode>
+          </diag>
+        </diag>
+        <diag>
+          <name>E13.8</name>
+          <desc>Other specified diabetes mellitus with unspecified complications</desc>
+        </diag>
+        <diag>
+          <name>E13.9</name>
+          <desc>Other specified diabetes mellitus without complications</desc>
+        </diag>
+      </diag>
+    </section>
+</ICD10CM.tabular>

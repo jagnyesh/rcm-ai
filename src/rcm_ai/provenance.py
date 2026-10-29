@@ -1,0 +1,43 @@
+import hashlib
+import json
+from dataclasses import dataclass
+from pathlib import Path
+
+MANIFEST = "MANIFEST.json"
+
+
+class ProvenanceError(Exception):
+    pass
+
+
+@dataclass(frozen=True)
+class FixtureSource:
+    path: str
+    source_url: str
+    version: str
+    retrieved: str
+    license: str
+    record_kind: str
+    record_count: int
+    sha256: str
+
+
+def verify_fixtures(fixtures_dir: Path) -> list[FixtureSource]:
+    entries = json.loads((fixtures_dir / MANIFEST).read_text())["fixtures"]
+    records = [
+        FixtureSource(**{k: e[k] for k in FixtureSource.__dataclass_fields__})
+        for e in entries
+    ]
+    for r in records:
+        actual = hashlib.sha256((fixtures_dir / r.path).read_bytes()).hexdigest()
+        if actual != r.sha256:
+            raise ProvenanceError(f"{r.path}: sha256 {actual} != manifest {r.sha256}")
+    on_disk = {
+        p.relative_to(fixtures_dir).as_posix()
+        for p in fixtures_dir.rglob("*")
+        if p.is_file() and p.name != MANIFEST and not p.name.startswith(".")
+    }
+    unlisted = sorted(on_disk - {r.path for r in records})
+    if unlisted:
+        raise ProvenanceError(f"fixtures without a manifest entry: {', '.join(unlisted)}")
+    return records

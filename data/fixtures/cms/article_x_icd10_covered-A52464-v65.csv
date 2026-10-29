@@ -1,0 +1,462 @@
+article_id,article_version,icd10_code_id,icd10_code_version,icd10_covered_group,range,sort_order,description,last_updated,asterisk
+52464,65,E08.00,17,1,N,3954,Diabetes mellitus due to underlying condition with hyperosmolarity without nonketotic hyperglycemic-hyperosmolar coma (NKHHC),2026-04-15 12:46:44,N
+52464,65,E08.01,17,1,N,3955,Diabetes mellitus due to underlying condition with hyperosmolarity with coma,2026-04-15 12:46:44,N
+52464,65,E08.10,17,1,N,3957,Diabetes mellitus due to underlying condition with ketoacidosis without coma,2026-04-15 12:46:44,N
+52464,65,E08.11,17,1,N,3958,Diabetes mellitus due to underlying condition with ketoacidosis with coma,2026-04-15 12:46:44,N
+52464,65,E08.21,17,1,N,3960,Diabetes mellitus due to underlying condition with diabetic nephropathy,2026-04-15 12:46:44,N
+52464,65,E08.22,17,1,N,3961,Diabetes mellitus due to underlying condition with diabetic chronic kidney disease,2026-04-15 12:46:44,N
+52464,65,E08.29,17,1,N,3962,Diabetes mellitus due to underlying condition with other diabetic kidney complication,2026-04-15 12:46:44,N
+52464,65,E08.311,17,1,N,3965,Diabetes mellitus due to underlying condition with unspecified diabetic retinopathy with macular edema,2026-04-15 12:46:44,N
+52464,65,E08.319,17,1,N,3966,Diabetes mellitus due to underlying condition with unspecified diabetic retinopathy without macular edema,2026-04-15 12:46:44,N
+52464,65,E08.3211,17,1,N,3969,"Diabetes mellitus due to underlying condition with mild nonproliferative diabetic retinopathy with macular edema, right eye",2026-04-15 12:46:44,N
+52464,65,E08.3212,17,1,N,3970,"Diabetes mellitus due to underlying condition with mild nonproliferative diabetic retinopathy with macular edema, left eye",2026-04-15 12:46:44,N
+52464,65,E08.3213,17,1,N,3971,"Diabetes mellitus due to underlying condition with mild nonproliferative diabetic retinopathy with macular edema, bilateral",2026-04-15 12:46:44,N
+52464,65,E08.3219,17,1,N,3972,"Diabetes mellitus due to underlying condition with mild nonproliferative diabetic retinopathy with macular edema, unspecified eye",2026-04-15 12:46:44,N
+52464,65,E08.3291,17,1,N,3974,"Diabetes mellitus due to underlying condition with mild nonproliferative diabetic retinopathy without macular edema, right eye",2026-04-15 12:46:44,N
+52464,65,E08.3292,17,1,N,3975,"Diabetes mellitus due to underlying condition with mild nonproliferative diabetic retinopathy without macular edema, left eye",2026-04-15 12:46:44,N
+52464,65,E08.3293,17,1,N,3976,"Diabetes mellitus due to underlying condition with mild nonproliferative diabetic retinopathy without macular edema, bilateral",2026-04-15 12:46:44,N
+52464,65,E08.3299,17,1,N,3977,"Diabetes mellitus due to underlying condition with mild nonproliferative diabetic retinopathy without macular edema, unspecified eye",2026-04-15 12:46:44,N
+52464,65,E08.3311,17,1,N,3980,"Diabetes mellitus due to underlying condition with moderate nonproliferative diabetic retinopathy with macular edema, right eye",2026-04-15 12:46:44,N
+52464,65,E08.3312,17,1,N,3981,"Diabetes mellitus due to underlying condition with moderate nonproliferative diabetic retinopathy with macular edema, left eye",2026-04-15 12:46:44,N
+52464,65,E08.3313,17,1,N,3982,"Diabetes mellitus due to underlying condition with moderate nonproliferative diabetic retinopathy with macular edema, bilateral",2026-04-15 12:46:44,N
+52464,65,E08.3319,17,1,N,3983,"Diabetes mellitus due to underlying condition with moderate nonproliferative diabetic retinopathy with macular edema, unspecified eye",2026-04-15 12:46:44,N
+52464,65,E08.3391,17,1,N,3985,"Diabetes mellitus due to underlying condition with moderate nonproliferative diabetic retinopathy without macular edema, right eye",2026-04-15 12:46:44,N
+52464,65,E08.3392,17,1,N,3986,"Diabetes mellitus due to underlying condition with moderate nonproliferative diabetic retinopathy without macular edema, left eye",2026-04-15 12:46:44,N
+52464,65,E08.3393,17,1,N,3987,"Diabetes mellitus due to underlying condition with moderate nonproliferative diabetic retinopathy without macular edema, bilateral",2026-04-15 12:46:44,N
+52464,65,E08.3399,17,1,N,3988,"Diabetes mellitus due to underlying condition with moderate nonproliferative diabetic retinopathy without macular edema, unspecified eye",2026-04-15 12:46:44,N
+52464,65,E08.3411,17,1,N,3991,"Diabetes mellitus due to underlying condition with severe nonproliferative diabetic retinopathy with macular edema, right eye",2026-04-15 12:46:44,N
+52464,65,E08.3412,17,1,N,3992,"Diabetes mellitus due to underlying condition with severe nonproliferative diabetic retinopathy with macular edema, left eye",2026-04-15 12:46:44,N
+52464,65,E08.3413,17,1,N,3993,"Diabetes mellitus due to underlying condition with severe nonproliferative diabetic retinopathy with macular edema, bilateral",2026-04-15 12:46:44,N
+52464,65,E08.3419,17,1,N,3994,"Diabetes mellitus due to underlying condition with severe nonproliferative diabetic retinopathy with macular edema, unspecified eye",2026-04-15 12:46:44,N
+52464,65,E08.3491,17,1,N,3996,"Diabetes mellitus due to underlying condition with severe nonproliferative diabetic retinopathy without macular edema, right eye",2026-04-15 12:46:44,N
+52464,65,E08.3492,17,1,N,3997,"Diabetes mellitus due to underlying condition with severe nonproliferative diabetic retinopathy without macular edema, left eye",2026-04-15 12:46:44,N
+52464,65,E08.3493,17,1,N,3998,"Diabetes mellitus due to underlying condition with severe nonproliferative diabetic retinopathy without macular edema, bilateral",2026-04-15 12:46:44,N
+52464,65,E08.3499,17,1,N,3999,"Diabetes mellitus due to underlying condition with severe nonproliferative diabetic retinopathy without macular edema, unspecified eye",2026-04-15 12:46:44,N
+52464,65,E08.3511,17,1,N,4002,"Diabetes mellitus due to underlying condition with proliferative diabetic retinopathy with macular edema, right eye",2026-04-15 12:46:44,N
+52464,65,E08.3512,17,1,N,4003,"Diabetes mellitus due to underlying condition with proliferative diabetic retinopathy with macular edema, left eye",2026-04-15 12:46:44,N
+52464,65,E08.3513,17,1,N,4004,"Diabetes mellitus due to underlying condition with proliferative diabetic retinopathy with macular edema, bilateral",2026-04-15 12:46:44,N
+52464,65,E08.3519,17,1,N,4005,"Diabetes mellitus due to underlying condition with proliferative diabetic retinopathy with macular edema, unspecified eye",2026-04-15 12:46:44,N
+52464,65,E08.3521,17,1,N,4007,"Diabetes mellitus due to underlying condition with proliferative diabetic retinopathy with traction retinal detachment involving the macula, right eye",2026-04-15 12:46:44,N
+52464,65,E08.3522,17,1,N,4008,"Diabetes mellitus due to underlying condition with proliferative diabetic retinopathy with traction retinal detachment involving the macula, left eye",2026-04-15 12:46:44,N
+52464,65,E08.3523,17,1,N,4009,"Diabetes mellitus due to underlying condition with proliferative diabetic retinopathy with traction retinal detachment involving the macula, bilateral",2026-04-15 12:46:44,N
+52464,65,E08.3529,17,1,N,4010,"Diabetes mellitus due to underlying condition with proliferative diabetic retinopathy with traction retinal detachment involving the macula, unspecified eye",2026-04-15 12:46:44,N
+52464,65,E08.3531,17,1,N,4012,"Diabetes mellitus due to underlying condition with proliferative diabetic retinopathy with traction retinal detachment not involving the macula, right eye",2026-04-15 12:46:44,N
+52464,65,E08.3532,17,1,N,4013,"Diabetes mellitus due to underlying condition with proliferative diabetic retinopathy with traction retinal detachment not involving the macula, left eye",2026-04-15 12:46:44,N
+52464,65,E08.3533,17,1,N,4014,"Diabetes mellitus due to underlying condition with proliferative diabetic retinopathy with traction retinal detachment not involving the macula, bilateral",2026-04-15 12:46:44,N
+52464,65,E08.3539,17,1,N,4015,"Diabetes mellitus due to underlying condition with proliferative diabetic retinopathy with traction retinal detachment not involving the macula, unspecified eye",2026-04-15 12:46:44,N
+52464,65,E08.3541,17,1,N,4017,"Diabetes mellitus due to underlying condition with proliferative diabetic retinopathy with combined traction retinal detachment and rhegmatogenous retinal detachment, right eye",2026-04-15 12:46:44,N
+52464,65,E08.3542,17,1,N,4018,"Diabetes mellitus due to underlying condition with proliferative diabetic retinopathy with combined traction retinal detachment and rhegmatogenous retinal detachment, left eye",2026-04-15 12:46:44,N
+52464,65,E08.3543,17,1,N,4019,"Diabetes mellitus due to underlying condition with proliferative diabetic retinopathy with combined traction retinal detachment and rhegmatogenous retinal detachment, bilateral",2026-04-15 12:46:44,N
+52464,65,E08.3549,17,1,N,4020,"Diabetes mellitus due to underlying condition with proliferative diabetic retinopathy with combined traction retinal detachment and rhegmatogenous retinal detachment, unspecified eye",2026-04-15 12:46:44,N
+52464,65,E08.3551,17,1,N,4022,"Diabetes mellitus due to underlying condition with stable proliferative diabetic retinopathy, right eye",2026-04-15 12:46:44,N
+52464,65,E08.3552,17,1,N,4023,"Diabetes mellitus due to underlying condition with stable proliferative diabetic retinopathy, left eye",2026-04-15 12:46:44,N
+52464,65,E08.3553,17,1,N,4024,"Diabetes mellitus due to underlying condition with stable proliferative diabetic retinopathy, bilateral",2026-04-15 12:46:44,N
+52464,65,E08.3559,17,1,N,4025,"Diabetes mellitus due to underlying condition with stable proliferative diabetic retinopathy, unspecified eye",2026-04-15 12:46:44,N
+52464,65,E08.3591,17,1,N,4027,"Diabetes mellitus due to underlying condition with proliferative diabetic retinopathy without macular edema, right eye",2026-04-15 12:46:44,N
+52464,65,E08.3592,17,1,N,4028,"Diabetes mellitus due to underlying condition with proliferative diabetic retinopathy without macular edema, left eye",2026-04-15 12:46:44,N
+52464,65,E08.3593,17,1,N,4029,"Diabetes mellitus due to underlying condition with proliferative diabetic retinopathy without macular edema, bilateral",2026-04-15 12:46:44,N
+52464,65,E08.3599,17,1,N,4030,"Diabetes mellitus due to underlying condition with proliferative diabetic retinopathy without macular edema, unspecified eye",2026-04-15 12:46:44,N
+52464,65,E08.36,17,1,N,4031,Diabetes mellitus due to underlying condition with diabetic cataract,2026-04-15 12:46:44,N
+52464,65,E08.37X1,17,1,N,4033,"Diabetes mellitus due to underlying condition with diabetic macular edema, resolved following treatment, right eye",2026-04-15 12:46:44,N
+52464,65,E08.37X2,17,1,N,4034,"Diabetes mellitus due to underlying condition with diabetic macular edema, resolved following treatment, left eye",2026-04-15 12:46:44,N
+52464,65,E08.37X3,17,1,N,4035,"Diabetes mellitus due to underlying condition with diabetic macular edema, resolved following treatment, bilateral",2026-04-15 12:46:44,N
+52464,65,E08.37X9,17,1,N,4036,"Diabetes mellitus due to underlying condition with diabetic macular edema, resolved following treatment, unspecified eye",2026-04-15 12:46:44,N
+52464,65,E08.39,17,1,N,4037,Diabetes mellitus due to underlying condition with other diabetic ophthalmic complication,2026-04-15 12:46:44,N
+52464,65,E08.40,17,1,N,4039,"Diabetes mellitus due to underlying condition with diabetic neuropathy, unspecified",2026-04-15 12:46:44,N
+52464,65,E08.41,17,1,N,4040,Diabetes mellitus due to underlying condition with diabetic mononeuropathy,2026-04-15 12:46:44,N
+52464,65,E08.42,17,1,N,4041,Diabetes mellitus due to underlying condition with diabetic polyneuropathy,2026-04-15 12:46:44,N
+52464,65,E08.43,17,1,N,4042,Diabetes mellitus due to underlying condition with diabetic autonomic (poly)neuropathy,2026-04-15 12:46:44,N
+52464,65,E08.44,17,1,N,4043,Diabetes mellitus due to underlying condition with diabetic amyotrophy,2026-04-15 12:46:44,N
+52464,65,E08.49,17,1,N,4044,Diabetes mellitus due to underlying condition with other diabetic neurological complication,2026-04-15 12:46:44,N
+52464,65,E08.51,17,1,N,4046,Diabetes mellitus due to underlying condition with diabetic peripheral angiopathy without gangrene,2026-04-15 12:46:44,N
+52464,65,E08.52,17,1,N,4047,Diabetes mellitus due to underlying condition with diabetic peripheral angiopathy with gangrene,2026-04-15 12:46:44,N
+52464,65,E08.59,17,1,N,4048,Diabetes mellitus due to underlying condition with other circulatory complications,2026-04-15 12:46:44,N
+52464,65,E08.610,17,1,N,4051,Diabetes mellitus due to underlying condition with diabetic neuropathic arthropathy,2026-04-15 12:46:44,N
+52464,65,E08.618,17,1,N,4052,Diabetes mellitus due to underlying condition with other diabetic arthropathy,2026-04-15 12:46:44,N
+52464,65,E08.620,17,1,N,4054,Diabetes mellitus due to underlying condition with diabetic dermatitis,2026-04-15 12:46:44,N
+52464,65,E08.621,17,1,N,4055,Diabetes mellitus due to underlying condition with foot ulcer,2026-04-15 12:46:44,N
+52464,65,E08.622,17,1,N,4056,Diabetes mellitus due to underlying condition with other skin ulcer,2026-04-15 12:46:44,N
+52464,65,E08.628,17,1,N,4057,Diabetes mellitus due to underlying condition with other skin complications,2026-04-15 12:46:44,N
+52464,65,E08.630,17,1,N,4059,Diabetes mellitus due to underlying condition with periodontal disease,2026-04-15 12:46:44,N
+52464,65,E08.638,17,1,N,4060,Diabetes mellitus due to underlying condition with other oral complications,2026-04-15 12:46:44,N
+52464,65,E08.641,17,1,N,4062,Diabetes mellitus due to underlying condition with hypoglycemia with coma,2026-04-15 12:46:44,N
+52464,65,E08.649,17,1,N,4063,Diabetes mellitus due to underlying condition with hypoglycemia without coma,2026-04-15 12:46:44,N
+52464,65,E08.65,17,1,N,4064,Diabetes mellitus due to underlying condition with hyperglycemia,2026-04-15 12:46:44,N
+52464,65,E08.69,17,1,N,4065,Diabetes mellitus due to underlying condition with other specified complication,2026-04-15 12:46:44,N
+52464,65,E08.8,17,1,N,4066,Diabetes mellitus due to underlying condition with unspecified complications,2026-04-15 12:46:44,N
+52464,65,E08.9,17,1,N,4067,Diabetes mellitus due to underlying condition without complications,2026-04-15 12:46:44,N
+52464,65,E09.00,17,1,N,4070,Drug or chemical induced diabetes mellitus with hyperosmolarity without nonketotic hyperglycemic-hyperosmolar coma (NKHHC),2026-04-15 12:46:44,N
+52464,65,E09.01,17,1,N,4071,Drug or chemical induced diabetes mellitus with hyperosmolarity with coma,2026-04-15 12:46:44,N
+52464,65,E09.10,17,1,N,4073,Drug or chemical induced diabetes mellitus with ketoacidosis without coma,2026-04-15 12:46:44,N
+52464,65,E09.11,17,1,N,4074,Drug or chemical induced diabetes mellitus with ketoacidosis with coma,2026-04-15 12:46:44,N
+52464,65,E09.21,17,1,N,4076,Drug or chemical induced diabetes mellitus with diabetic nephropathy,2026-04-15 12:46:44,N
+52464,65,E09.22,17,1,N,4077,Drug or chemical induced diabetes mellitus with diabetic chronic kidney disease,2026-04-15 12:46:44,N
+52464,65,E09.29,17,1,N,4078,Drug or chemical induced diabetes mellitus with other diabetic kidney complication,2026-04-15 12:46:44,N
+52464,65,E09.311,17,1,N,4081,Drug or chemical induced diabetes mellitus with unspecified diabetic retinopathy with macular edema,2026-04-15 12:46:44,N
+52464,65,E09.319,17,1,N,4082,Drug or chemical induced diabetes mellitus with unspecified diabetic retinopathy without macular edema,2026-04-15 12:46:44,N
+52464,65,E09.3211,17,1,N,4085,"Drug or chemical induced diabetes mellitus with mild nonproliferative diabetic retinopathy with macular edema, right eye",2026-04-15 12:46:44,N
+52464,65,E09.3212,17,1,N,4086,"Drug or chemical induced diabetes mellitus with mild nonproliferative diabetic retinopathy with macular edema, left eye",2026-04-15 12:46:44,N
+52464,65,E09.3213,17,1,N,4087,"Drug or chemical induced diabetes mellitus with mild nonproliferative diabetic retinopathy with macular edema, bilateral",2026-04-15 12:46:44,N
+52464,65,E09.3219,17,1,N,4088,"Drug or chemical induced diabetes mellitus with mild nonproliferative diabetic retinopathy with macular edema, unspecified eye",2026-04-15 12:46:44,N
+52464,65,E09.3291,17,1,N,4090,"Drug or chemical induced diabetes mellitus with mild nonproliferative diabetic retinopathy without macular edema, right eye",2026-04-15 12:46:44,N
+52464,65,E09.3292,17,1,N,4091,"Drug or chemical induced diabetes mellitus with mild nonproliferative diabetic retinopathy without macular edema, left eye",2026-04-15 12:46:44,N
+52464,65,E09.3293,17,1,N,4092,"Drug or chemical induced diabetes mellitus with mild nonproliferative diabetic retinopathy without macular edema, bilateral",2026-04-15 12:46:44,N
+52464,65,E09.3299,17,1,N,4093,"Drug or chemical induced diabetes mellitus with mild nonproliferative diabetic retinopathy without macular edema, unspecified eye",2026-04-15 12:46:44,N
+52464,65,E09.3311,17,1,N,4096,"Drug or chemical induced diabetes mellitus with moderate nonproliferative diabetic retinopathy with macular edema, right eye",2026-04-15 12:46:44,N
+52464,65,E09.3312,17,1,N,4097,"Drug or chemical induced diabetes mellitus with moderate nonproliferative diabetic retinopathy with macular edema, left eye",2026-04-15 12:46:44,N
+52464,65,E09.3313,17,1,N,4098,"Drug or chemical induced diabetes mellitus with moderate nonproliferative diabetic retinopathy with macular edema, bilateral",2026-04-15 12:46:44,N
+52464,65,E09.3319,17,1,N,4099,"Drug or chemical induced diabetes mellitus with moderate nonproliferative diabetic retinopathy with macular edema, unspecified eye",2026-04-15 12:46:44,N
+52464,65,E09.3391,17,1,N,4101,"Drug or chemical induced diabetes mellitus with moderate nonproliferative diabetic retinopathy without macular edema, right eye",2026-04-15 12:46:44,N
+52464,65,E09.3392,17,1,N,4102,"Drug or chemical induced diabetes mellitus with moderate nonproliferative diabetic retinopathy without macular edema, left eye",2026-04-15 12:46:44,N
+52464,65,E09.3393,17,1,N,4103,"Drug or chemical induced diabetes mellitus with moderate nonproliferative diabetic retinopathy without macular edema, bilateral",2026-04-15 12:46:44,N
+52464,65,E09.3399,17,1,N,4104,"Drug or chemical induced diabetes mellitus with moderate nonproliferative diabetic retinopathy without macular edema, unspecified eye",2026-04-15 12:46:44,N
+52464,65,E09.3411,17,1,N,4107,"Drug or chemical induced diabetes mellitus with severe nonproliferative diabetic retinopathy with macular edema, right eye",2026-04-15 12:46:44,N
+52464,65,E09.3412,17,1,N,4108,"Drug or chemical induced diabetes mellitus with severe nonproliferative diabetic retinopathy with macular edema, left eye",2026-04-15 12:46:44,N
+52464,65,E09.3413,17,1,N,4109,"Drug or chemical induced diabetes mellitus with severe nonproliferative diabetic retinopathy with macular edema, bilateral",2026-04-15 12:46:44,N
+52464,65,E09.3419,17,1,N,4110,"Drug or chemical induced diabetes mellitus with severe nonproliferative diabetic retinopathy with macular edema, unspecified eye",2026-04-15 12:46:44,N
+52464,65,E09.3491,17,1,N,4112,"Drug or chemical induced diabetes mellitus with severe nonproliferative diabetic retinopathy without macular edema, right eye",2026-04-15 12:46:44,N
+52464,65,E09.3492,17,1,N,4113,"Drug or chemical induced diabetes mellitus with severe nonproliferative diabetic retinopathy without macular edema, left eye",2026-04-15 12:46:44,N
+52464,65,E09.3493,17,1,N,4114,"Drug or chemical induced diabetes mellitus with severe nonproliferative diabetic retinopathy without macular edema, bilateral",2026-04-15 12:46:44,N
+52464,65,E09.3499,17,1,N,4115,"Drug or chemical induced diabetes mellitus with severe nonproliferative diabetic retinopathy without macular edema, unspecified eye",2026-04-15 12:46:44,N
+52464,65,E09.3511,17,1,N,4118,"Drug or chemical induced diabetes mellitus with proliferative diabetic retinopathy with macular edema, right eye",2026-04-15 12:46:44,N
+52464,65,E09.3512,17,1,N,4119,"Drug or chemical induced diabetes mellitus with proliferative diabetic retinopathy with macular edema, left eye",2026-04-15 12:46:44,N
+52464,65,E09.3513,17,1,N,4120,"Drug or chemical induced diabetes mellitus with proliferative diabetic retinopathy with macular edema, bilateral",2026-04-15 12:46:44,N
+52464,65,E09.3519,17,1,N,4121,"Drug or chemical induced diabetes mellitus with proliferative diabetic retinopathy with macular edema, unspecified eye",2026-04-15 12:46:44,N
+52464,65,E09.3521,17,1,N,4123,"Drug or chemical induced diabetes mellitus with proliferative diabetic retinopathy with traction retinal detachment involving the macula, right eye",2026-04-15 12:46:44,N
+52464,65,E09.3522,17,1,N,4124,"Drug or chemical induced diabetes mellitus with proliferative diabetic retinopathy with traction retinal detachment involving the macula, left eye",2026-04-15 12:46:44,N
+52464,65,E09.3523,17,1,N,4125,"Drug or chemical induced diabetes mellitus with proliferative diabetic retinopathy with traction retinal detachment involving the macula, bilateral",2026-04-15 12:46:44,N
+52464,65,E09.3529,17,1,N,4126,"Drug or chemical induced diabetes mellitus with proliferative diabetic retinopathy with traction retinal detachment involving the macula, unspecified eye",2026-04-15 12:46:44,N
+52464,65,E09.3531,17,1,N,4128,"Drug or chemical induced diabetes mellitus with proliferative diabetic retinopathy with traction retinal detachment not involving the macula, right eye",2026-04-15 12:46:44,N
+52464,65,E09.3532,17,1,N,4129,"Drug or chemical induced diabetes mellitus with proliferative diabetic retinopathy with traction retinal detachment not involving the macula, left eye",2026-04-15 12:46:44,N
+52464,65,E09.3533,17,1,N,4130,"Drug or chemical induced diabetes mellitus with proliferative diabetic retinopathy with traction retinal detachment not involving the macula, bilateral",2026-04-15 12:46:44,N
+52464,65,E09.3539,17,1,N,4131,"Drug or chemical induced diabetes mellitus with proliferative diabetic retinopathy with traction retinal detachment not involving the macula, unspecified eye",2026-04-15 12:46:44,N
+52464,65,E09.3541,17,1,N,4133,"Drug or chemical induced diabetes mellitus with proliferative diabetic retinopathy with combined traction retinal detachment and rhegmatogenous retinal detachment, right eye",2026-04-15 12:46:44,N
+52464,65,E09.3542,17,1,N,4134,"Drug or chemical induced diabetes mellitus with proliferative diabetic retinopathy with combined traction retinal detachment and rhegmatogenous retinal detachment, left eye",2026-04-15 12:46:44,N
+52464,65,E09.3543,17,1,N,4135,"Drug or chemical induced diabetes mellitus with proliferative diabetic retinopathy with combined traction retinal detachment and rhegmatogenous retinal detachment, bilateral",2026-04-15 12:46:44,N
+52464,65,E09.3549,17,1,N,4136,"Drug or chemical induced diabetes mellitus with proliferative diabetic retinopathy with combined traction retinal detachment and rhegmatogenous retinal detachment, unspecified eye",2026-04-15 12:46:44,N
+52464,65,E09.3551,17,1,N,4138,"Drug or chemical induced diabetes mellitus with stable proliferative diabetic retinopathy, right eye",2026-04-15 12:46:44,N
+52464,65,E09.3552,17,1,N,4139,"Drug or chemical induced diabetes mellitus with stable proliferative diabetic retinopathy, left eye",2026-04-15 12:46:44,N
+52464,65,E09.3553,17,1,N,4140,"Drug or chemical induced diabetes mellitus with stable proliferative diabetic retinopathy, bilateral",2026-04-15 12:46:44,N
+52464,65,E09.3559,17,1,N,4141,"Drug or chemical induced diabetes mellitus with stable proliferative diabetic retinopathy, unspecified eye",2026-04-15 12:46:44,N
+52464,65,E09.3591,17,1,N,4143,"Drug or chemical induced diabetes mellitus with proliferative diabetic retinopathy without macular edema, right eye",2026-04-15 12:46:44,N
+52464,65,E09.3592,17,1,N,4144,"Drug or chemical induced diabetes mellitus with proliferative diabetic retinopathy without macular edema, left eye",2026-04-15 12:46:44,N
+52464,65,E09.3593,17,1,N,4145,"Drug or chemical induced diabetes mellitus with proliferative diabetic retinopathy without macular edema, bilateral",2026-04-15 12:46:44,N
+52464,65,E09.3599,17,1,N,4146,"Drug or chemical induced diabetes mellitus with proliferative diabetic retinopathy without macular edema, unspecified eye",2026-04-15 12:46:44,N
+52464,65,E09.36,17,1,N,4147,Drug or chemical induced diabetes mellitus with diabetic cataract,2026-04-15 12:46:44,N
+52464,65,E09.37X1,17,1,N,4149,"Drug or chemical induced diabetes mellitus with diabetic macular edema, resolved following treatment, right eye",2026-04-15 12:46:44,N
+52464,65,E09.37X2,17,1,N,4150,"Drug or chemical induced diabetes mellitus with diabetic macular edema, resolved following treatment, left eye",2026-04-15 12:46:44,N
+52464,65,E09.37X3,17,1,N,4151,"Drug or chemical induced diabetes mellitus with diabetic macular edema, resolved following treatment, bilateral",2026-04-15 12:46:44,N
+52464,65,E09.37X9,17,1,N,4152,"Drug or chemical induced diabetes mellitus with diabetic macular edema, resolved following treatment, unspecified eye",2026-04-15 12:46:44,N
+52464,65,E09.39,17,1,N,4153,Drug or chemical induced diabetes mellitus with other diabetic ophthalmic complication,2026-04-15 12:46:44,N
+52464,65,E09.40,17,1,N,4155,"Drug or chemical induced diabetes mellitus with neurological complications with diabetic neuropathy, unspecified",2026-04-15 12:46:44,N
+52464,65,E09.41,17,1,N,4156,Drug or chemical induced diabetes mellitus with neurological complications with diabetic mononeuropathy,2026-04-15 12:46:44,N
+52464,65,E09.42,17,1,N,4157,Drug or chemical induced diabetes mellitus with neurological complications with diabetic polyneuropathy,2026-04-15 12:46:44,N
+52464,65,E09.43,17,1,N,4158,Drug or chemical induced diabetes mellitus with neurological complications with diabetic autonomic (poly)neuropathy,2026-04-15 12:46:44,N
+52464,65,E09.44,17,1,N,4159,Drug or chemical induced diabetes mellitus with neurological complications with diabetic amyotrophy,2026-04-15 12:46:44,N
+52464,65,E09.49,17,1,N,4160,Drug or chemical induced diabetes mellitus with neurological complications with other diabetic neurological complication,2026-04-15 12:46:44,N
+52464,65,E09.51,17,1,N,4162,Drug or chemical induced diabetes mellitus with diabetic peripheral angiopathy without gangrene,2026-04-15 12:46:44,N
+52464,65,E09.52,17,1,N,4163,Drug or chemical induced diabetes mellitus with diabetic peripheral angiopathy with gangrene,2026-04-15 12:46:44,N
+52464,65,E09.59,17,1,N,4164,Drug or chemical induced diabetes mellitus with other circulatory complications,2026-04-15 12:46:44,N
+52464,65,E09.610,17,1,N,4167,Drug or chemical induced diabetes mellitus with diabetic neuropathic arthropathy,2026-04-15 12:46:44,N
+52464,65,E09.618,17,1,N,4168,Drug or chemical induced diabetes mellitus with other diabetic arthropathy,2026-04-15 12:46:44,N
+52464,65,E09.620,17,1,N,4170,Drug or chemical induced diabetes mellitus with diabetic dermatitis,2026-04-15 12:46:44,N
+52464,65,E09.621,17,1,N,4171,Drug or chemical induced diabetes mellitus with foot ulcer,2026-04-15 12:46:44,N
+52464,65,E09.622,17,1,N,4172,Drug or chemical induced diabetes mellitus with other skin ulcer,2026-04-15 12:46:44,N
+52464,65,E09.628,17,1,N,4173,Drug or chemical induced diabetes mellitus with other skin complications,2026-04-15 12:46:44,N
+52464,65,E09.630,17,1,N,4175,Drug or chemical induced diabetes mellitus with periodontal disease,2026-04-15 12:46:44,N
+52464,65,E09.638,17,1,N,4176,Drug or chemical induced diabetes mellitus with other oral complications,2026-04-15 12:46:44,N
+52464,65,E09.641,17,1,N,4178,Drug or chemical induced diabetes mellitus with hypoglycemia with coma,2026-04-15 12:46:44,N
+52464,65,E09.649,17,1,N,4179,Drug or chemical induced diabetes mellitus with hypoglycemia without coma,2026-04-15 12:46:44,N
+52464,65,E09.65,17,1,N,4180,Drug or chemical induced diabetes mellitus with hyperglycemia,2026-04-15 12:46:44,N
+52464,65,E09.69,17,1,N,4181,Drug or chemical induced diabetes mellitus with other specified complication,2026-04-15 12:46:44,N
+52464,65,E09.8,17,1,N,4182,Drug or chemical induced diabetes mellitus with unspecified complications,2026-04-15 12:46:44,N
+52464,65,E09.9,17,1,N,4183,Drug or chemical induced diabetes mellitus without complications,2026-04-15 12:46:44,N
+52464,65,E10.10,17,1,N,4186,Type 1 diabetes mellitus with ketoacidosis without coma,2026-04-15 12:46:44,N
+52464,65,E10.11,17,1,N,4187,Type 1 diabetes mellitus with ketoacidosis with coma,2026-04-15 12:46:44,N
+52464,65,E10.21,17,1,N,4189,Type 1 diabetes mellitus with diabetic nephropathy,2026-04-15 12:46:44,N
+52464,65,E10.22,17,1,N,4190,Type 1 diabetes mellitus with diabetic chronic kidney disease,2026-04-15 12:46:44,N
+52464,65,E10.29,17,1,N,4191,Type 1 diabetes mellitus with other diabetic kidney complication,2026-04-15 12:46:44,N
+52464,65,E10.311,17,1,N,4194,Type 1 diabetes mellitus with unspecified diabetic retinopathy with macular edema,2026-04-15 12:46:44,N
+52464,65,E10.319,17,1,N,4195,Type 1 diabetes mellitus with unspecified diabetic retinopathy without macular edema,2026-04-15 12:46:44,N
+52464,65,E10.3211,17,1,N,4198,"Type 1 diabetes mellitus with mild nonproliferative diabetic retinopathy with macular edema, right eye",2026-04-15 12:46:44,N
+52464,65,E10.3212,17,1,N,4199,"Type 1 diabetes mellitus with mild nonproliferative diabetic retinopathy with macular edema, left eye",2026-04-15 12:46:44,N
+52464,65,E10.3213,17,1,N,4200,"Type 1 diabetes mellitus with mild nonproliferative diabetic retinopathy with macular edema, bilateral",2026-04-15 12:46:44,N
+52464,65,E10.3219,17,1,N,4201,"Type 1 diabetes mellitus with mild nonproliferative diabetic retinopathy with macular edema, unspecified eye",2026-04-15 12:46:44,N
+52464,65,E10.3291,17,1,N,4203,"Type 1 diabetes mellitus with mild nonproliferative diabetic retinopathy without macular edema, right eye",2026-04-15 12:46:44,N
+52464,65,E10.3292,17,1,N,4204,"Type 1 diabetes mellitus with mild nonproliferative diabetic retinopathy without macular edema, left eye",2026-04-15 12:46:44,N
+52464,65,E10.3293,17,1,N,4205,"Type 1 diabetes mellitus with mild nonproliferative diabetic retinopathy without macular edema, bilateral",2026-04-15 12:46:44,N
+52464,65,E10.3299,17,1,N,4206,"Type 1 diabetes mellitus with mild nonproliferative diabetic retinopathy without macular edema, unspecified eye",2026-04-15 12:46:44,N
+52464,65,E10.3311,17,1,N,4209,"Type 1 diabetes mellitus with moderate nonproliferative diabetic retinopathy with macular edema, right eye",2026-04-15 12:46:44,N
+52464,65,E10.3312,17,1,N,4210,"Type 1 diabetes mellitus with moderate nonproliferative diabetic retinopathy with macular edema, left eye",2026-04-15 12:46:44,N
+52464,65,E10.3313,17,1,N,4211,"Type 1 diabetes mellitus with moderate nonproliferative diabetic retinopathy with macular edema, bilateral",2026-04-15 12:46:44,N
+52464,65,E10.3319,17,1,N,4212,"Type 1 diabetes mellitus with moderate nonproliferative diabetic retinopathy with macular edema, unspecified eye",2026-04-15 12:46:44,N
+52464,65,E10.3391,17,1,N,4214,"Type 1 diabetes mellitus with moderate nonproliferative diabetic retinopathy without macular edema, right eye",2026-04-15 12:46:44,N
+52464,65,E10.3392,17,1,N,4215,"Type 1 diabetes mellitus with moderate nonproliferative diabetic retinopathy without macular edema, left eye",2026-04-15 12:46:44,N
+52464,65,E10.3393,17,1,N,4216,"Type 1 diabetes mellitus with moderate nonproliferative diabetic retinopathy without macular edema, bilateral",2026-04-15 12:46:44,N
+52464,65,E10.3399,17,1,N,4217,"Type 1 diabetes mellitus with moderate nonproliferative diabetic retinopathy without macular edema, unspecified eye",2026-04-15 12:46:44,N
+52464,65,E10.3411,17,1,N,4220,"Type 1 diabetes mellitus with severe nonproliferative diabetic retinopathy with macular edema, right eye",2026-04-15 12:46:44,N
+52464,65,E10.3412,17,1,N,4221,"Type 1 diabetes mellitus with severe nonproliferative diabetic retinopathy with macular edema, left eye",2026-04-15 12:46:44,N
+52464,65,E10.3413,17,1,N,4222,"Type 1 diabetes mellitus with severe nonproliferative diabetic retinopathy with macular edema, bilateral",2026-04-15 12:46:44,N
+52464,65,E10.3419,17,1,N,4223,"Type 1 diabetes mellitus with severe nonproliferative diabetic retinopathy with macular edema, unspecified eye",2026-04-15 12:46:44,N
+52464,65,E10.3491,17,1,N,4225,"Type 1 diabetes mellitus with severe nonproliferative diabetic retinopathy without macular edema, right eye",2026-04-15 12:46:44,N
+52464,65,E10.3492,17,1,N,4226,"Type 1 diabetes mellitus with severe nonproliferative diabetic retinopathy without macular edema, left eye",2026-04-15 12:46:44,N
+52464,65,E10.3493,17,1,N,4227,"Type 1 diabetes mellitus with severe nonproliferative diabetic retinopathy without macular edema, bilateral",2026-04-15 12:46:44,N
+52464,65,E10.3499,17,1,N,4228,"Type 1 diabetes mellitus with severe nonproliferative diabetic retinopathy without macular edema, unspecified eye",2026-04-15 12:46:44,N
+52464,65,E10.3511,17,1,N,4231,"Type 1 diabetes mellitus with proliferative diabetic retinopathy with macular edema, right eye",2026-04-15 12:46:44,N
+52464,65,E10.3512,17,1,N,4232,"Type 1 diabetes mellitus with proliferative diabetic retinopathy with macular edema, left eye",2026-04-15 12:46:44,N
+52464,65,E10.3513,17,1,N,4233,"Type 1 diabetes mellitus with proliferative diabetic retinopathy with macular edema, bilateral",2026-04-15 12:46:44,N
+52464,65,E10.3519,17,1,N,4234,"Type 1 diabetes mellitus with proliferative diabetic retinopathy with macular edema, unspecified eye",2026-04-15 12:46:44,N
+52464,65,E10.3521,17,1,N,4236,"Type 1 diabetes mellitus with proliferative diabetic retinopathy with traction retinal detachment involving the macula, right eye",2026-04-15 12:46:44,N
+52464,65,E10.3522,17,1,N,4237,"Type 1 diabetes mellitus with proliferative diabetic retinopathy with traction retinal detachment involving the macula, left eye",2026-04-15 12:46:44,N
+52464,65,E10.3523,17,1,N,4238,"Type 1 diabetes mellitus with proliferative diabetic retinopathy with traction retinal detachment involving the macula, bilateral",2026-04-15 12:46:44,N
+52464,65,E10.3529,17,1,N,4239,"Type 1 diabetes mellitus with proliferative diabetic retinopathy with traction retinal detachment involving the macula, unspecified eye",2026-04-15 12:46:44,N
+52464,65,E10.3531,17,1,N,4241,"Type 1 diabetes mellitus with proliferative diabetic retinopathy with traction retinal detachment not involving the macula, right eye",2026-04-15 12:46:44,N
+52464,65,E10.3532,17,1,N,4242,"Type 1 diabetes mellitus with proliferative diabetic retinopathy with traction retinal detachment not involving the macula, left eye",2026-04-15 12:46:44,N
+52464,65,E10.3533,17,1,N,4243,"Type 1 diabetes mellitus with proliferative diabetic retinopathy with traction retinal detachment not involving the macula, bilateral",2026-04-15 12:46:44,N
+52464,65,E10.3539,17,1,N,4244,"Type 1 diabetes mellitus with proliferative diabetic retinopathy with traction retinal detachment not involving the macula, unspecified eye",2026-04-15 12:46:44,N
+52464,65,E10.3541,17,1,N,4246,"Type 1 diabetes mellitus with proliferative diabetic retinopathy with combined traction retinal detachment and rhegmatogenous retinal detachment, right eye",2026-04-15 12:46:44,N
+52464,65,E10.3542,17,1,N,4247,"Type 1 diabetes mellitus with proliferative diabetic retinopathy with combined traction retinal detachment and rhegmatogenous retinal detachment, left eye",2026-04-15 12:46:44,N
+52464,65,E10.3543,17,1,N,4248,"Type 1 diabetes mellitus with proliferative diabetic retinopathy with combined traction retinal detachment and rhegmatogenous retinal detachment, bilateral",2026-04-15 12:46:44,N
+52464,65,E10.3549,17,1,N,4249,"Type 1 diabetes mellitus with proliferative diabetic retinopathy with combined traction retinal detachment and rhegmatogenous retinal detachment, unspecified eye",2026-04-15 12:46:44,N
+52464,65,E10.3551,17,1,N,4251,"Type 1 diabetes mellitus with stable proliferative diabetic retinopathy, right eye",2026-04-15 12:46:44,N
+52464,65,E10.3552,17,1,N,4252,"Type 1 diabetes mellitus with stable proliferative diabetic retinopathy, left eye",2026-04-15 12:46:44,N
+52464,65,E10.3553,17,1,N,4253,"Type 1 diabetes mellitus with stable proliferative diabetic retinopathy, bilateral",2026-04-15 12:46:44,N
+52464,65,E10.3559,17,1,N,4254,"Type 1 diabetes mellitus with stable proliferative diabetic retinopathy, unspecified eye",2026-04-15 12:46:44,N
+52464,65,E10.3591,17,1,N,4256,"Type 1 diabetes mellitus with proliferative diabetic retinopathy without macular edema, right eye",2026-04-15 12:46:44,N
+52464,65,E10.3592,17,1,N,4257,"Type 1 diabetes mellitus with proliferative diabetic retinopathy without macular edema, left eye",2026-04-15 12:46:44,N
+52464,65,E10.3593,17,1,N,4258,"Type 1 diabetes mellitus with proliferative diabetic retinopathy without macular edema, bilateral",2026-04-15 12:46:44,N
+52464,65,E10.3599,17,1,N,4259,"Type 1 diabetes mellitus with proliferative diabetic retinopathy without macular edema, unspecified eye",2026-04-15 12:46:44,N
+52464,65,E10.36,17,1,N,4260,Type 1 diabetes mellitus with diabetic cataract,2026-04-15 12:46:44,N
+52464,65,E10.37X1,17,1,N,4262,"Type 1 diabetes mellitus with diabetic macular edema, resolved following treatment, right eye",2026-04-15 12:46:44,N
+52464,65,E10.37X2,17,1,N,4263,"Type 1 diabetes mellitus with diabetic macular edema, resolved following treatment, left eye",2026-04-15 12:46:44,N
+52464,65,E10.37X3,17,1,N,4264,"Type 1 diabetes mellitus with diabetic macular edema, resolved following treatment, bilateral",2026-04-15 12:46:44,N
+52464,65,E10.37X9,17,1,N,4265,"Type 1 diabetes mellitus with diabetic macular edema, resolved following treatment, unspecified eye",2026-04-15 12:46:44,N
+52464,65,E10.39,17,1,N,4266,Type 1 diabetes mellitus with other diabetic ophthalmic complication,2026-04-15 12:46:44,N
+52464,65,E10.40,17,1,N,4268,"Type 1 diabetes mellitus with diabetic neuropathy, unspecified",2026-04-15 12:46:44,N
+52464,65,E10.41,17,1,N,4269,Type 1 diabetes mellitus with diabetic mononeuropathy,2026-04-15 12:46:44,N
+52464,65,E10.42,17,1,N,4270,Type 1 diabetes mellitus with diabetic polyneuropathy,2026-04-15 12:46:44,N
+52464,65,E10.43,17,1,N,4271,Type 1 diabetes mellitus with diabetic autonomic (poly)neuropathy,2026-04-15 12:46:44,N
+52464,65,E10.44,17,1,N,4272,Type 1 diabetes mellitus with diabetic amyotrophy,2026-04-15 12:46:44,N
+52464,65,E10.49,17,1,N,4273,Type 1 diabetes mellitus with other diabetic neurological complication,2026-04-15 12:46:44,N
+52464,65,E10.51,17,1,N,4275,Type 1 diabetes mellitus with diabetic peripheral angiopathy without gangrene,2026-04-15 12:46:44,N
+52464,65,E10.52,17,1,N,4276,Type 1 diabetes mellitus with diabetic peripheral angiopathy with gangrene,2026-04-15 12:46:44,N
+52464,65,E10.59,17,1,N,4277,Type 1 diabetes mellitus with other circulatory complications,2026-04-15 12:46:44,N
+52464,65,E10.610,17,1,N,4280,Type 1 diabetes mellitus with diabetic neuropathic arthropathy,2026-04-15 12:46:44,N
+52464,65,E10.618,17,1,N,4281,Type 1 diabetes mellitus with other diabetic arthropathy,2026-04-15 12:46:44,N
+52464,65,E10.620,17,1,N,4283,Type 1 diabetes mellitus with diabetic dermatitis,2026-04-15 12:46:44,N
+52464,65,E10.621,17,1,N,4284,Type 1 diabetes mellitus with foot ulcer,2026-04-15 12:46:44,N
+52464,65,E10.622,17,1,N,4285,Type 1 diabetes mellitus with other skin ulcer,2026-04-15 12:46:44,N
+52464,65,E10.628,17,1,N,4286,Type 1 diabetes mellitus with other skin complications,2026-04-15 12:46:44,N
+52464,65,E10.630,17,1,N,4288,Type 1 diabetes mellitus with periodontal disease,2026-04-15 12:46:44,N
+52464,65,E10.638,17,1,N,4289,Type 1 diabetes mellitus with other oral complications,2026-04-15 12:46:44,N
+52464,65,E10.641,17,1,N,4291,Type 1 diabetes mellitus with hypoglycemia with coma,2026-04-15 12:46:44,N
+52464,65,E10.649,17,1,N,4292,Type 1 diabetes mellitus with hypoglycemia without coma,2026-04-15 12:46:44,N
+52464,65,E10.65,17,1,N,4293,Type 1 diabetes mellitus with hyperglycemia,2026-04-15 12:46:44,N
+52464,65,E10.69,17,1,N,4294,Type 1 diabetes mellitus with other specified complication,2026-04-15 12:46:44,N
+52464,65,E10.8,17,1,N,4295,Type 1 diabetes mellitus with unspecified complications,2026-04-15 12:46:44,N
+52464,65,E10.9,17,1,N,4296,Type 1 diabetes mellitus without complications,2026-04-15 12:46:44,N
+52464,65,E10.A0,17,1,N,4298,"Type 1 diabetes mellitus, presymptomatic, unspecified",2026-04-15 12:46:44,N
+52464,65,E10.A1,17,1,N,4299,"Type 1 diabetes mellitus, presymptomatic, Stage 1",2026-04-15 12:46:44,N
+52464,65,E10.A2,17,1,N,4300,"Type 1 diabetes mellitus, presymptomatic, Stage 2",2026-04-15 12:46:44,N
+52464,65,E11.00,17,1,N,4303,Type 2 diabetes mellitus with hyperosmolarity without nonketotic hyperglycemic-hyperosmolar coma (NKHHC),2026-04-15 12:46:44,N
+52464,65,E11.01,17,1,N,4304,Type 2 diabetes mellitus with hyperosmolarity with coma,2026-04-15 12:46:44,N
+52464,65,E11.10,17,1,N,4306,Type 2 diabetes mellitus with ketoacidosis without coma,2026-04-15 12:46:44,N
+52464,65,E11.11,17,1,N,4307,Type 2 diabetes mellitus with ketoacidosis with coma,2026-04-15 12:46:44,N
+52464,65,E11.21,17,1,N,4309,Type 2 diabetes mellitus with diabetic nephropathy,2026-04-15 12:46:44,N
+52464,65,E11.22,17,1,N,4310,Type 2 diabetes mellitus with diabetic chronic kidney disease,2026-04-15 12:46:44,N
+52464,65,E11.29,17,1,N,4311,Type 2 diabetes mellitus with other diabetic kidney complication,2026-04-15 12:46:44,N
+52464,65,E11.311,17,1,N,4314,Type 2 diabetes mellitus with unspecified diabetic retinopathy with macular edema,2026-04-15 12:46:44,N
+52464,65,E11.319,17,1,N,4315,Type 2 diabetes mellitus with unspecified diabetic retinopathy without macular edema,2026-04-15 12:46:44,N
+52464,65,E11.3211,17,1,N,4318,"Type 2 diabetes mellitus with mild nonproliferative diabetic retinopathy with macular edema, right eye",2026-04-15 12:46:44,N
+52464,65,E11.3212,17,1,N,4319,"Type 2 diabetes mellitus with mild nonproliferative diabetic retinopathy with macular edema, left eye",2026-04-15 12:46:44,N
+52464,65,E11.3213,17,1,N,4320,"Type 2 diabetes mellitus with mild nonproliferative diabetic retinopathy with macular edema, bilateral",2026-04-15 12:46:44,N
+52464,65,E11.3219,17,1,N,4321,"Type 2 diabetes mellitus with mild nonproliferative diabetic retinopathy with macular edema, unspecified eye",2026-04-15 12:46:44,N
+52464,65,E11.3291,17,1,N,4323,"Type 2 diabetes mellitus with mild nonproliferative diabetic retinopathy without macular edema, right eye",2026-04-15 12:46:44,N
+52464,65,E11.3292,17,1,N,4324,"Type 2 diabetes mellitus with mild nonproliferative diabetic retinopathy without macular edema, left eye",2026-04-15 12:46:44,N
+52464,65,E11.3293,17,1,N,4325,"Type 2 diabetes mellitus with mild nonproliferative diabetic retinopathy without macular edema, bilateral",2026-04-15 12:46:44,N
+52464,65,E11.3299,17,1,N,4326,"Type 2 diabetes mellitus with mild nonproliferative diabetic retinopathy without macular edema, unspecified eye",2026-04-15 12:46:44,N
+52464,65,E11.3311,17,1,N,4329,"Type 2 diabetes mellitus with moderate nonproliferative diabetic retinopathy with macular edema, right eye",2026-04-15 12:46:44,N
+52464,65,E11.3312,17,1,N,4330,"Type 2 diabetes mellitus with moderate nonproliferative diabetic retinopathy with macular edema, left eye",2026-04-15 12:46:44,N
+52464,65,E11.3313,17,1,N,4331,"Type 2 diabetes mellitus with moderate nonproliferative diabetic retinopathy with macular edema, bilateral",2026-04-15 12:46:44,N
+52464,65,E11.3319,17,1,N,4332,"Type 2 diabetes mellitus with moderate nonproliferative diabetic retinopathy with macular edema, unspecified eye",2026-04-15 12:46:44,N
+52464,65,E11.3391,17,1,N,4334,"Type 2 diabetes mellitus with moderate nonproliferative diabetic retinopathy without macular edema, right eye",2026-04-15 12:46:44,N
+52464,65,E11.3392,17,1,N,4335,"Type 2 diabetes mellitus with moderate nonproliferative diabetic retinopathy without macular edema, left eye",2026-04-15 12:46:44,N
+52464,65,E11.3393,17,1,N,4336,"Type 2 diabetes mellitus with moderate nonproliferative diabetic retinopathy without macular edema, bilateral",2026-04-15 12:46:44,N
+52464,65,E11.3399,17,1,N,4337,"Type 2 diabetes mellitus with moderate nonproliferative diabetic retinopathy without macular edema, unspecified eye",2026-04-15 12:46:44,N
+52464,65,E11.3411,17,1,N,4340,"Type 2 diabetes mellitus with severe nonproliferative diabetic retinopathy with macular edema, right eye",2026-04-15 12:46:44,N
+52464,65,E11.3412,17,1,N,4341,"Type 2 diabetes mellitus with severe nonproliferative diabetic retinopathy with macular edema, left eye",2026-04-15 12:46:44,N
+52464,65,E11.3413,17,1,N,4342,"Type 2 diabetes mellitus with severe nonproliferative diabetic retinopathy with macular edema, bilateral",2026-04-15 12:46:44,N
+52464,65,E11.3419,17,1,N,4343,"Type 2 diabetes mellitus with severe nonproliferative diabetic retinopathy with macular edema, unspecified eye",2026-04-15 12:46:44,N
+52464,65,E11.3491,17,1,N,4345,"Type 2 diabetes mellitus with severe nonproliferative diabetic retinopathy without macular edema, right eye",2026-04-15 12:46:44,N
+52464,65,E11.3492,17,1,N,4346,"Type 2 diabetes mellitus with severe nonproliferative diabetic retinopathy without macular edema, left eye",2026-04-15 12:46:44,N
+52464,65,E11.3493,17,1,N,4347,"Type 2 diabetes mellitus with severe nonproliferative diabetic retinopathy without macular edema, bilateral",2026-04-15 12:46:44,N
+52464,65,E11.3499,17,1,N,4348,"Type 2 diabetes mellitus with severe nonproliferative diabetic retinopathy without macular edema, unspecified eye",2026-04-15 12:46:44,N
+52464,65,E11.3511,17,1,N,4351,"Type 2 diabetes mellitus with proliferative diabetic retinopathy with macular edema, right eye",2026-04-15 12:46:44,N
+52464,65,E11.3512,17,1,N,4352,"Type 2 diabetes mellitus with proliferative diabetic retinopathy with macular edema, left eye",2026-04-15 12:46:44,N
+52464,65,E11.3513,17,1,N,4353,"Type 2 diabetes mellitus with proliferative diabetic retinopathy with macular edema, bilateral",2026-04-15 12:46:44,N
+52464,65,E11.3519,17,1,N,4354,"Type 2 diabetes mellitus with proliferative diabetic retinopathy with macular edema, unspecified eye",2026-04-15 12:46:44,N
+52464,65,E11.3521,17,1,N,4356,"Type 2 diabetes mellitus with proliferative diabetic retinopathy with traction retinal detachment involving the macula, right eye",2026-04-15 12:46:44,N
+52464,65,E11.3522,17,1,N,4357,"Type 2 diabetes mellitus with proliferative diabetic retinopathy with traction retinal detachment involving the macula, left eye",2026-04-15 12:46:44,N
+52464,65,E11.3523,17,1,N,4358,"Type 2 diabetes mellitus with proliferative diabetic retinopathy with traction retinal detachment involving the macula, bilateral",2026-04-15 12:46:44,N
+52464,65,E11.3529,17,1,N,4359,"Type 2 diabetes mellitus with proliferative diabetic retinopathy with traction retinal detachment involving the macula, unspecified eye",2026-04-15 12:46:44,N
+52464,65,E11.3531,17,1,N,4361,"Type 2 diabetes mellitus with proliferative diabetic retinopathy with traction retinal detachment not involving the macula, right eye",2026-04-15 12:46:44,N
+52464,65,E11.3532,17,1,N,4362,"Type 2 diabetes mellitus with proliferative diabetic retinopathy with traction retinal detachment not involving the macula, left eye",2026-04-15 12:46:44,N
+52464,65,E11.3533,17,1,N,4363,"Type 2 diabetes mellitus with proliferative diabetic retinopathy with traction retinal detachment not involving the macula, bilateral",2026-04-15 12:46:44,N
+52464,65,E11.3539,17,1,N,4364,"Type 2 diabetes mellitus with proliferative diabetic retinopathy with traction retinal detachment not involving the macula, unspecified eye",2026-04-15 12:46:44,N
+52464,65,E11.3541,17,1,N,4366,"Type 2 diabetes mellitus with proliferative diabetic retinopathy with combined traction retinal detachment and rhegmatogenous retinal detachment, right eye",2026-04-15 12:46:44,N
+52464,65,E11.3542,17,1,N,4367,"Type 2 diabetes mellitus with proliferative diabetic retinopathy with combined traction retinal detachment and rhegmatogenous retinal detachment, left eye",2026-04-15 12:46:44,N
+52464,65,E11.3543,17,1,N,4368,"Type 2 diabetes mellitus with proliferative diabetic retinopathy with combined traction retinal detachment and rhegmatogenous retinal detachment, bilateral",2026-04-15 12:46:44,N
+52464,65,E11.3549,17,1,N,4369,"Type 2 diabetes mellitus with proliferative diabetic retinopathy with combined traction retinal detachment and rhegmatogenous retinal detachment, unspecified eye",2026-04-15 12:46:44,N
+52464,65,E11.3551,17,1,N,4371,"Type 2 diabetes mellitus with stable proliferative diabetic retinopathy, right eye",2026-04-15 12:46:44,N
+52464,65,E11.3552,17,1,N,4372,"Type 2 diabetes mellitus with stable proliferative diabetic retinopathy, left eye",2026-04-15 12:46:44,N
+52464,65,E11.3553,17,1,N,4373,"Type 2 diabetes mellitus with stable proliferative diabetic retinopathy, bilateral",2026-04-15 12:46:44,N
+52464,65,E11.3559,17,1,N,4374,"Type 2 diabetes mellitus with stable proliferative diabetic retinopathy, unspecified eye",2026-04-15 12:46:44,N
+52464,65,E11.3591,17,1,N,4376,"Type 2 diabetes mellitus with proliferative diabetic retinopathy without macular edema, right eye",2026-04-15 12:46:44,N
+52464,65,E11.3592,17,1,N,4377,"Type 2 diabetes mellitus with proliferative diabetic retinopathy without macular edema, left eye",2026-04-15 12:46:44,N
+52464,65,E11.3593,17,1,N,4378,"Type 2 diabetes mellitus with proliferative diabetic retinopathy without macular edema, bilateral",2026-04-15 12:46:44,N
+52464,65,E11.3599,17,1,N,4379,"Type 2 diabetes mellitus with proliferative diabetic retinopathy without macular edema, unspecified eye",2026-04-15 12:46:44,N
+52464,65,E11.36,17,1,N,4380,Type 2 diabetes mellitus with diabetic cataract,2026-04-15 12:46:44,N
+52464,65,E11.37X1,17,1,N,4382,"Type 2 diabetes mellitus with diabetic macular edema, resolved following treatment, right eye",2026-04-15 12:46:44,N
+52464,65,E11.37X2,17,1,N,4383,"Type 2 diabetes mellitus with diabetic macular edema, resolved following treatment, left eye",2026-04-15 12:46:44,N
+52464,65,E11.37X3,17,1,N,4384,"Type 2 diabetes mellitus with diabetic macular edema, resolved following treatment, bilateral",2026-04-15 12:46:44,N
+52464,65,E11.37X9,17,1,N,4385,"Type 2 diabetes mellitus with diabetic macular edema, resolved following treatment, unspecified eye",2026-04-15 12:46:44,N
+52464,65,E11.39,17,1,N,4386,Type 2 diabetes mellitus with other diabetic ophthalmic complication,2026-04-15 12:46:44,N
+52464,65,E11.40,17,1,N,4388,"Type 2 diabetes mellitus with diabetic neuropathy, unspecified",2026-04-15 12:46:44,N
+52464,65,E11.41,17,1,N,4389,Type 2 diabetes mellitus with diabetic mononeuropathy,2026-04-15 12:46:44,N
+52464,65,E11.42,17,1,N,4390,Type 2 diabetes mellitus with diabetic polyneuropathy,2026-04-15 12:46:44,N
+52464,65,E11.43,17,1,N,4391,Type 2 diabetes mellitus with diabetic autonomic (poly)neuropathy,2026-04-15 12:46:44,N
+52464,65,E11.44,17,1,N,4392,Type 2 diabetes mellitus with diabetic amyotrophy,2026-04-15 12:46:44,N
+52464,65,E11.49,17,1,N,4393,Type 2 diabetes mellitus with other diabetic neurological complication,2026-04-15 12:46:44,N
+52464,65,E11.51,17,1,N,4395,Type 2 diabetes mellitus with diabetic peripheral angiopathy without gangrene,2026-04-15 12:46:44,N
+52464,65,E11.52,17,1,N,4396,Type 2 diabetes mellitus with diabetic peripheral angiopathy with gangrene,2026-04-15 12:46:44,N
+52464,65,E11.59,17,1,N,4397,Type 2 diabetes mellitus with other circulatory complications,2026-04-15 12:46:44,N
+52464,65,E11.610,17,1,N,4400,Type 2 diabetes mellitus with diabetic neuropathic arthropathy,2026-04-15 12:46:44,N
+52464,65,E11.618,17,1,N,4401,Type 2 diabetes mellitus with other diabetic arthropathy,2026-04-15 12:46:44,N
+52464,65,E11.620,17,1,N,4403,Type 2 diabetes mellitus with diabetic dermatitis,2026-04-15 12:46:44,N
+52464,65,E11.621,17,1,N,4404,Type 2 diabetes mellitus with foot ulcer,2026-04-15 12:46:44,N
+52464,65,E11.622,17,1,N,4405,Type 2 diabetes mellitus with other skin ulcer,2026-04-15 12:46:44,N
+52464,65,E11.628,17,1,N,4406,Type 2 diabetes mellitus with other skin complications,2026-04-15 12:46:44,N
+52464,65,E11.630,17,1,N,4408,Type 2 diabetes mellitus with periodontal disease,2026-04-15 12:46:44,N
+52464,65,E11.638,17,1,N,4409,Type 2 diabetes mellitus with other oral complications,2026-04-15 12:46:44,N
+52464,65,E11.641,17,1,N,4411,Type 2 diabetes mellitus with hypoglycemia with coma,2026-04-15 12:46:44,N
+52464,65,E11.649,17,1,N,4412,Type 2 diabetes mellitus with hypoglycemia without coma,2026-04-15 12:46:44,N
+52464,65,E11.65,17,1,N,4413,Type 2 diabetes mellitus with hyperglycemia,2026-04-15 12:46:44,N
+52464,65,E11.69,17,1,N,4414,Type 2 diabetes mellitus with other specified complication,2026-04-15 12:46:44,N
+52464,65,E11.8,17,1,N,4415,Type 2 diabetes mellitus with unspecified complications,2026-04-15 12:46:44,N
+52464,65,E11.9,17,1,N,4416,Type 2 diabetes mellitus without complications,2026-04-15 12:46:44,N
+52464,65,E13.00,17,1,N,4420,Other specified diabetes mellitus with hyperosmolarity without nonketotic hyperglycemic-hyperosmolar coma (NKHHC),2026-04-15 12:46:44,N
+52464,65,E13.01,17,1,N,4421,Other specified diabetes mellitus with hyperosmolarity with coma,2026-04-15 12:46:44,N
+52464,65,E13.10,17,1,N,4423,Other specified diabetes mellitus with ketoacidosis without coma,2026-04-15 12:46:44,N
+52464,65,E13.11,17,1,N,4424,Other specified diabetes mellitus with ketoacidosis with coma,2026-04-15 12:46:44,N
+52464,65,E13.21,17,1,N,4426,Other specified diabetes mellitus with diabetic nephropathy,2026-04-15 12:46:44,N
+52464,65,E13.22,17,1,N,4427,Other specified diabetes mellitus with diabetic chronic kidney disease,2026-04-15 12:46:44,N
+52464,65,E13.29,17,1,N,4428,Other specified diabetes mellitus with other diabetic kidney complication,2026-04-15 12:46:44,N
+52464,65,E13.311,17,1,N,4431,Other specified diabetes mellitus with unspecified diabetic retinopathy with macular edema,2026-04-15 12:46:44,N
+52464,65,E13.319,17,1,N,4432,Other specified diabetes mellitus with unspecified diabetic retinopathy without macular edema,2026-04-15 12:46:44,N
+52464,65,E13.3211,17,1,N,4435,"Other specified diabetes mellitus with mild nonproliferative diabetic retinopathy with macular edema, right eye",2026-04-15 12:46:44,N
+52464,65,E13.3212,17,1,N,4436,"Other specified diabetes mellitus with mild nonproliferative diabetic retinopathy with macular edema, left eye",2026-04-15 12:46:44,N
+52464,65,E13.3213,17,1,N,4437,"Other specified diabetes mellitus with mild nonproliferative diabetic retinopathy with macular edema, bilateral",2026-04-15 12:46:44,N
+52464,65,E13.3219,17,1,N,4438,"Other specified diabetes mellitus with mild nonproliferative diabetic retinopathy with macular edema, unspecified eye",2026-04-15 12:46:44,N
+52464,65,E13.3291,17,1,N,4440,"Other specified diabetes mellitus with mild nonproliferative diabetic retinopathy without macular edema, right eye",2026-04-15 12:46:44,N
+52464,65,E13.3292,17,1,N,4441,"Other specified diabetes mellitus with mild nonproliferative diabetic retinopathy without macular edema, left eye",2026-04-15 12:46:44,N
+52464,65,E13.3293,17,1,N,4442,"Other specified diabetes mellitus with mild nonproliferative diabetic retinopathy without macular edema, bilateral",2026-04-15 12:46:44,N
+52464,65,E13.3299,17,1,N,4443,"Other specified diabetes mellitus with mild nonproliferative diabetic retinopathy without macular edema, unspecified eye",2026-04-15 12:46:44,N
+52464,65,E13.3311,17,1,N,4446,"Other specified diabetes mellitus with moderate nonproliferative diabetic retinopathy with macular edema, right eye",2026-04-15 12:46:44,N
+52464,65,E13.3312,17,1,N,4447,"Other specified diabetes mellitus with moderate nonproliferative diabetic retinopathy with macular edema, left eye",2026-04-15 12:46:44,N
+52464,65,E13.3313,17,1,N,4448,"Other specified diabetes mellitus with moderate nonproliferative diabetic retinopathy with macular edema, bilateral",2026-04-15 12:46:44,N
+52464,65,E13.3319,17,1,N,4449,"Other specified diabetes mellitus with moderate nonproliferative diabetic retinopathy with macular edema, unspecified eye",2026-04-15 12:46:44,N
+52464,65,E13.3391,17,1,N,4451,"Other specified diabetes mellitus with moderate nonproliferative diabetic retinopathy without macular edema, right eye",2026-04-15 12:46:44,N
+52464,65,E13.3392,17,1,N,4452,"Other specified diabetes mellitus with moderate nonproliferative diabetic retinopathy without macular edema, left eye",2026-04-15 12:46:44,N
+52464,65,E13.3393,17,1,N,4453,"Other specified diabetes mellitus with moderate nonproliferative diabetic retinopathy without macular edema, bilateral",2026-04-15 12:46:44,N
+52464,65,E13.3399,17,1,N,4454,"Other specified diabetes mellitus with moderate nonproliferative diabetic retinopathy without macular edema, unspecified eye",2026-04-15 12:46:44,N
+52464,65,E13.3411,17,1,N,4457,"Other specified diabetes mellitus with severe nonproliferative diabetic retinopathy with macular edema, right eye",2026-04-15 12:46:44,N
+52464,65,E13.3412,17,1,N,4458,"Other specified diabetes mellitus with severe nonproliferative diabetic retinopathy with macular edema, left eye",2026-04-15 12:46:44,N
+52464,65,E13.3413,17,1,N,4459,"Other specified diabetes mellitus with severe nonproliferative diabetic retinopathy with macular edema, bilateral",2026-04-15 12:46:44,N
+52464,65,E13.3419,17,1,N,4460,"Other specified diabetes mellitus with severe nonproliferative diabetic retinopathy with macular edema, unspecified eye",2026-04-15 12:46:44,N
+52464,65,E13.3491,17,1,N,4462,"Other specified diabetes mellitus with severe nonproliferative diabetic retinopathy without macular edema, right eye",2026-04-15 12:46:44,N
+52464,65,E13.3492,17,1,N,4463,"Other specified diabetes mellitus with severe nonproliferative diabetic retinopathy without macular edema, left eye",2026-04-15 12:46:44,N
+52464,65,E13.3493,17,1,N,4464,"Other specified diabetes mellitus with severe nonproliferative diabetic retinopathy without macular edema, bilateral",2026-04-15 12:46:44,N
+52464,65,E13.3499,17,1,N,4465,"Other specified diabetes mellitus with severe nonproliferative diabetic retinopathy without macular edema, unspecified eye",2026-04-15 12:46:44,N
+52464,65,E13.3511,17,1,N,4468,"Other specified diabetes mellitus with proliferative diabetic retinopathy with macular edema, right eye",2026-04-15 12:46:44,N
+52464,65,E13.3512,17,1,N,4469,"Other specified diabetes mellitus with proliferative diabetic retinopathy with macular edema, left eye",2026-04-15 12:46:44,N
+52464,65,E13.3513,17,1,N,4470,"Other specified diabetes mellitus with proliferative diabetic retinopathy with macular edema, bilateral",2026-04-15 12:46:44,N
+52464,65,E13.3519,17,1,N,4471,"Other specified diabetes mellitus with proliferative diabetic retinopathy with macular edema, unspecified eye",2026-04-15 12:46:44,N
+52464,65,E13.3521,17,1,N,4473,"Other specified diabetes mellitus with proliferative diabetic retinopathy with traction retinal detachment involving the macula, right eye",2026-04-15 12:46:44,N
+52464,65,E13.3522,17,1,N,4474,"Other specified diabetes mellitus with proliferative diabetic retinopathy with traction retinal detachment involving the macula, left eye",2026-04-15 12:46:44,N
+52464,65,E13.3523,17,1,N,4475,"Other specified diabetes mellitus with proliferative diabetic retinopathy with traction retinal detachment involving the macula, bilateral",2026-04-15 12:46:44,N
+52464,65,E13.3529,17,1,N,4476,"Other specified diabetes mellitus with proliferative diabetic retinopathy with traction retinal detachment involving the macula, unspecified eye",2026-04-15 12:46:44,N
+52464,65,E13.3531,17,1,N,4478,"Other specified diabetes mellitus with proliferative diabetic retinopathy with traction retinal detachment not involving the macula, right eye",2026-04-15 12:46:44,N
+52464,65,E13.3532,17,1,N,4479,"Other specified diabetes mellitus with proliferative diabetic retinopathy with traction retinal detachment not involving the macula, left eye",2026-04-15 12:46:44,N
+52464,65,E13.3533,17,1,N,4480,"Other specified diabetes mellitus with proliferative diabetic retinopathy with traction retinal detachment not involving the macula, bilateral",2026-04-15 12:46:44,N
+52464,65,E13.3539,17,1,N,4481,"Other specified diabetes mellitus with proliferative diabetic retinopathy with traction retinal detachment not involving the macula, unspecified eye",2026-04-15 12:46:44,N
+52464,65,E13.3541,17,1,N,4483,"Other specified diabetes mellitus with proliferative diabetic retinopathy with combined traction retinal detachment and rhegmatogenous retinal detachment, right eye",2026-04-15 12:46:44,N
+52464,65,E13.3542,17,1,N,4484,"Other specified diabetes mellitus with proliferative diabetic retinopathy with combined traction retinal detachment and rhegmatogenous retinal detachment, left eye",2026-04-15 12:46:44,N
+52464,65,E13.3543,17,1,N,4485,"Other specified diabetes mellitus with proliferative diabetic retinopathy with combined traction retinal detachment and rhegmatogenous retinal detachment, bilateral",2026-04-15 12:46:44,N
+52464,65,E13.3549,17,1,N,4486,"Other specified diabetes mellitus with proliferative diabetic retinopathy with combined traction retinal detachment and rhegmatogenous retinal detachment, unspecified eye",2026-04-15 12:46:44,N
+52464,65,E13.3551,17,1,N,4488,"Other specified diabetes mellitus with stable proliferative diabetic retinopathy, right eye",2026-04-15 12:46:44,N
+52464,65,E13.3552,17,1,N,4489,"Other specified diabetes mellitus with stable proliferative diabetic retinopathy, left eye",2026-04-15 12:46:44,N
+52464,65,E13.3553,17,1,N,4490,"Other specified diabetes mellitus with stable proliferative diabetic retinopathy, bilateral",2026-04-15 12:46:44,N
+52464,65,E13.3559,17,1,N,4491,"Other specified diabetes mellitus with stable proliferative diabetic retinopathy, unspecified eye",2026-04-15 12:46:44,N
+52464,65,E13.3591,17,1,N,4493,"Other specified diabetes mellitus with proliferative diabetic retinopathy without macular edema, right eye",2026-04-15 12:46:44,N
+52464,65,E13.3592,17,1,N,4494,"Other specified diabetes mellitus with proliferative diabetic retinopathy without macular edema, left eye",2026-04-15 12:46:44,N
+52464,65,E13.3593,17,1,N,4495,"Other specified diabetes mellitus with proliferative diabetic retinopathy without macular edema, bilateral",2026-04-15 12:46:44,N
+52464,65,E13.3599,17,1,N,4496,"Other specified diabetes mellitus with proliferative diabetic retinopathy without macular edema, unspecified eye",2026-04-15 12:46:44,N
+52464,65,E13.36,17,1,N,4497,Other specified diabetes mellitus with diabetic cataract,2026-04-15 12:46:44,N
+52464,65,E13.37X1,17,1,N,4499,"Other specified diabetes mellitus with diabetic macular edema, resolved following treatment, right eye",2026-04-15 12:46:44,N
+52464,65,E13.37X2,17,1,N,4500,"Other specified diabetes mellitus with diabetic macular edema, resolved following treatment, left eye",2026-04-15 12:46:44,N
+52464,65,E13.37X3,17,1,N,4501,"Other specified diabetes mellitus with diabetic macular edema, resolved following treatment, bilateral",2026-04-15 12:46:44,N
+52464,65,E13.37X9,17,1,N,4502,"Other specified diabetes mellitus with diabetic macular edema, resolved following treatment, unspecified eye",2026-04-15 12:46:44,N
+52464,65,E13.39,17,1,N,4503,Other specified diabetes mellitus with other diabetic ophthalmic complication,2026-04-15 12:46:44,N
+52464,65,E13.40,17,1,N,4505,"Other specified diabetes mellitus with diabetic neuropathy, unspecified",2026-04-15 12:46:44,N
+52464,65,E13.41,17,1,N,4506,Other specified diabetes mellitus with diabetic mononeuropathy,2026-04-15 12:46:44,N
+52464,65,E13.42,17,1,N,4507,Other specified diabetes mellitus with diabetic polyneuropathy,2026-04-15 12:46:44,N
+52464,65,E13.43,17,1,N,4508,Other specified diabetes mellitus with diabetic autonomic (poly)neuropathy,2026-04-15 12:46:44,N
+52464,65,E13.44,17,1,N,4509,Other specified diabetes mellitus with diabetic amyotrophy,2026-04-15 12:46:44,N
+52464,65,E13.49,17,1,N,4510,Other specified diabetes mellitus with other diabetic neurological complication,2026-04-15 12:46:44,N
+52464,65,E13.51,17,1,N,4512,Other specified diabetes mellitus with diabetic peripheral angiopathy without gangrene,2026-04-15 12:46:44,N
+52464,65,E13.52,17,1,N,4513,Other specified diabetes mellitus with diabetic peripheral angiopathy with gangrene,2026-04-15 12:46:44,N
+52464,65,E13.59,17,1,N,4514,Other specified diabetes mellitus with other circulatory complications,2026-04-15 12:46:44,N
+52464,65,E13.610,17,1,N,4517,Other specified diabetes mellitus with diabetic neuropathic arthropathy,2026-04-15 12:46:44,N
+52464,65,E13.618,17,1,N,4518,Other specified diabetes mellitus with other diabetic arthropathy,2026-04-15 12:46:44,N
+52464,65,E13.620,17,1,N,4520,Other specified diabetes mellitus with diabetic dermatitis,2026-04-15 12:46:44,N
+52464,65,E13.621,17,1,N,4521,Other specified diabetes mellitus with foot ulcer,2026-04-15 12:46:44,N
+52464,65,E13.622,17,1,N,4522,Other specified diabetes mellitus with other skin ulcer,2026-04-15 12:46:44,N
+52464,65,E13.628,17,1,N,4523,Other specified diabetes mellitus with other skin complications,2026-04-15 12:46:44,N
+52464,65,E13.630,17,1,N,4525,Other specified diabetes mellitus with periodontal disease,2026-04-15 12:46:44,N
+52464,65,E13.638,17,1,N,4526,Other specified diabetes mellitus with other oral complications,2026-04-15 12:46:44,N
+52464,65,E13.641,17,1,N,4528,Other specified diabetes mellitus with hypoglycemia with coma,2026-04-15 12:46:44,N
+52464,65,E13.649,17,1,N,4529,Other specified diabetes mellitus with hypoglycemia without coma,2026-04-15 12:46:44,N
+52464,65,E13.65,17,1,N,4530,Other specified diabetes mellitus with hyperglycemia,2026-04-15 12:46:44,N
+52464,65,E13.69,17,1,N,4531,Other specified diabetes mellitus with other specified complication,2026-04-15 12:46:44,N
+52464,65,E13.8,17,1,N,4532,Other specified diabetes mellitus with unspecified complications,2026-04-15 12:46:44,N
+52464,65,E13.9,17,1,N,4533,Other specified diabetes mellitus without complications,2026-04-15 12:46:44,N
+52464,65,O24.011,17,1,N,26267,"Pre-existing type 1 diabetes mellitus, in pregnancy, first trimester",2026-04-15 12:46:44,N
+52464,65,O24.012,17,1,N,26268,"Pre-existing type 1 diabetes mellitus, in pregnancy, second trimester",2026-04-15 12:46:44,N
+52464,65,O24.013,17,1,N,26269,"Pre-existing type 1 diabetes mellitus, in pregnancy, third trimester",2026-04-15 12:46:44,N
+52464,65,O24.019,17,1,N,26270,"Pre-existing type 1 diabetes mellitus, in pregnancy, unspecified trimester",2026-04-15 12:46:44,N
+52464,65,O24.02,17,1,N,26271,"Pre-existing type 1 diabetes mellitus, in childbirth",2026-04-15 12:46:44,N
+52464,65,O24.03,17,1,N,26272,"Pre-existing type 1 diabetes mellitus, in the puerperium",2026-04-15 12:46:44,N
+52464,65,O24.111,17,1,N,26275,"Pre-existing type 2 diabetes mellitus, in pregnancy, first trimester",2026-04-15 12:46:44,N
+52464,65,O24.112,17,1,N,26276,"Pre-existing type 2 diabetes mellitus, in pregnancy, second trimester",2026-04-15 12:46:44,N
+52464,65,O24.113,17,1,N,26277,"Pre-existing type 2 diabetes mellitus, in pregnancy, third trimester",2026-04-15 12:46:44,N
+52464,65,O24.119,17,1,N,26278,"Pre-existing type 2 diabetes mellitus, in pregnancy, unspecified trimester",2026-04-15 12:46:44,N
+52464,65,O24.12,17,1,N,26279,"Pre-existing type 2 diabetes mellitus, in childbirth",2026-04-15 12:46:44,N
+52464,65,O24.13,17,1,N,26280,"Pre-existing type 2 diabetes mellitus, in the puerperium",2026-04-15 12:46:44,N
+52464,65,O24.311,17,1,N,26283,"Unspecified pre-existing diabetes mellitus in pregnancy, first trimester",2026-04-15 12:46:44,N
+52464,65,O24.312,17,1,N,26284,"Unspecified pre-existing diabetes mellitus in pregnancy, second trimester",2026-04-15 12:46:44,N
+52464,65,O24.313,17,1,N,26285,"Unspecified pre-existing diabetes mellitus in pregnancy, third trimester",2026-04-15 12:46:44,N
+52464,65,O24.319,17,1,N,26286,"Unspecified pre-existing diabetes mellitus in pregnancy, unspecified trimester",2026-04-15 12:46:44,N
+52464,65,O24.32,17,1,N,26287,Unspecified pre-existing diabetes mellitus in childbirth,2026-04-15 12:46:44,N
+52464,65,O24.33,17,1,N,26288,Unspecified pre-existing diabetes mellitus in the puerperium,2026-04-15 12:46:44,N
+52464,65,O24.811,17,1,N,26307,"Other pre-existing diabetes mellitus in pregnancy, first trimester",2026-04-15 12:46:44,N
+52464,65,O24.812,17,1,N,26308,"Other pre-existing diabetes mellitus in pregnancy, second trimester",2026-04-15 12:46:44,N
+52464,65,O24.813,17,1,N,26309,"Other pre-existing diabetes mellitus in pregnancy, third trimester",2026-04-15 12:46:44,N
+52464,65,O24.819,17,1,N,26310,"Other pre-existing diabetes mellitus in pregnancy, unspecified trimester",2026-04-15 12:46:44,N
+52464,65,O24.82,17,1,N,26311,Other pre-existing diabetes mellitus in childbirth,2026-04-15 12:46:44,N
+52464,65,O24.83,17,1,N,26312,Other pre-existing diabetes mellitus in the puerperium,2026-04-15 12:46:44,N
+52464,65,O24.911,17,1,N,26315,"Unspecified diabetes mellitus in pregnancy, first trimester",2026-04-15 12:46:44,N
+52464,65,O24.912,17,1,N,26316,"Unspecified diabetes mellitus in pregnancy, second trimester",2026-04-15 12:46:44,N
+52464,65,O24.913,17,1,N,26317,"Unspecified diabetes mellitus in pregnancy, third trimester",2026-04-15 12:46:44,N
+52464,65,O24.919,17,1,N,26318,"Unspecified diabetes mellitus in pregnancy, unspecified trimester",2026-04-15 12:46:44,N
+52464,65,O24.92,17,1,N,26319,Unspecified diabetes mellitus in childbirth,2026-04-15 12:46:44,N
+52464,65,O24.93,17,1,N,26320,Unspecified diabetes mellitus in the puerperium,2026-04-15 12:46:44,N

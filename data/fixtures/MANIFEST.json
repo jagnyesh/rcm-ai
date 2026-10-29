@@ -1,0 +1,46 @@
+{
+  "fixtures": [
+    {
+      "path": "cdc/icd10cm-tabular-2027-E08-E13.xml",
+      "description": "Verbatim excerpt of tabular section E08-E13 (Diabetes mellitus), wrapped in the source root element",
+      "source_url": "https://ftp.cdc.gov/pub/Health_Statistics/NCHS/Publications/ICD10CM/2027/icd10cm-table-and-index-2027.zip",
+      "source_sha256": "99b5c2be16ff53eab861cc0be4b1dacba27f687b8ff4bc700679944355037ee0",
+      "source_member": "icd10cm-table-and-index-2027/icd10cm-tabular_-2027.xml",
+      "source_lines": "23259-25128",
+      "version": "ICD-10-CM FY2027 (effective 2026-10-01)",
+      "retrieved": "2026-10-29",
+      "license": "Public domain (CDC NCHS)",
+      "record_kind": "diag",
+      "record_count": 322,
+      "sha256": "a7b3e57e8bc642e77c09fd7ef463b050643d8d6e4dbfad934a825df7fe8ec4cf"
+    },
+    {
+      "path": "cms/article_x_icd10_covered-A52464-v65.csv",
+      "description": "Header plus the verbatim rows for article 52464 version 65 (Glucose Monitor - Policy Article): ICD-10-CM codes that support medical necessity, covered group 1",
+      "source_url": "https://downloads.cms.gov/medicare-coverage-database/downloads/exports/current_article.zip",
+      "source_sha256": "49bd1336d2486bf997e38d1111a90decdc65c330806499e737a9129e9eae25aa",
+      "source_member": "current_article_csv.zip/article_x_icd10_covered.csv",
+      "source_lines": "header + rows where article_id=52464 and article_version=65",
+      "version": "MCD Current Article Data, export of 2026-10-26; article A52464 v65 (effective 2025-02-18)",
+      "retrieved": "2026-10-29",
+      "license": "ICD-10-CM codes and descriptions are public domain; the MCD download is gated by AMA/ADA/AHA license acceptance, and this slice contains no CPT, CDT, or UB-04 content",
+      "record_kind": "csv_row",
+      "record_count": 461,
+      "sha256": "829e89d26e7ae1ef3823a6c34ec7efed28340a7e0ecccbd5c334eab428ca2bb5"
+    },
+    {
+      "path": "cms/lcd_x_hcpc_code-L33822-v70.csv",
+      "description": "Header plus the verbatim rows for LCD 33822 version 70 (Glucose Monitors): HCPCS Level II codes, groups 1 (monitors and supplies) and 2 (accessories/supplies)",
+      "source_url": "https://downloads.cms.gov/medicare-coverage-database/downloads/exports/current_lcd.zip",
+      "source_sha256": "22ce281101670c3cad88574fea33298fb34d60d9d5df22aa3b3423d445a33cf4",
+      "source_member": "current_lcd_csv.zip/lcd_x_hcpc_code.csv",
+      "source_lines": "header + rows where lcd_id=33822 and lcd_version=70",
+      "version": "MCD Current LCD Data, export of 2026-10-26; LCD L33822 v70 (revision effective 2024-10-01)",
+      "retrieved": "2026-10-29",
+      "license": "HCPCS Level II codes and descriptors are public domain (CMS); the MCD download is gated by AMA/ADA/AHA license acceptance, and this slice contains no CPT, CDT, or UB-04 content (checked by scan_fixtures_for_cpt)",
+      "record_kind": "csv_row",
+      "record_count": 31,
+      "sha256": "8079749813a68756f1fd758a3710bd7942f0ee478cc6aa2edb676808af5d0f7d"
+    }
+  ]
+}
