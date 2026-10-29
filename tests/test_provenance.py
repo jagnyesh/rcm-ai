@@ -51,7 +51,6 @@ def test_macos_finder_metadata_in_the_fixtures_dir_is_ignored(tmp_path):
 
 # Regression: ISSUE-002 — manifest record_count was never checked
 # Found by /qa on 2026-10-29
-# Report: qa-report-rcm-ai-functional-2026-10-29.md (session scratchpad)
 @pytest.mark.parametrize(
     "fixture", ["cdc/icd10cm-tabular-2027-E08-E13.xml", "cms/lcd_x_hcpc_code-L33822-v70.csv"]
 )

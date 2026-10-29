@@ -44,7 +44,6 @@ def test_every_excludes1_note_in_the_slice_is_parsed_none_dropped():
 
 # Regression: ISSUE-001 — wildcard range ends and malformed refs parsed silently
 # Found by /qa on 2026-10-29
-# Report: qa-report-rcm-ai-functional-2026-10-29.md (session scratchpad)
 @pytest.mark.parametrize(
     "note, expected",
     [
@@ -54,11 +53,11 @@ def test_every_excludes1_note_in_the_slice_is_parsed_none_dropped():
         ("gestational diabetes (O24.4-)", CodeRef("subtree", "O24.4")),
     ],
 )
-def test_wildcard_dashes_on_either_end_of_a_reference_are_read_as_subtree_markers(note, expected):
+def test_range_end_wildcards_are_dropped_and_subtree_wildcards_kept(note, expected):
     assert parse_code_ref(note) == expected
 
 
-@pytest.mark.parametrize("note", ["eating disorders (F98.2.-F98.3)", "pain (NOS)", "stage (A-B-C)"])
+@pytest.mark.parametrize("note", ["eating disorders (F98.2.-F98.3)", "pain (NOS)", "diabetes (E10.-E11.-)"])
 def test_a_trailing_reference_that_is_not_code_shaped_raises_instead_of_parsing(note):
     with pytest.raises(ValueError):
         parse_code_ref(note)
