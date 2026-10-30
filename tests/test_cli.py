@@ -1,4 +1,5 @@
 import json
+import shutil
 import re
 import subprocess
 import sys
@@ -49,3 +50,54 @@ def test_triage_rejects_evidence_naming_an_unknown_criterion_with_exit_code_2(tm
 
     assert result.returncode == 2
     assert "bogus" in result.stderr
+
+
+def _small_data(tmp_path):
+    """The data dirs the eval needs, without the large gitignored raw downloads."""
+    data = tmp_path / "data"
+    for d in ("eval", "fixtures", "curated"):
+        shutil.copytree(REPO / "data" / d, data / d)
+    return data
+
+
+def test_eval_runs_the_locked_set_and_writes_dated_per_case_results(tmp_path):
+    result = _run("eval", "--out", str(tmp_path))
+
+    assert result.returncode == 0, result.stderr
+    assert "20 cases ran (expected 20)" in result.stdout
+    assert "graph" in result.stdout
+    (written,) = tmp_path.glob("eval-*.json")
+    record = json.loads(written.read_text())
+    assert record["git_sha"] and record["date"]
+    assert record["eval_set"]["expected_cases"] == 20
+    assert len(record["eval_set"]["sha256"]) == 64
+    assert record["eval_set"]["data_dir"].endswith("data")
+    assert record["arms"]["graph"]["model"] is None
+    assert len(record["results"]) == 20
+    assert {r["case"] for r in record["results"]} == {f"ev-{i:02d}" for i in range(1, 21)}
+    ev19 = next(r for r in record["results"] if r["case"] == "ev-19")
+    assert "Excludes1" in ev19["known_system_gap"]
+
+
+def test_eval_fails_with_exit_code_2_on_a_partial_case_set(tmp_path):
+    data = _small_data(tmp_path)
+    (data / "eval" / "cases" / "ev-20.json").unlink()
+
+    result = _run("eval", "--data", str(data), "--out", str(tmp_path))
+
+    assert result.returncode == 2
+    assert "expected 20" in result.stderr
+
+
+def test_eval_fails_with_exit_code_3_when_an_arm_errors(tmp_path):
+    data = _small_data(tmp_path)
+    case = data / "eval" / "cases" / "ev-01.json"
+    raw = json.loads(case.read_text())
+    raw["evidence"]["criteria"][0]["criterion"] = "bogus"  # loads fine, adjudication raises
+    case.write_text(json.dumps(raw))
+
+    result = _run("eval", "--data", str(data), "--out", str(tmp_path))
+
+    assert result.returncode == 3
+    assert "1 arm error" in result.stderr
+    assert "errors 1" in result.stdout

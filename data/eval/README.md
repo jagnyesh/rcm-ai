@@ -16,6 +16,14 @@
 - `gold.findings` records specificity mismatches (billed code covered but less specific than documented) and Excludes1 conflicts.
 - `gold.known_system_gap` explains a case the current system gets wrong for a known, tracked reason. The gold label stays the policy-correct answer; it is not adjusted to match the system.
 
+## Metrics
+
+- **accuracy:** the arm's verdict equals the gold verdict.
+- **false overturnable:** the arm says overturnable and gold doesn't. This is the costly error: an appeal sent on a claim that shouldn't be appealed.
+- **abstention rate:** the share of cases the arm returns as needs_human.
+- **abstention precision:** of those hand-offs, the share where gold is also needs_human. A hand-off on a gold-uphold case counts as an unnecessary hand-off: safe, but it costs reviewer time.
+- **errors:** cases where the arm raised. They count as wrong, never as abstentions, and a run with any errors exits 3, because its metrics aren't comparable to a clean run.
+
 ## Locking rule
 
-This set is a locked golden fixture from its first commit, including while labels are `claude-labeled`. Never edit a case or label to match system output. Any change, including a corrected label, goes in its own commit whose message says which case changed and why. The eval harness (#8) asserts the case count, so adding or removing a case is a deliberate, visible change.
+This set is a locked golden fixture from its first commit, including while labels are `claude-labeled`. Never edit a case or label to match system output. Any change, including a corrected label, goes in its own commit whose message says which case changed and why. The eval harness asserts the case count against `set.json` (`expected_cases`), so adding or removing a case means updating that number in the same commit.
