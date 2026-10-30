@@ -269,3 +269,16 @@ def test_a_seventh_character_hop_names_the_code_that_defines_its_character():
     hop = _eval_case("ev-07").path[3]
 
     assert "7th character from E11.32" in hop.statement
+
+
+def test_documented_codes_in_an_excludes1_conflict_are_not_overturnable():
+    case = _case()  # the note documents type 1 and type 2 together; the claim bills only E11.9
+    claim = replace(case.claim, icd10=("E11.9",))
+    evidence = replace(case.evidence, diagnoses=(
+        DocumentedCode("E11.65", NOTE_SPAN), DocumentedCode("E10.9", NOTE_SPAN),
+    ))
+
+    verdict = adjudicate(claim, evidence, build_graph(DATA))
+
+    assert verdict.outcome == "needs_human"
+    assert [f.type for f in verdict.findings] == ["excludes1"]
