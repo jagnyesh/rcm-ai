@@ -1,4 +1,5 @@
 import json
+import shutil
 import re
 import subprocess
 import sys
@@ -49,3 +50,28 @@ def test_triage_rejects_evidence_naming_an_unknown_criterion_with_exit_code_2(tm
 
     assert result.returncode == 2
     assert "bogus" in result.stderr
+
+
+def test_eval_runs_the_locked_set_and_writes_dated_per_case_results(tmp_path):
+    result = _run("eval", "--out", str(tmp_path))
+
+    assert result.returncode == 0, result.stderr
+    assert "20 cases ran (expected 20)" in result.stdout
+    assert "graph" in result.stdout
+    (written,) = tmp_path.glob("eval-*.json")
+    record = json.loads(written.read_text())
+    assert record["git_sha"] and record["date"]
+    assert record["arms"]["graph"]["model"] is None
+    assert len(record["results"]) == 20
+    assert {r["case"] for r in record["results"]} == {f"ev-{i:02d}" for i in range(1, 21)}
+
+
+def test_eval_fails_with_exit_code_2_on_a_partial_case_set(tmp_path):
+    data = tmp_path / "data"
+    shutil.copytree(REPO / "data", data)
+    (data / "eval" / "cases" / "ev-20.json").unlink()
+
+    result = _run("eval", "--data", str(data), "--out", str(tmp_path))
+
+    assert result.returncode == 2
+    assert "expected 20" in result.stderr
