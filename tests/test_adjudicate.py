@@ -218,3 +218,10 @@ def test_a_billed_specific_code_supported_only_by_a_less_specific_documented_cod
     evidence = replace(case.evidence, diagnoses=(DocumentedCode("E11.9", NOTE_SPAN),))
 
     assert adjudicate(case.claim, evidence, build_graph(DATA)).outcome == "needs_human"
+
+
+def test_every_hop_of_a_seventh_character_path_is_found_at_its_source_line():
+    verdict = _eval_case("ev-07")
+
+    for hop in verdict.path:
+        assert hop.anchor in _record_text_at(FIXTURES / hop.source.path, hop.source.line), hop
