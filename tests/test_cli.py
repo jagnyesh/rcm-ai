@@ -37,3 +37,15 @@ def test_triage_reports_a_rejected_case_on_stderr_with_exit_code_2(tmp_path):
     assert result.returncode == 2
     assert result.stdout == ""
     assert "CPT" in result.stderr
+
+
+def test_triage_rejects_evidence_naming_an_unknown_criterion_with_exit_code_2(tmp_path):
+    raw = json.loads((REPO / CASE).read_text())
+    raw["evidence"]["criteria"][0]["criterion"] = "bogus"
+    bad = tmp_path / "bad.json"
+    bad.write_text(json.dumps(raw))
+
+    result = _run("triage", str(bad))
+
+    assert result.returncode == 2
+    assert "bogus" in result.stderr

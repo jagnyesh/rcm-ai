@@ -10,10 +10,10 @@ from rcm_ai.schemas import SchemaError, load_case
 def _triage(case_path: Path, data_dir: Path) -> int:
     try:
         case = load_case(case_path)
+        verdict = adjudicate(case.claim, case.evidence, build_graph(data_dir))
     except SchemaError as e:
         print(f"rejected: {e}", file=sys.stderr)
         return 2
-    verdict = adjudicate(case.claim, case.evidence, build_graph(data_dir))
     print(f"{case.id}: {verdict.outcome}")
     if not verdict.path:
         print("  no complete, criteria-satisfied coverage path in the graph")

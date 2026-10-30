@@ -58,6 +58,7 @@ def _local(iri) -> str:
 class CoveragePath:
     lcd: str
     article: str
+    cited_article_version: str
     title: str
     listing: Source
     relation: Source
@@ -85,9 +86,9 @@ class CoverageGraph:
     def coverage_paths(self, hcpcs: str, dx: str) -> list[CoveragePath]:
         rows = self._ds.query(
             """
-            SELECT ?lcd ?article ?title ?gList ?gRel ?gConcept ?gCov WHERE {
+            SELECT ?lcd ?article ?citedVersion ?title ?gList ?gRel ?gConcept ?gCov WHERE {
               GRAPH ?gList { ?lcd rcm:listsHcpcs ?hcpcs }
-              GRAPH ?gRel { ?lcd rcm:relatedArticle ?article }
+              GRAPH ?gRel { ?lcd rcm:relatedArticle ?article . ?article rcm:citedVersion ?citedVersion }
               GRAPH ?gConcept { ?dx skos:prefLabel ?title }
               GRAPH ?gCov { ?article rcm:coversDiagnosis ?dx }
             }""",
@@ -96,7 +97,7 @@ class CoverageGraph:
         )
         return [
             CoveragePath(
-                _local(r.lcd), _local(r.article), str(r.title),
+                _local(r.lcd), _local(r.article), str(r.citedVersion), str(r.title),
                 self._source(r.gList), self._source(r.gRel),
                 self._source(r.gConcept), self._source(r.gCov),
             )
@@ -133,6 +134,10 @@ class CoverageGraph:
             _local(r.satisfiedBy) if r.satisfiedBy else None,
             tuple(self._criterion(s) for s in subs),
         )
+
+    def criterion_ids(self) -> set[str]:
+        rows = self._ds.query("SELECT ?crit WHERE { GRAPH ?g { ?crit rcm:quote ?q } }", initNs={"rcm": RCM})
+        return {_local(r.crit) for r in rows}
 
     def criteria(self, lcd: str) -> list[Criterion]:
         crits = [r.crit for r in self._ds.query(
@@ -172,9 +177,12 @@ def build_graph(data_dir: Path) -> CoverageGraph:
         )
     for line, row in _csv_records(fixtures / LCD_RELATED):
         if row["r_article_id"]:
-            graph_for(LCD_RELATED, line).add(
-                (LCD["L" + row["lcd_id"]], RCM.relatedArticle, ARTICLE["A" + row["r_article_id"]])
-            )
+            g = graph_for(LCD_RELATED, line)
+            article = ARTICLE["A" + row["r_article_id"]]
+            g.add((LCD["L" + row["lcd_id"]], RCM.relatedArticle, article))
+            # The link names the article version it was made against, which can lag the
+            # article version whose covered codes we load; keep it so the path can show it.
+            g.add((article, RCM.citedVersion, Literal(row["r_article_version"])))
     for line, row in _csv_records(fixtures / ARTICLE_COVERED):
         graph_for(ARTICLE_COVERED, line).add(
             (ARTICLE["A" + row["article_id"]], RCM.coversDiagnosis, ICD[row["icd10_code_id"]])

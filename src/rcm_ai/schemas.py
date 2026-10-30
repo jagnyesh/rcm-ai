@@ -7,6 +7,8 @@ from rcm_ai.codes import is_cpt, is_hcpcs_level2, is_icd10cm
 
 # Claim adjustment reason codes are 1-3 digits, some with a one-letter prefix (e.g. "50", "B7").
 _CARC = re.compile(r"[A-Z]?[0-9]{1,3}")
+COVERAGE_PERIODS = ("initial", "continued")
+OUTCOMES = ("overturnable", "needs_human")
 
 
 class SchemaError(ValueError):
@@ -18,6 +20,7 @@ class Claim:
     hcpcs: str
     icd10: tuple[str, ...]
     carc: str
+    coverage: str  # "initial" | "continued"
 
     def __post_init__(self):
         if is_cpt(self.hcpcs):
@@ -31,6 +34,8 @@ class Claim:
                 raise SchemaError(f"claim diagnosis {code!r} is not an ICD-10-CM code")
         if not _CARC.fullmatch(self.carc):
             raise SchemaError(f"denial reason {self.carc!r} is not a CARC code")
+        if self.coverage not in COVERAGE_PERIODS:
+            raise SchemaError(f"claim coverage {self.coverage!r} must be one of {COVERAGE_PERIODS}")
 
 
 @dataclass(frozen=True)
@@ -67,8 +72,14 @@ class Hop:
 
 @dataclass(frozen=True)
 class Verdict:
-    outcome: str  # "overturnable" | "needs_human"
+    outcome: str  # one of OUTCOMES
     path: tuple[Hop, ...]
+
+    def __post_init__(self):
+        if self.outcome not in OUTCOMES:
+            raise ValueError(f"unknown verdict outcome {self.outcome!r}")
+        if self.outcome == "overturnable" and not self.path:
+            raise ValueError("an overturnable verdict needs a justification path")
 
 
 @dataclass(frozen=True)
@@ -77,6 +88,15 @@ class Case:
     claim: Claim
     evidence: Evidence
     note: str
+
+
+def _span(item: dict, note: str, what: str, path: Path) -> str:
+    span = item["span"]
+    if not isinstance(span, str) or not span.strip():
+        raise SchemaError(f"{path}: {what} needs a non-empty text span")
+    if span not in note:
+        raise SchemaError(f"{path}: {what} span {span!r} does not appear in the note")
+    return span
 
 
 def load_case(path: Path) -> Case:
@@ -89,15 +109,20 @@ def load_case(path: Path) -> Case:
     if raw.get("synthetic") is not True:
         raise SchemaError(f"{path}: case is not marked synthetic; only synthetic cases are accepted")
     try:
-        c, e = raw["claim"], raw["evidence"]
+        c, e, note = raw["claim"], raw["evidence"], raw["note"]
+        if not isinstance(c["icd10"], list):
+            raise SchemaError(f"{path}: claim icd10 must be a list of codes")
         return Case(
             id=raw["id"],
-            claim=Claim(c["hcpcs"], tuple(c["icd10"]), c["carc"]),
+            claim=Claim(c["hcpcs"], tuple(c["icd10"]), c["carc"], c["coverage"]),
             evidence=Evidence(
-                tuple(DocumentedCode(d["code"], d["span"]) for d in e["diagnoses"]),
-                tuple(CriterionEvidence(x["criterion"], x["span"]) for x in e["criteria"]),
+                tuple(DocumentedCode(d["code"], _span(d, note, d["code"], path)) for d in e["diagnoses"]),
+                tuple(
+                    CriterionEvidence(x["criterion"], _span(x, note, x["criterion"], path))
+                    for x in e["criteria"]
+                ),
             ),
-            note=raw["note"],
+            note=note,
         )
     except (KeyError, TypeError) as e:
         raise SchemaError(f"{path}: case is missing or mistypes field {e}") from e
