@@ -18,7 +18,7 @@ def test_every_diag_in_the_slice_becomes_a_concept_with_title_and_parent():
     tab = _slice()
 
     assert tab.version == "2027"
-    assert len(tab.concepts) == expected
+    assert len([c for c in tab.concepts.values() if c.kind == "diag"]) == expected
     assert tab.concepts["E11.21"].title == "Type 2 diabetes mellitus with diabetic nephropathy"
     assert tab.concepts["E11.21"].parent == "E11.2"
     assert tab.concepts["E11.2"].parent == "E11"
@@ -61,3 +61,24 @@ def test_range_end_wildcards_are_dropped_and_subtree_wildcards_kept(note, expect
 def test_a_trailing_reference_that_is_not_code_shaped_raises_instead_of_parsing(note):
     with pytest.raises(ValueError):
         parse_code_ref(note)
+
+
+def test_seventh_character_definitions_expand_into_concepts_under_their_leaf():
+    tab = _slice()
+
+    c = tab.concepts["E11.3213"]
+    assert c.kind == "seventh"
+    assert c.parent == "E11.321"
+    assert c.title == "Type 2 diabetes mellitus with mild nonproliferative diabetic retinopathy with macular edema, bilateral"
+
+
+def test_every_covered_e08_to_e13_code_in_the_policy_article_is_a_concept():
+    import csv
+
+    path = FIXTURES / "cms" / "article_x_icd10_covered-A52464-v65.csv"
+    covered = {r["icd10_code_id"] for r in csv.DictReader(path.open(encoding="utf-8", newline=""))}
+    in_slice = {c for c in covered if c[:3] in {"E08", "E09", "E10", "E11", "E13"}}
+    concepts = _slice().concepts
+
+    assert len(in_slice) == 431
+    assert sorted(in_slice - concepts.keys()) == []

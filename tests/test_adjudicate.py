@@ -157,3 +157,130 @@ def test_a_covered_diagnosis_on_the_claim_but_not_documented_in_the_note_is_not_
     evidence = replace(case.evidence, diagnoses=(DocumentedCode("Z79.4", NOTE_SPAN),))
 
     assert adjudicate(claim, evidence, build_graph(DATA)).outcome == "needs_human"
+
+
+# Issue #4: specificity, Excludes1 and seventh-character codes, using the locked eval cases.
+EVAL = DATA / "eval" / "cases"
+
+
+def _eval_case(case_id):
+    c = load_case(EVAL / f"{case_id}.json")
+    return adjudicate(c.claim, c.evidence, build_graph(DATA))
+
+
+def test_a_seventh_character_code_on_the_covered_list_is_overturnable():
+    verdict = _eval_case("ev-07")
+
+    assert verdict.outcome == "overturnable"
+    assert "E11.3213 is an ICD-10-CM code" in verdict.path[3].statement
+
+
+def test_a_billed_unspecified_code_with_a_more_specific_documented_code_is_flagged():
+    verdict = _eval_case("ev-08")  # billed E11.9, note documents E11.65
+
+    assert verdict.outcome == "overturnable"
+    assert "Article A52464 covers E11.9" in [h.statement for h in verdict.path]
+    (finding,) = verdict.findings
+    assert finding.type == "specificity"
+    assert finding.codes == ("E11.9", "E11.65")
+
+
+def test_a_documented_code_from_another_category_does_not_support_the_billed_code():
+    case = _case()
+    claim = replace(case.claim, icd10=("E11.9",))
+    evidence = replace(case.evidence, diagnoses=(DocumentedCode("E10.65", NOTE_SPAN),))
+
+    assert adjudicate(claim, evidence, build_graph(DATA)).outcome == "needs_human"
+
+
+def test_billed_codes_in_an_excludes1_conflict_are_not_overturnable_and_the_rule_is_sourced():
+    verdict = _eval_case("ev-19")  # E10.9 billed with E11.65
+
+    assert verdict.outcome == "needs_human"
+    (finding,) = verdict.findings
+    assert finding.type == "excludes1"
+    assert set(finding.codes) == {"E10.9", "E11.65"}
+    # Each category excludes the other, so either note is a correct citation; the first billed code's wins.
+    assert finding.anchor in {"type 1 diabetes mellitus (E10.-)", "type 2 diabetes mellitus (E11.-)"}
+    assert finding.anchor in _record_text_at(FIXTURES / finding.source.path, finding.source.line)
+
+
+def test_excludes1_is_inherited_from_an_ancestor_category():
+    verdict = _eval_case("ev-20")  # E11.65 with E13.9; the rule lives on E11, not E11.65
+
+    assert verdict.outcome == "needs_human"
+    assert [f.type for f in verdict.findings] == ["excludes1"]
+    assert "E13" in verdict.findings[0].anchor
+
+
+def test_a_billed_specific_code_supported_only_by_a_less_specific_documented_code_is_not_overturnable():
+    case = _case()  # billing E11.65 when the note supports only E11.9 would be upcoding
+    evidence = replace(case.evidence, diagnoses=(DocumentedCode("E11.9", NOTE_SPAN),))
+
+    assert adjudicate(case.claim, evidence, build_graph(DATA)).outcome == "needs_human"
+
+
+def test_every_hop_of_a_seventh_character_path_is_found_at_its_source_line():
+    verdict = _eval_case("ev-07")
+
+    for hop in verdict.path:
+        assert hop.anchor in _record_text_at(FIXTURES / hop.source.path, hop.source.line), hop
+
+
+# Fresh-context review of #4 (2026-10-30): specificity inputs that were wrongly overturnable.
+@pytest.mark.parametrize(
+    "billed, documented",
+    [
+        ("E11.40", "E11.9"),    # neuropathy, unspecified: billed is more specific than documented
+        ("E11.8", "E11.9"),     # with unspecified complications
+        ("E11.319", "E11.65"),  # unspecified retinopathy: documented code is a different condition
+        ("E11.3519", "E11.9"),  # 7th character "unspecified eye"
+        ("E11.9", "E11.ZZZZ"),  # documented code does not exist
+        ("E11.9", "E11"),       # documented code is a category, not a billable code
+    ],
+)
+def test_specificity_only_lets_a_documented_covered_code_support_its_without_complications_code(billed, documented):
+    case = _case()
+    claim = replace(case.claim, icd10=(billed,))
+    evidence = replace(case.evidence, diagnoses=(DocumentedCode(documented, NOTE_SPAN),))
+
+    assert adjudicate(claim, evidence, build_graph(DATA)).outcome == "needs_human"
+
+
+@pytest.mark.parametrize(
+    "billed, rule",
+    [
+        (("E11.65", "E11.A"), "(E11.0-E11.8)"),  # range target on E11.A
+        (("E11.9", "E11.A"), "(E11.9)"),         # exact target on E11.A, and E11.9 excludes E11.A
+    ],
+)
+def test_excludes1_range_and_exact_targets_are_conflicts(billed, rule):
+    case = _case()
+    claim = replace(case.claim, icd10=billed)
+
+    verdict = adjudicate(claim, case.evidence, build_graph(DATA))
+
+    assert verdict.outcome == "needs_human"
+    assert verdict.findings and {f.type for f in verdict.findings} == {"excludes1"}
+    assert any(f.anchor.endswith(rule) or "(E11.A)" in f.anchor for f in verdict.findings)
+
+
+def test_a_seventh_character_hop_names_the_code_that_defines_its_character():
+    hop = _eval_case("ev-07").path[3]
+
+    assert "7th character from E11.32" in hop.statement
+
+
+def test_documented_codes_in_an_excludes1_conflict_are_not_overturnable():
+    case = _case()  # the note documents type 1 and type 2 together; the claim bills only E11.9
+    claim = replace(case.claim, icd10=("E11.9",))
+    evidence = replace(case.evidence, diagnoses=(
+        DocumentedCode("E11.65", NOTE_SPAN), DocumentedCode("E10.9", NOTE_SPAN),
+    ))
+
+    verdict = adjudicate(claim, evidence, build_graph(DATA))
+
+    assert verdict.outcome == "needs_human"
+    # E10.9 conflicts with both E11 codes; each conflicting pair is reported.
+    assert {frozenset(f.codes) for f in verdict.findings} >= {frozenset({"E11.65", "E10.9"})}
+    assert {f.type for f in verdict.findings} == {"excludes1"}

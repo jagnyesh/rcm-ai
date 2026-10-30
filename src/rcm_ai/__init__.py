@@ -26,6 +26,11 @@ def _triage(case_path: Path, data_dir: Path) -> int:
         print(f"  {n}. {hop.statement}")
         print(f"     {data_dir / 'fixtures' / hop.source.path}:{hop.source.line}  [{hop.source.version}]")
         print(f"     look for: {hop.anchor}")
+    for f in verdict.findings:
+        print(f"  finding ({f.type}): {f.statement}")
+        if f.source:
+            print(f"     {data_dir / 'fixtures' / f.source.path}:{f.source.line}  [{f.source.version}]")
+            print(f"     look for: {f.anchor}")
     return 0
 
 

@@ -1,5 +1,6 @@
 from rcm_ai.graph import CoverageGraph, Criterion
-from rcm_ai.schemas import Claim, Evidence, Hop, SchemaError, Verdict
+from rcm_ai.icd10cm import ref_covers
+from rcm_ai.schemas import Claim, Evidence, Finding, Hop, SchemaError, Verdict
 
 # Only medical-necessity denials can be overturned by showing coverage criteria are met;
 # timely filing (29), duplicates (18) or missing information (16) need other remedies.
@@ -23,6 +24,53 @@ def _criterion_hop(c: Criterion, dx: str, met: set[str]) -> Hop | None:
     return Hop(f"Criterion {c.id} met by {how}", leaf.quote, leaf.source)
 
 
+def _excludes1_conflicts(codes: tuple[str, ...], graph: CoverageGraph) -> list[Finding]:
+    """One finding per conflicting pair of billed codes, citing the first rule that names it."""
+    findings, seen = [], set()
+    for a in codes:
+        for rule in graph.excludes1_rules(a):
+            for b in codes:
+                pair = frozenset((a, b))
+                if b != a and pair not in seen and ref_covers(rule.target, b):
+                    seen.add(pair)
+                    findings.append(Finding(
+                        "excludes1", (a, b),
+                        f"{a} and {b} cannot be billed together: {rule.owner} Excludes1 {rule.note}",
+                        rule.note, rule.source,
+                    ))
+    return findings
+
+
+def _is_without_complications(code: str, graph: CoverageGraph) -> bool:
+    """The category's catch-all code (E08.9, E09.9, E10.9, E11.9, E13.9). Other titles that say
+    "unspecified" (an unspecified eye, neuropathy, complication) are specific in what matters."""
+    title = graph.title(code) or ""
+    return code == f"{code[:3]}.9" and title.endswith("without complications")
+
+
+def _support(dx: str, documented: set[str], hcpcs: str, graph: CoverageGraph) -> tuple[bool, Finding | None]:
+    """Whether the note supports a billed diagnosis, and any specificity finding.
+
+    A billed "without complications" code is supported by a documented code of the same category
+    that is itself a real, covered code for this item (recode finding). Nothing else is: a billed
+    code more specific than the note would be upcoding.
+    """
+    if dx in documented:
+        return True, None
+    if _is_without_complications(dx, graph):
+        candidates = sorted(
+            d for d in documented
+            if d != dx and d[:3] == dx[:3] and graph.title(d) and graph.coverage_paths(hcpcs, d)
+        )
+        if candidates:
+            more = candidates[0]
+            return True, Finding(
+                "specificity", (dx, more),
+                f"Billed {dx} is covered, but the note documents the more specific {more}: correct and resubmit",
+            )
+    return False, None
+
+
 def adjudicate(claim: Claim, evidence: Evidence, graph: CoverageGraph) -> Verdict:
     met = {c.criterion for c in evidence.criteria}
     unknown = sorted(met - graph.criterion_ids())
@@ -31,8 +79,15 @@ def adjudicate(claim: Claim, evidence: Evidence, graph: CoverageGraph) -> Verdic
     if claim.carc not in MEDICAL_NECESSITY_CARCS or claim.coverage != "initial":
         return Verdict("needs_human", ())
     documented = {d.code for d in evidence.diagnoses}
+    # Conflicts among documented codes count too: a note that documents type 1 and type 2
+    # together cannot support either one.
+    codes = tuple(dict.fromkeys((*claim.icd10, *sorted(documented))))
+    conflicts = _excludes1_conflicts(codes, graph)
+    if conflicts:
+        return Verdict("needs_human", (), tuple(conflicts))
     for dx in claim.icd10:
-        if dx not in documented:
+        supported, finding = _support(dx, documented, claim.hcpcs, graph)
+        if not supported:
             continue
         for p in graph.coverage_paths(claim.hcpcs, dx):
             applies = graph.applicability(p.lcd, claim.hcpcs)
@@ -49,8 +104,12 @@ def adjudicate(claim: Claim, evidence: Evidence, graph: CoverageGraph) -> Verdic
                     f"LCD {p.lcd} is related to article {p.article} (link cites v{p.cited_article_version})",
                     p.article[1:], p.relation,
                 ),
-                Hop(f"{dx} is an ICD-10-CM code: {p.title}", dx, p.concept),
+                Hop(
+                    f"{dx} is an ICD-10-CM code: {p.title}"
+                    + (f" (7th character from {p.seventh_from} sevenChrDef)" if p.seventh_from else ""),
+                    p.concept_anchor, p.concept,
+                ),
                 Hop(f"Article {p.article} covers {dx}", dx, p.covered),
                 *criteria,
-            ))
+            ), (finding,) if finding else ())
     return Verdict("needs_human", ())

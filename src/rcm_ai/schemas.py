@@ -72,9 +72,19 @@ class Hop:
 
 
 @dataclass(frozen=True)
+class Finding:
+    type: str  # "specificity" | "excludes1"
+    codes: tuple[str, ...]
+    statement: str
+    anchor: str | None = None  # text to look for at source, when the finding rests on a source row
+    source: Source | None = None
+
+
+@dataclass(frozen=True)
 class Verdict:
     outcome: str  # one of OUTCOMES
     path: tuple[Hop, ...]
+    findings: tuple[Finding, ...] = ()
 
     def __post_init__(self):
         if self.outcome not in OUTCOMES:
@@ -89,6 +99,13 @@ class Case:
     claim: Claim
     evidence: Evidence
     note: str
+
+
+def _documented_code(item: dict, path: Path) -> str:
+    code = item["code"]
+    if not isinstance(code, str) or not is_icd10cm(code):
+        raise SchemaError(f"{path}: documented diagnosis {code!r} is not an ICD-10-CM code")
+    return code
 
 
 def _span(item: dict, note: str, what: str, path: Path) -> str:
@@ -117,7 +134,10 @@ def load_case(path: Path) -> Case:
             id=raw["id"],
             claim=Claim(c["hcpcs"], tuple(c["icd10"]), c["carc"], c["coverage"]),
             evidence=Evidence(
-                tuple(DocumentedCode(d["code"], _span(d, note, d["code"], path)) for d in e["diagnoses"]),
+                tuple(
+                    DocumentedCode(_documented_code(d, path), _span(d, note, d["code"], path))
+                    for d in e["diagnoses"]
+                ),
                 tuple(
                     CriterionEvidence(x["criterion"], _span(x, note, x["criterion"], path))
                     for x in e["criteria"]
