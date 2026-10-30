@@ -210,3 +210,10 @@ def test_excludes1_is_inherited_from_an_ancestor_category():
     assert verdict.outcome == "needs_human"
     assert [f.type for f in verdict.findings] == ["excludes1"]
     assert "E13" in verdict.findings[0].anchor
+
+
+def test_a_billed_specific_code_supported_only_by_a_less_specific_documented_code_is_not_overturnable():
+    case = _case()  # billing E11.65 when the note supports only E11.9 would be upcoding
+    evidence = replace(case.evidence, diagnoses=(DocumentedCode("E11.9", NOTE_SPAN),))
+
+    assert adjudicate(case.claim, evidence, build_graph(DATA)).outcome == "needs_human"
