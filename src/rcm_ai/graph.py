@@ -64,6 +64,7 @@ class CoveragePath:
     cited_article_version: str
     title: str
     concept_anchor: str  # text a reviewer finds on the concept's source line
+    seventh_from: str | None  # for an expanded code, the code whose sevenChrDef supplied the 7th character
     listing: Source
     relation: Source
     concept: Source
@@ -136,10 +137,11 @@ class CoverageGraph:
     def coverage_paths(self, hcpcs: str, dx: str) -> list[CoveragePath]:
         rows = self._ds.query(
             """
-            SELECT ?lcd ?article ?citedVersion ?title ?anchor ?gList ?gRel ?gConcept ?gCov WHERE {
+            SELECT ?lcd ?article ?citedVersion ?title ?anchor ?seventhFrom ?gList ?gRel ?gConcept ?gCov WHERE {
               GRAPH ?gList { ?lcd rcm:listsHcpcs ?hcpcs }
               GRAPH ?gRel { ?lcd rcm:relatedArticle ?article . ?article rcm:citedVersion ?citedVersion }
-              GRAPH ?gConcept { ?dx skos:prefLabel ?title ; rcm:sourceAnchor ?anchor }
+              GRAPH ?gConcept { ?dx skos:prefLabel ?title ; rcm:sourceAnchor ?anchor
+                                OPTIONAL { ?dx rcm:seventhFrom ?seventhFrom } }
               GRAPH ?gCov { ?article rcm:coversDiagnosis ?dx }
             }""",
             initNs={"rcm": RCM, "skos": SKOS},
@@ -148,6 +150,7 @@ class CoverageGraph:
         return [
             CoveragePath(
                 _local(r.lcd), _local(r.article), str(r.citedVersion), str(r.title), str(r.anchor),
+                _local(r.seventhFrom) if r.seventhFrom else None,
                 self._source(r.gList), self._source(r.gRel),
                 self._source(r.gConcept), self._source(r.gCov),
             )
@@ -234,6 +237,8 @@ def build_graph(data_dir: Path) -> CoverageGraph:
         g = graph_for(TABULAR, line)
         g.add((ICD[concept.code], SKOS.prefLabel, Literal(concept.title)))
         g.add((ICD[concept.code], RCM.sourceAnchor, Literal(anchor)))
+        if concept.seventh_defined_at:
+            g.add((ICD[concept.code], RCM.seventhFrom, ICD[concept.seventh_defined_at]))
         if concept.parent:
             g.add((ICD[concept.code], SKOS.broader, ICD[concept.parent]))
     for i, rule in enumerate(tab.excludes1):

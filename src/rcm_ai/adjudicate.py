@@ -41,23 +41,29 @@ def _excludes1_conflicts(codes: tuple[str, ...], graph: CoverageGraph) -> list[F
     return findings
 
 
-def _is_unspecified(code: str, graph: CoverageGraph) -> bool:
-    title = (graph.title(code) or "").lower()
-    return "without complications" in title or "unspecified" in title
+def _is_without_complications(code: str, graph: CoverageGraph) -> bool:
+    """The category's catch-all code (E08.9, E09.9, E10.9, E11.9, E13.9). Other titles that say
+    "unspecified" (an unspecified eye, neuropathy, complication) are specific in what matters."""
+    title = graph.title(code) or ""
+    return code == f"{code[:3]}.9" and title.endswith("without complications")
 
 
-def _support(dx: str, documented: set[str], graph: CoverageGraph) -> tuple[bool, Finding | None]:
+def _support(dx: str, documented: set[str], hcpcs: str, graph: CoverageGraph) -> tuple[bool, Finding | None]:
     """Whether the note supports a billed diagnosis, and any specificity finding.
 
-    An unspecified billed code is supported by a more specific documented code of the same
-    category (recode finding). The reverse would be upcoding, so it is never supported.
+    A billed "without complications" code is supported by a documented code of the same category
+    that is itself a real, covered code for this item (recode finding). Nothing else is: a billed
+    code more specific than the note would be upcoding.
     """
     if dx in documented:
         return True, None
-    if _is_unspecified(dx, graph):
-        same_category = sorted(d for d in documented if d[:3] == dx[:3])
-        if same_category:
-            more = same_category[0]
+    if _is_without_complications(dx, graph):
+        candidates = sorted(
+            d for d in documented
+            if d != dx and d[:3] == dx[:3] and graph.title(d) and graph.coverage_paths(hcpcs, d)
+        )
+        if candidates:
+            more = candidates[0]
             return True, Finding(
                 "specificity", (dx, more),
                 f"Billed {dx} is covered, but the note documents the more specific {more}: correct and resubmit",
@@ -72,12 +78,15 @@ def adjudicate(claim: Claim, evidence: Evidence, graph: CoverageGraph) -> Verdic
         raise SchemaError(f"evidence names unknown criteria: {', '.join(unknown)}")
     if claim.carc not in MEDICAL_NECESSITY_CARCS or claim.coverage != "initial":
         return Verdict("needs_human", ())
-    conflicts = _excludes1_conflicts(claim.icd10, graph)
+    documented = {d.code for d in evidence.diagnoses}
+    # Conflicts among documented codes count too: a note that documents type 1 and type 2
+    # together cannot support either one.
+    codes = tuple(dict.fromkeys((*claim.icd10, *sorted(documented))))
+    conflicts = _excludes1_conflicts(codes, graph)
     if conflicts:
         return Verdict("needs_human", (), tuple(conflicts))
-    documented = {d.code for d in evidence.diagnoses}
     for dx in claim.icd10:
-        supported, finding = _support(dx, documented, graph)
+        supported, finding = _support(dx, documented, claim.hcpcs, graph)
         if not supported:
             continue
         for p in graph.coverage_paths(claim.hcpcs, dx):
@@ -95,7 +104,11 @@ def adjudicate(claim: Claim, evidence: Evidence, graph: CoverageGraph) -> Verdic
                     f"LCD {p.lcd} is related to article {p.article} (link cites v{p.cited_article_version})",
                     p.article[1:], p.relation,
                 ),
-                Hop(f"{dx} is an ICD-10-CM code: {p.title}", p.concept_anchor, p.concept),
+                Hop(
+                    f"{dx} is an ICD-10-CM code: {p.title}"
+                    + (f" (7th character from {p.seventh_from} sevenChrDef)" if p.seventh_from else ""),
+                    p.concept_anchor, p.concept,
+                ),
                 Hop(f"Article {p.article} covers {dx}", dx, p.covered),
                 *criteria,
             ), (finding,) if finding else ())
