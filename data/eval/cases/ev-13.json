@@ -1,0 +1,42 @@
+{
+  "id": "ev-13",
+  "synthetic": true,
+  "claim": {
+    "hcpcs": "E2103",
+    "icd10": [
+      "E16.2"
+    ],
+    "carc": "50",
+    "coverage": "initial"
+  },
+  "note": "SYNTHETIC NOTE. Telehealth visit today to review diabetes control. Hypoglycemia, unspecified, after gastric bypass; no diabetes diagnosis. Completed CGM device training; prescription written for the CGM. CGM prescribed per its FDA-labeled indications.",
+  "evidence": {
+    "diagnoses": [
+      {
+        "code": "E16.2",
+        "span": "Hypoglycemia, unspecified"
+      }
+    ],
+    "criteria": [
+      {
+        "criterion": "cgm-5-visit",
+        "span": "Telehealth visit today to review diabetes control."
+      },
+      {
+        "criterion": "cgm-2-training",
+        "span": "Completed CGM device training; prescription written for the CGM."
+      },
+      {
+        "criterion": "cgm-3-fda-indication",
+        "span": "CGM prescribed per its FDA-labeled indications."
+      }
+    ]
+  },
+  "gold": {
+    "verdict": "uphold",
+    "reason": "Criterion 1 fails: no diabetes diagnosis; E16.2 is not on the covered list.",
+    "findings": [],
+    "label_status": "claude-labeled",
+    "known_system_gap": "uphold arrives in #5."
+  }
+}

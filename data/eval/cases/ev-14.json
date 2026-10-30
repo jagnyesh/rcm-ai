@@ -1,0 +1,42 @@
+{
+  "id": "ev-14",
+  "synthetic": true,
+  "claim": {
+    "hcpcs": "E2103",
+    "icd10": [
+      "E11.65"
+    ],
+    "carc": "50",
+    "coverage": "initial"
+  },
+  "note": "SYNTHETIC NOTE. Phone refill request only; last practitioner visit for diabetes was 11 months ago. Type 2 diabetes mellitus with hyperglycemia. On multiple daily insulin injections. Completed CGM device training; prescription written for the CGM. CGM prescribed per its FDA-labeled indications.",
+  "evidence": {
+    "diagnoses": [
+      {
+        "code": "E11.65",
+        "span": "Type 2 diabetes mellitus with hyperglycemia"
+      }
+    ],
+    "criteria": [
+      {
+        "criterion": "cgm-2-training",
+        "span": "Completed CGM device training; prescription written for the CGM."
+      },
+      {
+        "criterion": "cgm-3-fda-indication",
+        "span": "CGM prescribed per its FDA-labeled indications."
+      },
+      {
+        "criterion": "cgm-4a-insulin",
+        "span": "On multiple daily insulin injections."
+      }
+    ]
+  },
+  "gold": {
+    "verdict": "uphold",
+    "reason": "Criterion 5 fails: no qualifying visit within six months before the order.",
+    "findings": [],
+    "label_status": "claude-labeled",
+    "known_system_gap": "uphold arrives in #5; visit timing is not modeled."
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "id": "ev-05",
+  "synthetic": true,
+  "claim": {
+    "hcpcs": "E2102",
+    "icd10": [
+      "E13.9"
+    ],
+    "carc": "50",
+    "coverage": "initial"
+  },
+  "note": "SYNTHETIC NOTE. Telehealth visit today to review diabetes control. Other specified diabetes mellitus without complications, following partial pancreatectomy. On multiple daily insulin injections. Completed CGM device training; prescription written for the CGM. CGM prescribed per its FDA-labeled indications.",
+  "evidence": {
+    "diagnoses": [
+      {
+        "code": "E13.9",
+        "span": "Other specified diabetes mellitus without complications"
+      }
+    ],
+    "criteria": [
+      {
+        "criterion": "cgm-5-visit",
+        "span": "Telehealth visit today to review diabetes control."
+      },
+      {
+        "criterion": "cgm-2-training",
+        "span": "Completed CGM device training; prescription written for the CGM."
+      },
+      {
+        "criterion": "cgm-3-fda-indication",
+        "span": "CGM prescribed per its FDA-labeled indications."
+      },
+      {
+        "criterion": "cgm-4a-insulin",
+        "span": "On multiple daily insulin injections."
+      }
+    ]
+  },
+  "gold": {
+    "verdict": "overturnable",
+    "reason": "Insulin-treated postpancreatectomy diabetes (E13 includes it); covered diagnosis.",
+    "findings": [],
+    "label_status": "claude-labeled",
+    "path": {
+      "hcpcs": "E2102",
+      "lcd": "L33822",
+      "article": "A52464",
+      "dx": "E13.9",
+      "criteria": {
+        "cgm-1-diabetes": "covered_diagnosis",
+        "cgm-2-training": "documented",
+        "cgm-3-fda-indication": "documented",
+        "cgm-4-glycemic-control": "cgm-4a-insulin",
+        "cgm-5-visit": "documented"
+      }
+    }
+  }
+}

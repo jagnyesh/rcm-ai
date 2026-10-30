@@ -1,0 +1,42 @@
+{
+  "id": "ev-11",
+  "synthetic": true,
+  "claim": {
+    "hcpcs": "E2103",
+    "icd10": [
+      "E11.649"
+    ],
+    "carc": "50",
+    "coverage": "initial"
+  },
+  "note": "SYNTHETIC NOTE. Telehealth visit today to review diabetes control. Type 2 diabetes with hypoglycemia without coma, on a sulfonylurea. One reading of 51 mg/dL last month; resolved with juice, no assistance needed. Completed CGM device training; prescription written for the CGM. CGM prescribed per its FDA-labeled indications.",
+  "evidence": {
+    "diagnoses": [
+      {
+        "code": "E11.649",
+        "span": "Type 2 diabetes with hypoglycemia without coma"
+      }
+    ],
+    "criteria": [
+      {
+        "criterion": "cgm-5-visit",
+        "span": "Telehealth visit today to review diabetes control."
+      },
+      {
+        "criterion": "cgm-2-training",
+        "span": "Completed CGM device training; prescription written for the CGM."
+      },
+      {
+        "criterion": "cgm-3-fda-indication",
+        "span": "CGM prescribed per its FDA-labeled indications."
+      }
+    ]
+  },
+  "gold": {
+    "verdict": "uphold",
+    "reason": "One level 2 event is not 'recurrent', and there was no level 3 event; criterion 4 fails.",
+    "findings": [],
+    "label_status": "claude-labeled",
+    "known_system_gap": "uphold arrives in #5."
+  }
+}
