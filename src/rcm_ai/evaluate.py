@@ -4,12 +4,13 @@ An arm is any callable from an EvalCase to a Verdict. Metrics treat a wrong
 "overturnable" as the costly error, so it is counted separately.
 """
 
+import hashlib
 import json
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from rcm_ai.schemas import Case, SchemaError, Verdict, load_case
+from rcm_ai.schemas import OUTCOMES, Case, SchemaError, Verdict, load_case
 
 
 class EvalError(Exception):
@@ -40,6 +41,7 @@ class ArmMetrics:
     correct: int = 0
     abstentions: int = 0
     correct_abstentions: int = 0
+    errors: int = 0
     false_overturnable: list[str] = field(default_factory=list)
 
     @property
@@ -57,8 +59,14 @@ class ArmMetrics:
 
 
 @dataclass(frozen=True)
-class EvalReport:
+class EvalSet:
     expected: int
+    cases: list[EvalCase]
+    sha256: str  # over set.json and every case file, so a run names the exact data it scored
+
+
+@dataclass(frozen=True)
+class EvalReport:
     results: list[CaseResult]
     arms: dict[str, ArmMetrics]
 
@@ -66,22 +74,37 @@ class EvalReport:
 Arm = Callable[[EvalCase], Verdict]
 
 
-def load_eval_set(eval_dir: Path) -> list[EvalCase]:
+def _read_json(path: Path):
+    try:
+        return json.loads(path.read_text())
+    except (OSError, json.JSONDecodeError) as e:
+        raise EvalError(f"cannot read {path.name}: {e}") from e
+
+
+def load_eval_set(eval_dir: Path) -> EvalSet:
     eval_dir = Path(eval_dir)
-    expected = json.loads((eval_dir / "set.json").read_text())["expected_cases"]
+    meta = _read_json(eval_dir / "set.json")
+    if not isinstance(meta, dict) or not isinstance(meta.get("expected_cases"), int):
+        raise EvalError("set.json needs an integer expected_cases")
+    expected = meta["expected_cases"]
     paths = sorted((eval_dir / "cases").glob("*.json"))
     if len(paths) != expected:
         raise EvalError(f"{len(paths)} cases in {eval_dir / 'cases'}, expected {expected}")
+    digest = hashlib.sha256((eval_dir / "set.json").read_bytes())
     cases = []
     for p in paths:
-        gold = json.loads(p.read_text()).get("gold")
-        if not gold or "verdict" not in gold:
-            raise EvalError(f"{p.name} has no gold verdict")
+        digest.update(p.name.encode() + b"\0" + p.read_bytes())
+        raw = _read_json(p)
+        gold = raw.get("gold") if isinstance(raw, dict) else None
+        if not isinstance(gold, dict) or gold.get("verdict") not in OUTCOMES:
+            raise EvalError(f"{p.name} has no valid gold verdict (one of {OUTCOMES})")
+        if raw.get("id") != p.stem:
+            raise EvalError(f"{p.name} holds case id {raw.get('id')!r}; the id must match the file name")
         try:
             cases.append(EvalCase(load_case(p), gold))
         except SchemaError as e:
             raise EvalError(f"{p.name} is not a valid case: {e}") from e
-    return cases
+    return EvalSet(expected, cases, digest.hexdigest())
 
 
 def run_eval(cases: list[EvalCase], arms: dict[str, Arm]) -> EvalReport:
@@ -95,8 +118,9 @@ def run_eval(cases: list[EvalCase], arms: dict[str, Arm]) -> EvalReport:
         for c in cases:
             try:
                 outcome = arm(c).outcome
-            except Exception as e:  # a crashing arm is a wrong answer, not a crashed eval
+            except Exception as e:  # a crashing arm is a scored error, not a crashed eval
                 outcome = f"error: {type(e).__name__}: {e}"
+                m.errors += 1
             r = CaseResult(name, c.case.id, c.gold["verdict"], outcome)
             results.append(r)
             m.n += 1
@@ -106,4 +130,4 @@ def run_eval(cases: list[EvalCase], arms: dict[str, Arm]) -> EvalReport:
                 m.correct_abstentions += r.gold == "needs_human"
             if outcome == "overturnable" and r.gold != "overturnable":
                 m.false_overturnable.append(r.case)
-    return EvalReport(len(cases), results, metrics)
+    return EvalReport(results, metrics)
