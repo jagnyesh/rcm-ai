@@ -30,6 +30,16 @@
         "criterion": "cgm-3-fda-indication",
         "span": "CGM prescribed per its FDA-labeled indications."
       }
+    ],
+    "criteria_not_met": [
+      {
+        "criterion": "cgm-4a-insulin",
+        "span": "managed on metformin alone"
+      },
+      {
+        "criterion": "cgm-4b-hypoglycemia",
+        "span": "No hypoglycemia reported."
+      }
     ]
   },
   "gold": {

@@ -30,6 +30,20 @@
         "criterion": "cgm-3-fda-indication",
         "span": "CGM prescribed per its FDA-labeled indications."
       }
+    ],
+    "criteria_not_met": [
+      {
+        "criterion": "cgm-4a-insulin",
+        "span": "on a sulfonylurea"
+      },
+      {
+        "criterion": "cgm-4b1-level2",
+        "span": "One reading of 51 mg/dL last month"
+      },
+      {
+        "criterion": "cgm-4b2-level3",
+        "span": "resolved with juice, no assistance needed"
+      }
     ]
   },
   "gold": {

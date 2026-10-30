@@ -30,6 +30,12 @@
         "criterion": "cgm-4a-insulin",
         "span": "On multiple daily insulin injections."
       }
+    ],
+    "criteria_not_met": [
+      {
+        "criterion": "cgm-5-visit",
+        "span": "last practitioner visit for diabetes was 11 months ago"
+      }
     ]
   },
   "gold": {
