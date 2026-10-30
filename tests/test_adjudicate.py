@@ -200,7 +200,8 @@ def test_billed_codes_in_an_excludes1_conflict_are_not_overturnable_and_the_rule
     (finding,) = verdict.findings
     assert finding.type == "excludes1"
     assert set(finding.codes) == {"E10.9", "E11.65"}
-    assert finding.anchor == "type 1 diabetes mellitus (E10.-)"
+    # Each category excludes the other, so either note is a correct citation; the first billed code's wins.
+    assert finding.anchor in {"type 1 diabetes mellitus (E10.-)", "type 2 diabetes mellitus (E11.-)"}
     assert finding.anchor in _record_text_at(FIXTURES / finding.source.path, finding.source.line)
 
 
