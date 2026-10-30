@@ -6,7 +6,9 @@ authors = [
     { name = "Jagnyesh", email = "jagnyesh@gmail.com" }
 ]
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "rdflib>=7.6.0",
+]
 
 [project.scripts]
 rcm-ai = "rcm_ai:main"
@@ -19,3 +21,7 @@ build-backend = "uv_build"
 dev = [
     "pytest>=9.2.0",
 ]
+
+[tool.pytest.ini_options]
+# rdflib's own SPARQL evaluator calls its deprecated Dataset API; ours does not.
+filterwarnings = ["ignore::DeprecationWarning:rdflib.*"]

@@ -41,6 +41,34 @@
       "record_kind": "csv_row",
       "record_count": 31,
       "sha256": "8079749813a68756f1fd758a3710bd7942f0ee478cc6aa2edb676808af5d0f7d"
+    },
+    {
+      "path": "cms/lcd-L33822-v70.csv",
+      "description": "Header plus the verbatim record for LCD 33822 version 70 (Glucose Monitors), including the indication text that states the coverage criteria; the record spans multiple physical lines because its HTML fields contain newlines",
+      "source_url": "https://downloads.cms.gov/medicare-coverage-database/downloads/exports/current_lcd.zip",
+      "source_sha256": "22ce281101670c3cad88574fea33298fb34d60d9d5df22aa3b3423d445a33cf4",
+      "source_member": "current_lcd_csv.zip/lcd.csv",
+      "source_lines": "header + lines 11438-11568 (one CSV record, lcd_id=33822, lcd_version=70)",
+      "version": "MCD Current LCD Data, export of 2026-10-26; LCD L33822 v70 (revision effective 2024-10-01)",
+      "retrieved": "2026-10-29",
+      "license": "LCD text is a CMS contractor publication; the record contains no CPT, CDT, or UB-04 codes or descriptors (checked for CPT-shaped tokens)",
+      "record_kind": "csv_row",
+      "record_count": 1,
+      "sha256": "083b63233577d5222862dae664033d0ffde8229396fe78b04e59095220849c28"
+    },
+    {
+      "path": "cms/lcd_related_documents-L33822-v70.csv",
+      "description": "Header plus the verbatim rows for LCD 33822 version 70 related documents; related_num 3 links the LCD to policy article A52464",
+      "source_url": "https://downloads.cms.gov/medicare-coverage-database/downloads/exports/current_lcd.zip",
+      "source_sha256": "22ce281101670c3cad88574fea33298fb34d60d9d5df22aa3b3423d445a33cf4",
+      "source_member": "current_lcd_csv.zip/lcd_related_documents.csv",
+      "source_lines": "header + rows where lcd_id=33822 and lcd_version=70",
+      "version": "MCD Current LCD Data, export of 2026-10-26; LCD L33822 v70",
+      "retrieved": "2026-10-29",
+      "license": "Document identifiers only",
+      "record_kind": "csv_row",
+      "record_count": 3,
+      "sha256": "0c7abd89ff034805e76ebc261e50c90f53640af749e521fda4c8e2450928e9fa"
     }
   ]
 }
