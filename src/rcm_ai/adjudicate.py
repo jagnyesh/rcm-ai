@@ -95,7 +95,7 @@ def adjudicate(claim: Claim, evidence: Evidence, graph: CoverageGraph) -> Verdic
                     f"LCD {p.lcd} is related to article {p.article} (link cites v{p.cited_article_version})",
                     p.article[1:], p.relation,
                 ),
-                Hop(f"{dx} is an ICD-10-CM code: {p.title}", dx, p.concept),
+                Hop(f"{dx} is an ICD-10-CM code: {p.title}", p.concept_anchor, p.concept),
                 Hop(f"Article {p.article} covers {dx}", dx, p.covered),
                 *criteria,
             ), (finding,) if finding else ())

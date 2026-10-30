@@ -63,6 +63,7 @@ class CoveragePath:
     article: str
     cited_article_version: str
     title: str
+    concept_anchor: str  # text a reviewer finds on the concept's source line
     listing: Source
     relation: Source
     concept: Source
@@ -135,10 +136,10 @@ class CoverageGraph:
     def coverage_paths(self, hcpcs: str, dx: str) -> list[CoveragePath]:
         rows = self._ds.query(
             """
-            SELECT ?lcd ?article ?citedVersion ?title ?gList ?gRel ?gConcept ?gCov WHERE {
+            SELECT ?lcd ?article ?citedVersion ?title ?anchor ?gList ?gRel ?gConcept ?gCov WHERE {
               GRAPH ?gList { ?lcd rcm:listsHcpcs ?hcpcs }
               GRAPH ?gRel { ?lcd rcm:relatedArticle ?article . ?article rcm:citedVersion ?citedVersion }
-              GRAPH ?gConcept { ?dx skos:prefLabel ?title }
+              GRAPH ?gConcept { ?dx skos:prefLabel ?title ; rcm:sourceAnchor ?anchor }
               GRAPH ?gCov { ?article rcm:coversDiagnosis ?dx }
             }""",
             initNs={"rcm": RCM, "skos": SKOS},
@@ -146,7 +147,7 @@ class CoverageGraph:
         )
         return [
             CoveragePath(
-                _local(r.lcd), _local(r.article), str(r.citedVersion), str(r.title),
+                _local(r.lcd), _local(r.article), str(r.citedVersion), str(r.title), str(r.anchor),
                 self._source(r.gList), self._source(r.gRel),
                 self._source(r.gConcept), self._source(r.gCov),
             )
@@ -224,12 +225,15 @@ def build_graph(data_dir: Path) -> CoverageGraph:
     tab = parse_tabular(tabular)
     for concept in tab.concepts.values():
         if concept.kind == "seventh":
-            # Source the expanded code to the sevenChrDef extension that defines its 7th character.
-            line = line_after(concept.seventh_defined_at, f'<extension char="{concept.code[-1]}">')
+            # Source the expanded code to the sevenChrDef extension that defines its 7th character;
+            # the code itself never appears in the file, so the anchor is that extension.
+            anchor = f'<extension char="{concept.code[-1]}">'
+            line = line_after(concept.seventh_defined_at, anchor)
         else:
-            line = lines[concept.code]
+            anchor, line = concept.code, lines[concept.code]
         g = graph_for(TABULAR, line)
         g.add((ICD[concept.code], SKOS.prefLabel, Literal(concept.title)))
+        g.add((ICD[concept.code], RCM.sourceAnchor, Literal(anchor)))
         if concept.parent:
             g.add((ICD[concept.code], SKOS.broader, ICD[concept.parent]))
     for i, rule in enumerate(tab.excludes1):
