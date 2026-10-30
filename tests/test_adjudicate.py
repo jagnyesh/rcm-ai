@@ -1,11 +1,14 @@
 import csv
 import io
+import json
 from dataclasses import replace
 from pathlib import Path
 
+import pytest
+
 from rcm_ai.adjudicate import adjudicate
 from rcm_ai.graph import build_graph, normalize_lcd_text
-from rcm_ai.schemas import load_case
+from rcm_ai.schemas import CriterionEvidence, SchemaError, load_case
 
 DATA = Path(__file__).resolve().parents[1] / "data"
 FIXTURES = DATA / "fixtures"
@@ -29,8 +32,8 @@ def test_documented_cgm_denial_is_overturnable_with_every_hop_traceable_to_a_sou
     assert verdict.outcome == "overturnable"
     assert [h.statement for h in verdict.path] == [
         "E2103 is listed in LCD L33822",
-        "LCD L33822 criteria apply to E2103",
-        "LCD L33822 is related to article A52464",
+        "LCD L33822 initial CGM criteria (1)-(5) apply to E2103",
+        "LCD L33822 is related to article A52464 (link cites v49)",
         "E11.65 is an ICD-10-CM code: Type 2 diabetes mellitus with hyperglycemia",
         "Article A52464 covers E11.65",
         "Criterion cgm-1-diabetes met by covered diagnosis E11.65",
@@ -56,3 +59,93 @@ def test_a_covered_diagnosis_without_insulin_or_hypoglycemia_evidence_is_not_ove
 
     assert verdict.outcome == "needs_human"
     assert verdict.path == ()
+
+
+# Fresh-context review of #3 (2026-10-30): inputs that were wrongly overturnable.
+def _case():
+    return load_case(DATA / "synthetic" / "case-001.json")
+
+
+def _with_criteria(evidence, drop=(), add=()):
+    kept = tuple(c for c in evidence.criteria if c.criterion not in drop)
+    return replace(evidence, criteria=kept + tuple(CriterionEvidence(i, s) for i, s in add))
+
+
+NOTE_SPAN = "Telehealth follow-up for type 2 diabetes mellitus with hyperglycemia"
+
+
+def test_problematic_hypoglycemia_without_a_documented_level_2_or_3_event_is_not_overturnable():
+    case = _case()
+    evidence = _with_criteria(case.evidence, drop={"cgm-4a-insulin"}, add=[("cgm-4b-hypoglycemia", NOTE_SPAN)])
+
+    assert adjudicate(case.claim, evidence, build_graph(DATA)).outcome == "needs_human"
+
+
+def test_a_documented_level_3_event_satisfies_the_glycemic_control_criterion():
+    case = _case()
+    evidence = _with_criteria(case.evidence, drop={"cgm-4a-insulin"}, add=[("cgm-4b2-level3", NOTE_SPAN)])
+
+    verdict = adjudicate(case.claim, evidence, build_graph(DATA))
+
+    assert verdict.outcome == "overturnable"
+    hop = next(h for h in verdict.path if "cgm-4-glycemic-control" in h.statement)
+    assert hop.statement == "Criterion cgm-4-glycemic-control met by cgm-4b2-level3"
+    assert hop.anchor.startswith("A history of one level 3 hypoglycemic event")
+
+
+def test_a_supply_allowance_claim_is_not_overturnable_until_continued_coverage_is_modeled():
+    case = _case()
+    claim = replace(case.claim, hcpcs="A4239")
+
+    assert adjudicate(claim, case.evidence, build_graph(DATA)).outcome == "needs_human"
+
+
+def test_a_continued_coverage_claim_is_not_overturnable_until_continued_coverage_is_modeled():
+    case = _case()
+    claim = replace(case.claim, coverage="continued")
+
+    assert adjudicate(claim, case.evidence, build_graph(DATA)).outcome == "needs_human"
+
+
+def test_a_denial_that_is_not_for_medical_necessity_is_not_overturnable():
+    case = _case()
+    claim = replace(case.claim, carc="29")  # timely filing
+
+    assert adjudicate(claim, case.evidence, build_graph(DATA)).outcome == "needs_human"
+
+
+def test_evidence_naming_an_unknown_criterion_is_rejected():
+    case = _case()
+    evidence = _with_criteria(case.evidence, add=[("bogus", NOTE_SPAN)])
+
+    with pytest.raises(SchemaError, match="bogus"):
+        adjudicate(case.claim, evidence, build_graph(DATA))
+
+
+def test_the_applicability_hop_cites_the_initial_criteria_sentence():
+    case = _case()
+    verdict = adjudicate(case.claim, case.evidence, build_graph(DATA))
+
+    assert verdict.path[1].statement == "LCD L33822 initial CGM criteria (1)-(5) apply to E2103"
+    assert verdict.path[1].anchor.startswith("To be eligible for coverage of a CGM and related supplies")
+
+
+def test_the_article_link_hop_states_which_article_version_the_lcd_cites():
+    verdict = adjudicate(_case().claim, _case().evidence, build_graph(DATA))
+
+    assert verdict.path[2].statement == "LCD L33822 is related to article A52464 (link cites v49)"
+
+
+def test_every_curated_quote_is_verbatim_in_the_lcd_text():
+    curated = json.loads((DATA / "curated" / "L33822-cgm-criteria.json").read_text())
+    row = next(csv.DictReader(io.StringIO((FIXTURES / curated["source"]).read_text(encoding="utf-8"), newline="")))
+    text = normalize_lcd_text(row[curated["column"]])
+
+    def quotes(c):
+        yield c["quote"]
+        for sub in c.get("any_of", []):
+            yield from quotes(sub)
+
+    found = [curated["applies_to"]["quote"]] + [q for c in curated["criteria"] for q in quotes(c)]
+    assert len(found) >= 9
+    assert [q for q in found if q not in text] == []

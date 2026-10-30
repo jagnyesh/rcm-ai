@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from rcm_ai.schemas import SchemaError, load_case
+from rcm_ai.schemas import SchemaError, Verdict, load_case
 
 CASE = Path(__file__).resolve().parents[1] / "data" / "synthetic" / "case-001.json"
 
@@ -57,3 +57,27 @@ def test_a_case_file_that_is_not_a_complete_case_is_rejected_as_a_schema_error(t
 def test_a_missing_case_file_is_rejected_as_a_schema_error(tmp_path):
     with pytest.raises(SchemaError, match="missing.json"):
         load_case(tmp_path / "missing.json")
+
+
+# Fresh-context review of #3 (2026-10-30): evidence and claim shape at the boundary.
+@pytest.mark.parametrize(
+    "change, message",
+    [
+        ({"evidence__criteria": [{"criterion": "cgm-2-training", "span": ""}]}, "span"),
+        ({"evidence__criteria": [{"criterion": "cgm-2-training", "span": 5}]}, "span"),
+        ({"evidence__criteria": [{"criterion": "cgm-2-training", "span": "not in the note"}]}, "note"),
+        ({"evidence__diagnoses": [{"code": "E11.65", "span": "absent from note"}]}, "note"),
+        ({"claim__icd10": "E11.65"}, "list"),
+        ({"claim__coverage": "renewal"}, "coverage"),
+    ],
+)
+def test_evidence_or_claims_that_break_a_shape_rule_are_rejected_on_load(tmp_path, change, message):
+    with pytest.raises(SchemaError, match=message):
+        load_case(_write_case(tmp_path, **change))
+
+
+def test_a_verdict_cannot_be_overturnable_without_a_path_or_have_an_unknown_outcome():
+    with pytest.raises(ValueError):
+        Verdict("overturnable", ())
+    with pytest.raises(ValueError):
+        Verdict("approved", ())
