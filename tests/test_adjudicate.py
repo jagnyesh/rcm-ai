@@ -157,3 +157,56 @@ def test_a_covered_diagnosis_on_the_claim_but_not_documented_in_the_note_is_not_
     evidence = replace(case.evidence, diagnoses=(DocumentedCode("Z79.4", NOTE_SPAN),))
 
     assert adjudicate(claim, evidence, build_graph(DATA)).outcome == "needs_human"
+
+
+# Issue #4: specificity, Excludes1 and seventh-character codes, using the locked eval cases.
+EVAL = DATA / "eval" / "cases"
+
+
+def _eval_case(case_id):
+    c = load_case(EVAL / f"{case_id}.json")
+    return adjudicate(c.claim, c.evidence, build_graph(DATA))
+
+
+def test_a_seventh_character_code_on_the_covered_list_is_overturnable():
+    verdict = _eval_case("ev-07")
+
+    assert verdict.outcome == "overturnable"
+    assert "E11.3213 is an ICD-10-CM code" in verdict.path[3].statement
+
+
+def test_a_billed_unspecified_code_with_a_more_specific_documented_code_is_flagged():
+    verdict = _eval_case("ev-08")  # billed E11.9, note documents E11.65
+
+    assert verdict.outcome == "overturnable"
+    assert "Article A52464 covers E11.9" in [h.statement for h in verdict.path]
+    (finding,) = verdict.findings
+    assert finding.type == "specificity"
+    assert finding.codes == ("E11.9", "E11.65")
+
+
+def test_a_documented_code_from_another_category_does_not_support_the_billed_code():
+    case = _case()
+    claim = replace(case.claim, icd10=("E11.9",))
+    evidence = replace(case.evidence, diagnoses=(DocumentedCode("E10.65", NOTE_SPAN),))
+
+    assert adjudicate(claim, evidence, build_graph(DATA)).outcome == "needs_human"
+
+
+def test_billed_codes_in_an_excludes1_conflict_are_not_overturnable_and_the_rule_is_sourced():
+    verdict = _eval_case("ev-19")  # E10.9 billed with E11.65
+
+    assert verdict.outcome == "needs_human"
+    (finding,) = verdict.findings
+    assert finding.type == "excludes1"
+    assert set(finding.codes) == {"E10.9", "E11.65"}
+    assert finding.anchor == "type 1 diabetes mellitus (E10.-)"
+    assert finding.anchor in _record_text_at(FIXTURES / finding.source.path, finding.source.line)
+
+
+def test_excludes1_is_inherited_from_an_ancestor_category():
+    verdict = _eval_case("ev-20")  # E11.65 with E13.9; the rule lives on E11, not E11.65
+
+    assert verdict.outcome == "needs_human"
+    assert [f.type for f in verdict.findings] == ["excludes1"]
+    assert "E13" in verdict.findings[0].anchor
