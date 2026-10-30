@@ -101,3 +101,12 @@ def test_eval_fails_with_exit_code_3_when_an_arm_errors(tmp_path):
     assert result.returncode == 3
     assert "1 arm error" in result.stderr
     assert "errors 1" in result.stdout
+
+
+def test_triage_prints_the_reason_for_an_uphold():
+    result = _run("triage", "data/eval/cases/ev-14.json")
+
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.splitlines()[0] == "ev-14: uphold"
+    assert "reason (criterion_not_met)" in result.stdout
+    assert "last practitioner visit for diabetes was 11 months ago" in result.stdout
