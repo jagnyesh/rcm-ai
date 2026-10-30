@@ -4,7 +4,7 @@
   "source": "cms/lcd-L33822-v70.csv",
   "column": "indication",
   "curated": "2026-10-29",
-  "scope": "Initial coverage of the CGM device only (E2102, E2103). Supply allowances (A4238, A4239) and continued coverage depend on the date of service and the 6-month adherence visit, which claims don't carry yet, so they are out of scope and adjudicate to needs_human.",
+  "scope": "Initial coverage of the CGM device only (E2102, E2103). Supply allowances (A4238, A4239) and continued coverage depend on the date of service and the 6-month adherence visit, which claims don't carry yet, so they are out of scope and adjudicate to needs_human. Evidence for cgm-5-visit shows a qualifying visit took place; its timing (within six months before the order) is not checked, because cases carry no dates yet.",
   "applies_to": {
     "hcpcs": [
       "E2102",
@@ -52,7 +52,7 @@
     },
     {
       "id": "cgm-5-visit",
-      "quote": "Within six (6) months prior to ordering the CGM, the treating practitioner has an in-person or Medicare-approved telehealth visit with the beneficiary to evaluate their diabetes control"
+      "quote": "Within six (6) months prior to ordering the CGM, the treating practitioner has an in-person or Medicare-approved telehealth visit with the beneficiary to evaluate their diabetes control and determined that criteria (1)-(4) above are met"
     }
   ]
 }

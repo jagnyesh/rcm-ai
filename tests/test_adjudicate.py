@@ -8,7 +8,7 @@ import pytest
 
 from rcm_ai.adjudicate import adjudicate
 from rcm_ai.graph import build_graph, normalize_lcd_text
-from rcm_ai.schemas import CriterionEvidence, SchemaError, load_case
+from rcm_ai.schemas import CriterionEvidence, DocumentedCode, SchemaError, load_case
 
 DATA = Path(__file__).resolve().parents[1] / "data"
 FIXTURES = DATA / "fixtures"
@@ -149,3 +149,11 @@ def test_every_curated_quote_is_verbatim_in_the_lcd_text():
     found = [curated["applies_to"]["quote"]] + [q for c in curated["criteria"] for q in quotes(c)]
     assert len(found) >= 9
     assert [q for q in found if q not in text] == []
+
+
+def test_a_covered_diagnosis_on_the_claim_but_not_documented_in_the_note_is_not_overturnable():
+    case = _case()
+    claim = replace(case.claim, icd10=("Z79.4", "E11.65"))
+    evidence = replace(case.evidence, diagnoses=(DocumentedCode("Z79.4", NOTE_SPAN),))
+
+    assert adjudicate(claim, evidence, build_graph(DATA)).outcome == "needs_human"

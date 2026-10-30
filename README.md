@@ -40,7 +40,9 @@ uv run rcm-ai triage data/synthetic/case-001.json
 
 It prints the verdict (`overturnable` or `needs_human`). For an overturnable case, it also prints each step of the justification path: the fixture file and line, the source version, and the text to look for there. Cases must be marked `"synthetic": true`. A malformed or unreadable case is rejected on stderr with exit code 2. `--data` points at a different data directory (default `data`, relative to the current directory).
 
-LCD coverage criteria live in `data/curated/L33822-cgm-criteria.json`, hand-curated with verbatim quotes from the LCD text. In scope: initial coverage of the CGM device (E2102, E2103) for medical-necessity denials (CARC 50). Supply allowances, continued coverage, and other denial reasons return `needs_human`. Evidence spans must appear verbatim in the case note, and evidence naming an unknown criterion is rejected.
+LCD coverage criteria live in `data/curated/L33822-cgm-criteria.json`, hand-curated with verbatim quotes from the LCD text. In scope: initial coverage of the CGM device (E2102, E2103) for medical-necessity denials (CARC 50). Supply allowances, continued coverage, and other denial reasons return `needs_human`. Evidence spans must appear verbatim in the case note, and evidence naming an unknown criterion is rejected. Gestational and pregnancy diabetes codes (O24) are in the article's covered list but not yet in the ICD-10-CM slice, so they return `needs_human`.
+
+For criteria hops, the line number is where the LCD record starts (the record spans about 130 lines). The `look for` text is the HTML-decoded indication text, so search the decoded text: the raw CSV stores `<` as `&lt;`.
 
 ## Development
 
