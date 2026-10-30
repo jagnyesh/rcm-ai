@@ -72,9 +72,19 @@ class Hop:
 
 
 @dataclass(frozen=True)
+class Finding:
+    type: str  # "specificity" | "excludes1"
+    codes: tuple[str, ...]
+    statement: str
+    anchor: str | None = None  # text to look for at source, when the finding rests on a source row
+    source: Source | None = None
+
+
+@dataclass(frozen=True)
 class Verdict:
     outcome: str  # one of OUTCOMES
     path: tuple[Hop, ...]
+    findings: tuple[Finding, ...] = ()
 
     def __post_init__(self):
         if self.outcome not in OUTCOMES:

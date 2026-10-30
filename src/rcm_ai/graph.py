@@ -15,7 +15,9 @@ from pathlib import Path
 from rdflib import Dataset, Literal, Namespace, URIRef
 from rdflib.namespace import SKOS
 
-from rcm_ai.icd10cm import parse_tabular
+from xml.sax.saxutils import escape
+
+from rcm_ai.icd10cm import CodeRef, parse_tabular
 from rcm_ai.provenance import verify_fixtures
 from rcm_ai.schemas import Source
 
@@ -25,6 +27,7 @@ HCPCS = Namespace("urn:hcpcs:")
 LCD = Namespace("urn:lcd:")
 ARTICLE = Namespace("urn:article:")
 CRITERION = Namespace("urn:criterion:")
+EXCLUDES1 = Namespace("urn:excludes1:")
 
 TABULAR = "cdc/icd10cm-tabular-2027-E08-E13.xml"
 LCD_HCPCS = "cms/lcd_x_hcpc_code-L33822-v70.csv"
@@ -67,6 +70,14 @@ class CoveragePath:
 
 
 @dataclass(frozen=True)
+class Excludes1Rule:
+    owner: str  # the code whose Excludes1 note this is (the billed code or one of its ancestors)
+    target: CodeRef
+    note: str
+    source: Source
+
+
+@dataclass(frozen=True)
 class Criterion:
     id: str
     quote: str
@@ -82,6 +93,44 @@ class CoverageGraph:
     def _source(self, g) -> Source:
         meta = {p: o for p, o in self._ds.default_graph.predicate_objects(g)}
         return Source(str(meta[RCM.path]), str(meta[RCM.version]), int(meta[RCM.line]))
+
+    def title(self, code: str) -> str | None:
+        rows = list(self._ds.query(
+            "SELECT ?t WHERE { GRAPH ?g { ?c skos:prefLabel ?t } }",
+            initNs={"skos": SKOS}, initBindings={"c": ICD[code]},
+        ))
+        return str(rows[0].t) if rows else None
+
+    def ancestors(self, code: str) -> list[str]:
+        """The code itself, then each broader concept up to its category."""
+        chain = [code]
+        while True:
+            rows = list(self._ds.query(
+                "SELECT ?p WHERE { GRAPH ?g { ?c skos:broader ?p } }",
+                initNs={"skos": SKOS}, initBindings={"c": ICD[chain[-1]]},
+            ))
+            if not rows:
+                return chain
+            chain.append(_local(rows[0].p))
+
+    def excludes1_rules(self, code: str) -> list[Excludes1Rule]:
+        """Excludes1 notes that apply to a code: its own and every ancestor's."""
+        rules = []
+        for owner in self.ancestors(code):
+            rows = self._ds.query(
+                """
+                SELECT ?kind ?start ?end ?note ?g WHERE {
+                  GRAPH ?g { ?owner rcm:excludes1 ?r . ?r rcm:refKind ?kind ; rcm:refStart ?start ;
+                             rcm:note ?note OPTIONAL { ?r rcm:refEnd ?end } }
+                } ORDER BY ?g""",
+                initNs={"rcm": RCM}, initBindings={"owner": ICD[owner]},
+            )
+            rules += [
+                Excludes1Rule(owner, CodeRef(str(r.kind), str(r.start), str(r.end) if r.end else None),
+                              str(r.note), self._source(r.g))
+                for r in rows
+            ]
+        return rules
 
     def coverage_paths(self, hcpcs: str, dx: str) -> list[CoveragePath]:
         rows = self._ds.query(
@@ -160,16 +209,38 @@ def build_graph(data_dir: Path) -> CoverageGraph:
         return ds.graph(iri)
 
     tabular = fixtures / TABULAR
+    text_lines = tabular.read_text(encoding="utf-8").splitlines()
     lines = {}
-    for n, text in enumerate(tabular.read_text(encoding="utf-8").splitlines(), start=1):
+    for n, text in enumerate(text_lines, start=1):
         m = re.search(r"<name>([^<]+)</name>", text)
         if m:
             lines[m.group(1)] = n
-    for concept in parse_tabular(tabular).concepts.values():
-        g = graph_for(TABULAR, lines[concept.code])
+
+    def line_after(code: str, needle: str) -> int:
+        """First line at or below a code's <name> line that contains needle."""
+        start = lines[code]
+        return next(n for n in range(start, len(text_lines) + 1) if needle in text_lines[n - 1])
+
+    tab = parse_tabular(tabular)
+    for concept in tab.concepts.values():
+        if concept.kind == "seventh":
+            # Source the expanded code to the sevenChrDef extension that defines its 7th character.
+            line = line_after(concept.seventh_defined_at, f'<extension char="{concept.code[-1]}">')
+        else:
+            line = lines[concept.code]
+        g = graph_for(TABULAR, line)
         g.add((ICD[concept.code], SKOS.prefLabel, Literal(concept.title)))
         if concept.parent:
             g.add((ICD[concept.code], SKOS.broader, ICD[concept.parent]))
+    for i, rule in enumerate(tab.excludes1):
+        g = graph_for(TABULAR, line_after(rule.code, f"<note>{escape(rule.note)}</note>"))
+        node = EXCLUDES1[f"{rule.code}-{i}"]
+        g.add((ICD[rule.code], RCM.excludes1, node))
+        g.add((node, RCM.refKind, Literal(rule.target.kind)))
+        g.add((node, RCM.refStart, Literal(rule.target.start)))
+        if rule.target.end:
+            g.add((node, RCM.refEnd, Literal(rule.target.end)))
+        g.add((node, RCM.note, Literal(rule.note)))
 
     for line, row in _csv_records(fixtures / LCD_HCPCS):
         graph_for(LCD_HCPCS, line).add(
