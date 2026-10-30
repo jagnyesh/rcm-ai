@@ -49,7 +49,6 @@
         ]
       }
     ],
-    "label_status": "claude-labeled",
-    "known_system_gap": "Excludes1 checks arrive in #4; today the system ignores E10.9 and returns overturnable via E11.65."
+    "label_status": "claude-labeled"
   }
 }
