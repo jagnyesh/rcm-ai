@@ -225,3 +225,47 @@ def test_every_hop_of_a_seventh_character_path_is_found_at_its_source_line():
 
     for hop in verdict.path:
         assert hop.anchor in _record_text_at(FIXTURES / hop.source.path, hop.source.line), hop
+
+
+# Fresh-context review of #4 (2026-10-30): specificity inputs that were wrongly overturnable.
+@pytest.mark.parametrize(
+    "billed, documented",
+    [
+        ("E11.40", "E11.9"),    # neuropathy, unspecified: billed is more specific than documented
+        ("E11.8", "E11.9"),     # with unspecified complications
+        ("E11.319", "E11.65"),  # unspecified retinopathy: documented code is a different condition
+        ("E11.3519", "E11.9"),  # 7th character "unspecified eye"
+        ("E11.9", "E11.ZZZZ"),  # documented code does not exist
+        ("E11.9", "E11"),       # documented code is a category, not a billable code
+    ],
+)
+def test_specificity_only_lets_a_documented_covered_code_support_its_without_complications_code(billed, documented):
+    case = _case()
+    claim = replace(case.claim, icd10=(billed,))
+    evidence = replace(case.evidence, diagnoses=(DocumentedCode(documented, NOTE_SPAN),))
+
+    assert adjudicate(claim, evidence, build_graph(DATA)).outcome == "needs_human"
+
+
+@pytest.mark.parametrize(
+    "billed, rule",
+    [
+        (("E11.65", "E11.A"), "(E11.0-E11.8)"),  # range target on E11.A
+        (("E11.9", "E11.A"), "(E11.9)"),         # exact target on E11.A, and E11.9 excludes E11.A
+    ],
+)
+def test_excludes1_range_and_exact_targets_are_conflicts(billed, rule):
+    case = _case()
+    claim = replace(case.claim, icd10=billed)
+
+    verdict = adjudicate(claim, case.evidence, build_graph(DATA))
+
+    assert verdict.outcome == "needs_human"
+    assert [f.type for f in verdict.findings] == ["excludes1"]
+    assert verdict.findings[0].anchor.endswith(rule) or "(E11.A)" in verdict.findings[0].anchor
+
+
+def test_a_seventh_character_hop_names_the_code_that_defines_its_character():
+    hop = _eval_case("ev-07").path[3]
+
+    assert "7th character from E11.32" in hop.statement
