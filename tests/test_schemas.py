@@ -39,3 +39,21 @@ def test_a_case_that_breaks_one_boundary_rule_is_rejected_on_load(tmp_path, chan
 
 def test_the_committed_synthetic_case_loads():
     assert load_case(CASE).claim.hcpcs == "E2103"
+
+
+# Regression: ISSUE-A — malformed case files crashed the CLI with a traceback
+# Found by /qa on 2026-10-30
+@pytest.mark.parametrize(
+    "content",
+    ["{not json", json.dumps({"id": "x", "synthetic": True}), json.dumps(["not", "an", "object"])],
+)
+def test_a_case_file_that_is_not_a_complete_case_is_rejected_as_a_schema_error(tmp_path, content):
+    path = tmp_path / "case.json"
+    path.write_text(content)
+    with pytest.raises(SchemaError):
+        load_case(path)
+
+
+def test_a_missing_case_file_is_rejected_as_a_schema_error(tmp_path):
+    with pytest.raises(SchemaError, match="missing.json"):
+        load_case(tmp_path / "missing.json")

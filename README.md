@@ -30,6 +30,18 @@ Full downloads live in `data/raw/` (gitignored). Committed fixture slices live i
 - For DME, the HCPCS codes sit in the LCD (`lcd_x_hcpc_code`) and the ICD-10 codes in the article (`article_x_icd10_covered`). Joining them takes the LCD-to-article link, which isn't modeled yet. The LCD's group 1 also says a listed code "does not necessarily indicate coverage".
 - The article's only covered group says a listed ICD-10 code "is not sufficient by itself to assure coverage" and points to the LCD's medical-necessity criteria. A diagnosis match alone can't yield an overturnable verdict. Those criteria (insulin treatment, problematic hypoglycemia) live as HTML in `lcd.csv`'s `indication` column (about 15k characters for L33822), which isn't committed yet.
 
+## Usage
+
+From the repo root:
+
+```bash
+uv run rcm-ai triage data/synthetic/case-001.json
+```
+
+It prints the verdict (`overturnable` or `needs_human`). For an overturnable case, it also prints each step of the justification path: the fixture file and line, the source version, and the text to look for there. Cases must be marked `"synthetic": true`. A malformed or unreadable case is rejected on stderr with exit code 2. `--data` points at a different data directory (default `data`, relative to the current directory).
+
+LCD coverage criteria live in `data/curated/L33822-cgm-criteria.json`, hand-curated with verbatim quotes from the LCD text.
+
 ## Development
 
 ```bash

@@ -80,16 +80,24 @@ class Case:
 
 
 def load_case(path: Path) -> Case:
-    raw = json.loads(Path(path).read_text())
+    try:
+        raw = json.loads(Path(path).read_text())
+    except (OSError, json.JSONDecodeError) as e:
+        raise SchemaError(f"{path}: cannot read case: {e}") from e
+    if not isinstance(raw, dict):
+        raise SchemaError(f"{path}: case must be a JSON object")
     if raw.get("synthetic") is not True:
         raise SchemaError(f"{path}: case is not marked synthetic; only synthetic cases are accepted")
-    c, e = raw["claim"], raw["evidence"]
-    return Case(
-        id=raw["id"],
-        claim=Claim(c["hcpcs"], tuple(c["icd10"]), c["carc"]),
-        evidence=Evidence(
-            tuple(DocumentedCode(d["code"], d["span"]) for d in e["diagnoses"]),
-            tuple(CriterionEvidence(x["criterion"], x["span"]) for x in e["criteria"]),
-        ),
-        note=raw["note"],
-    )
+    try:
+        c, e = raw["claim"], raw["evidence"]
+        return Case(
+            id=raw["id"],
+            claim=Claim(c["hcpcs"], tuple(c["icd10"]), c["carc"]),
+            evidence=Evidence(
+                tuple(DocumentedCode(d["code"], d["span"]) for d in e["diagnoses"]),
+                tuple(CriterionEvidence(x["criterion"], x["span"]) for x in e["criteria"]),
+            ),
+            note=raw["note"],
+        )
+    except (KeyError, TypeError) as e:
+        raise SchemaError(f"{path}: case is missing or mistypes field {e}") from e
