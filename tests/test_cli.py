@@ -75,8 +75,8 @@ def test_eval_runs_the_locked_set_and_writes_dated_per_case_results(tmp_path):
     assert record["arms"]["graph"]["model"] is None
     assert len(record["results"]) == 20
     assert {r["case"] for r in record["results"]} == {f"ev-{i:02d}" for i in range(1, 21)}
-    ev19 = next(r for r in record["results"] if r["case"] == "ev-19")
-    assert "Excludes1" in ev19["known_system_gap"]
+    ev06 = next(r for r in record["results"] if r["case"] == "ev-06")
+    assert "O24" in ev06["known_system_gap"]
 
 
 def test_eval_fails_with_exit_code_2_on_a_partial_case_set(tmp_path):
