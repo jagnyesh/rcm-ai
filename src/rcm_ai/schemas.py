@@ -101,6 +101,13 @@ class Case:
     note: str
 
 
+def _documented_code(item: dict, path: Path) -> str:
+    code = item["code"]
+    if not isinstance(code, str) or not is_icd10cm(code):
+        raise SchemaError(f"{path}: documented diagnosis {code!r} is not an ICD-10-CM code")
+    return code
+
+
 def _span(item: dict, note: str, what: str, path: Path) -> str:
     span = item["span"]
     if not isinstance(span, str) or not span.strip():
@@ -127,7 +134,10 @@ def load_case(path: Path) -> Case:
             id=raw["id"],
             claim=Claim(c["hcpcs"], tuple(c["icd10"]), c["carc"], c["coverage"]),
             evidence=Evidence(
-                tuple(DocumentedCode(d["code"], _span(d, note, d["code"], path)) for d in e["diagnoses"]),
+                tuple(
+                    DocumentedCode(_documented_code(d, path), _span(d, note, d["code"], path))
+                    for d in e["diagnoses"]
+                ),
                 tuple(
                     CriterionEvidence(x["criterion"], _span(x, note, x["criterion"], path))
                     for x in e["criteria"]
