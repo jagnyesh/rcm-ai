@@ -1,0 +1,21 @@
+{
+  "id": "case-001",
+  "synthetic": true,
+  "claim": {
+    "hcpcs": "E2103",
+    "icd10": ["E11.65"],
+    "carc": "50"
+  },
+  "note": "SYNTHETIC NOTE. Telehealth follow-up for type 2 diabetes mellitus with hyperglycemia. Patient is on basal-bolus insulin, four injections daily. Reviewed glucose log and diabetes control at this visit. Patient completed device training; prescription written for a non-adjunctive CGM. Device prescribed per its FDA-labeled indications for use.",
+  "evidence": {
+    "diagnoses": [
+      {"code": "E11.65", "span": "type 2 diabetes mellitus with hyperglycemia"}
+    ],
+    "criteria": [
+      {"criterion": "cgm-2-training", "span": "Patient completed device training; prescription written for a non-adjunctive CGM"},
+      {"criterion": "cgm-3-fda-indication", "span": "Device prescribed per its FDA-labeled indications for use"},
+      {"criterion": "cgm-4a-insulin", "span": "Patient is on basal-bolus insulin, four injections daily"},
+      {"criterion": "cgm-5-visit", "span": "Telehealth follow-up for type 2 diabetes mellitus with hyperglycemia"}
+    ]
+  }
+}

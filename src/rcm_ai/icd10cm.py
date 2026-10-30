@@ -3,6 +3,8 @@ import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from pathlib import Path
 
+from rcm_ai.codes import ICD10CM_CODE
+
 
 @dataclass(frozen=True)
 class Concept:
@@ -33,10 +35,9 @@ class Tabular:
 
 
 _TRAILING_REF = re.compile(r"\(([A-Z0-9.\-]+)\)\s*$")
-_CODE = r"[A-Z][0-9][0-9A-Z](?:\.[0-9A-Z]{1,4})?"
 # "-" or ".-" after a code means "and everything under it"; a range end may carry one too
 # ("I63.3-I63.5-"), and a range already spans its ends' subtrees, so it is dropped there.
-_REF = re.compile(rf"(?P<start>{_CODE})(?P<wild>\.?-)?(?:-(?P<end>{_CODE})(?:\.?-)?)?")
+_REF = re.compile(rf"(?P<start>{ICD10CM_CODE})(?P<wild>\.?-)?(?:-(?P<end>{ICD10CM_CODE})(?:\.?-)?)?")
 
 
 def parse_code_ref(note: str) -> CodeRef:

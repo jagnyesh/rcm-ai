@@ -1,0 +1,41 @@
+{
+  "description": "Initial coverage criteria for continuous glucose monitors under LCD L33822 v70, hand-curated from the LCD's indication text. Every quote must appear verbatim in the normalized indication text of the source record; tests enforce this.",
+  "lcd": "L33822",
+  "source": "cms/lcd-L33822-v70.csv",
+  "column": "indication",
+  "curated": "2026-10-29",
+  "applies_to": {
+    "hcpcs": ["E2102", "E2103", "A4238", "A4239"],
+    "quote": "When a CGM (code E2102 or E2103) is covered, the related supply allowance (code A4238 or A4239) is also covered"
+  },
+  "rule": {
+    "all_of_quote": "the beneficiary must meet all of the following initial coverage criteria (1)-(5)"
+  },
+  "criteria": [
+    {
+      "id": "cgm-1-diabetes",
+      "quote": "The beneficiary has diabetes mellitus",
+      "satisfied_by": "covered_diagnosis"
+    },
+    {
+      "id": "cgm-2-training",
+      "quote": "has sufficient training using the CGM prescribed as evidenced by providing a prescription"
+    },
+    {
+      "id": "cgm-3-fda-indication",
+      "quote": "The CGM is prescribed in accordance with its FDA indications for use"
+    },
+    {
+      "id": "cgm-4-glycemic-control",
+      "quote": "meets at least one of the criteria below",
+      "any_of": [
+        {"id": "cgm-4a-insulin", "quote": "The beneficiary is insulin-treated"},
+        {"id": "cgm-4b-hypoglycemia", "quote": "The beneficiary has a history of problematic hypoglycemia"}
+      ]
+    },
+    {
+      "id": "cgm-5-visit",
+      "quote": "Within six (6) months prior to ordering the CGM, the treating practitioner has an in-person or Medicare-approved telehealth visit with the beneficiary to evaluate their diabetes control"
+    }
+  ]
+}
