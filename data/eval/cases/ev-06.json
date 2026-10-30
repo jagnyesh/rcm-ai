@@ -1,0 +1,59 @@
+{
+  "id": "ev-06",
+  "synthetic": true,
+  "claim": {
+    "hcpcs": "E2103",
+    "icd10": [
+      "O24.111"
+    ],
+    "carc": "50",
+    "coverage": "initial"
+  },
+  "note": "SYNTHETIC NOTE. Telehealth visit today to review diabetes control. Pre-existing type 2 diabetes mellitus in pregnancy, first trimester. On multiple daily insulin injections. Completed CGM device training; prescription written for the CGM. CGM prescribed per its FDA-labeled indications.",
+  "evidence": {
+    "diagnoses": [
+      {
+        "code": "O24.111",
+        "span": "Pre-existing type 2 diabetes mellitus in pregnancy, first trimester"
+      }
+    ],
+    "criteria": [
+      {
+        "criterion": "cgm-5-visit",
+        "span": "Telehealth visit today to review diabetes control."
+      },
+      {
+        "criterion": "cgm-2-training",
+        "span": "Completed CGM device training; prescription written for the CGM."
+      },
+      {
+        "criterion": "cgm-3-fda-indication",
+        "span": "CGM prescribed per its FDA-labeled indications."
+      },
+      {
+        "criterion": "cgm-4a-insulin",
+        "span": "On multiple daily insulin injections."
+      }
+    ]
+  },
+  "gold": {
+    "verdict": "overturnable",
+    "reason": "O24.111 is on the article's covered list; all criteria documented.",
+    "findings": [],
+    "label_status": "claude-labeled",
+    "path": {
+      "hcpcs": "E2103",
+      "lcd": "L33822",
+      "article": "A52464",
+      "dx": "O24.111",
+      "criteria": {
+        "cgm-1-diabetes": "covered_diagnosis",
+        "cgm-2-training": "documented",
+        "cgm-3-fda-indication": "documented",
+        "cgm-4-glycemic-control": "cgm-4a-insulin",
+        "cgm-5-visit": "documented"
+      }
+    },
+    "known_system_gap": "O24 codes are not in the ICD-10-CM slice yet, so the system returns needs_human (#6)."
+  }
+}

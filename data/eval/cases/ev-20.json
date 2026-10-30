@@ -1,0 +1,55 @@
+{
+  "id": "ev-20",
+  "synthetic": true,
+  "claim": {
+    "hcpcs": "E2103",
+    "icd10": [
+      "E11.65",
+      "E13.9"
+    ],
+    "carc": "50",
+    "coverage": "initial"
+  },
+  "note": "SYNTHETIC NOTE. Telehealth visit today to review diabetes control. Type 2 diabetes mellitus with hyperglycemia. On multiple daily insulin injections. Completed CGM device training; prescription written for the CGM. CGM prescribed per its FDA-labeled indications.",
+  "evidence": {
+    "diagnoses": [
+      {
+        "code": "E11.65",
+        "span": "Type 2 diabetes mellitus with hyperglycemia"
+      }
+    ],
+    "criteria": [
+      {
+        "criterion": "cgm-5-visit",
+        "span": "Telehealth visit today to review diabetes control."
+      },
+      {
+        "criterion": "cgm-2-training",
+        "span": "Completed CGM device training; prescription written for the CGM."
+      },
+      {
+        "criterion": "cgm-3-fda-indication",
+        "span": "CGM prescribed per its FDA-labeled indications."
+      },
+      {
+        "criterion": "cgm-4a-insulin",
+        "span": "On multiple daily insulin injections."
+      }
+    ]
+  },
+  "gold": {
+    "verdict": "needs_human",
+    "reason": "Claim bills E11.65 with E13.9; E11 Excludes1 E13. Fix coding first.",
+    "findings": [
+      {
+        "type": "excludes1",
+        "codes": [
+          "E11.65",
+          "E13.9"
+        ]
+      }
+    ],
+    "label_status": "claude-labeled",
+    "known_system_gap": "Excludes1 checks arrive in #4."
+  }
+}

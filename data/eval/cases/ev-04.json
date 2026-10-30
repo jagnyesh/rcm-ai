@@ -1,0 +1,58 @@
+{
+  "id": "ev-04",
+  "synthetic": true,
+  "claim": {
+    "hcpcs": "E2103",
+    "icd10": [
+      "E11.9"
+    ],
+    "carc": "50",
+    "coverage": "initial"
+  },
+  "note": "SYNTHETIC NOTE. Telehealth visit today to review diabetes control. Type 2 diabetes mellitus without complications, on a sulfonylurea. Three readings below 54 mg/dL this quarter despite two dose reductions. Completed CGM device training; prescription written for the CGM. CGM prescribed per its FDA-labeled indications.",
+  "evidence": {
+    "diagnoses": [
+      {
+        "code": "E11.9",
+        "span": "Type 2 diabetes mellitus without complications"
+      }
+    ],
+    "criteria": [
+      {
+        "criterion": "cgm-5-visit",
+        "span": "Telehealth visit today to review diabetes control."
+      },
+      {
+        "criterion": "cgm-2-training",
+        "span": "Completed CGM device training; prescription written for the CGM."
+      },
+      {
+        "criterion": "cgm-3-fda-indication",
+        "span": "CGM prescribed per its FDA-labeled indications."
+      },
+      {
+        "criterion": "cgm-4b1-level2",
+        "span": "Three readings below 54 mg/dL this quarter despite two dose reductions."
+      }
+    ]
+  },
+  "gold": {
+    "verdict": "overturnable",
+    "reason": "Recurrent level 2 events persisting despite more than one medication adjustment.",
+    "findings": [],
+    "label_status": "claude-labeled",
+    "path": {
+      "hcpcs": "E2103",
+      "lcd": "L33822",
+      "article": "A52464",
+      "dx": "E11.9",
+      "criteria": {
+        "cgm-1-diabetes": "covered_diagnosis",
+        "cgm-2-training": "documented",
+        "cgm-3-fda-indication": "documented",
+        "cgm-4-glycemic-control": "cgm-4b1-level2",
+        "cgm-5-visit": "documented"
+      }
+    }
+  }
+}
