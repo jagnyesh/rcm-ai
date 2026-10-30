@@ -110,3 +110,9 @@ def test_triage_prints_the_reason_for_an_uphold():
     assert result.stdout.splitlines()[0] == "ev-14: uphold"
     assert "reason (criterion_not_met)" in result.stdout
     assert "last practitioner visit for diabetes was 11 months ago" in result.stdout
+
+
+def test_eval_prints_false_uphold():
+    result = _run("eval", "--out", "/private/tmp/claude-501/-Users-jagnyesh-Development/126bbac6-038a-4247-ae29-26a68dba4830/scratchpad/eval-cli")
+
+    assert "false uphold: 0 []" in result.stdout
