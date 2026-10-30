@@ -69,6 +69,10 @@ def test_a_missing_case_file_is_rejected_as_a_schema_error(tmp_path):
         ({"evidence__diagnoses": [{"code": "E11.65", "span": "absent from note"}]}, "note"),
         ({"claim__icd10": "E11.65"}, "list"),
         ({"claim__coverage": "renewal"}, "coverage"),
+        # Review of #4: documented codes were never validated, and a lowercase "e10.9" slipped
+        # past the case-sensitive Excludes1 check.
+        ({"evidence__diagnoses": [{"code": "e10.9", "span": "type 2 diabetes mellitus with hyperglycemia"}]},
+         "ICD-10-CM"),
     ],
 )
 def test_evidence_or_claims_that_break_a_shape_rule_are_rejected_on_load(tmp_path, change, message):
