@@ -18,4 +18,4 @@
 
 ## Locking rule
 
-This set is a locked golden fixture from its first commit, including while labels are `claude-labeled`. Never edit a case or label to match system output. Any change, including a corrected label, goes in its own commit whose message says which case changed and why. The eval harness (#8) asserts the case count, so adding or removing a case is a deliberate, visible change.
+This set is a locked golden fixture from its first commit, including while labels are `claude-labeled`. Never edit a case or label to match system output. Any change, including a corrected label, goes in its own commit whose message says which case changed and why. The eval harness asserts the case count against `set.json` (`expected_cases`), so adding or removing a case means updating that number in the same commit.

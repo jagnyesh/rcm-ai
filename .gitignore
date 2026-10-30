@@ -6,3 +6,4 @@ __pycache__/
 # Full public-source downloads stay local; only small fixture slices are committed.
 data/raw/
 .DS_Store
+eval-results/

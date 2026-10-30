@@ -1,8 +1,13 @@
 import argparse
+import json
+import subprocess
 import sys
+from dataclasses import asdict
+from datetime import datetime, timezone
 from pathlib import Path
 
 from rcm_ai.adjudicate import adjudicate
+from rcm_ai.evaluate import EvalError, load_eval_set, run_eval
 from rcm_ai.graph import build_graph
 from rcm_ai.schemas import SchemaError, load_case
 
@@ -24,13 +29,67 @@ def _triage(case_path: Path, data_dir: Path) -> int:
     return 0
 
 
+def _git_sha() -> str:
+    run = lambda *a: subprocess.run(["git", *a], capture_output=True, text=True).stdout.strip()
+    sha = run("rev-parse", "HEAD") or "unknown"
+    return sha + ("-dirty" if run("status", "--porcelain") else "")
+
+
+def _pct(x: float | None) -> str:
+    return "n/a" if x is None else f"{x:.0%}"
+
+
+def _eval(data_dir: Path, out_dir: Path) -> int:
+    try:
+        cases = load_eval_set(data_dir / "eval")
+        graph = build_graph(data_dir)
+        arms = {"graph": lambda c: adjudicate(c.case.claim, c.case.evidence, graph)}
+        report = run_eval(cases, arms)
+    except EvalError as e:
+        print(f"eval failed: {e}", file=sys.stderr)
+        return 2
+    print(f"eval: {len(cases)} cases ran (expected {report.expected})")
+    for name, m in report.arms.items():
+        print(f"  {name}: accuracy {m.correct}/{m.n} ({_pct(m.accuracy)})")
+        print(f"    false overturnable: {len(m.false_overturnable)} {m.false_overturnable}")
+        print(f"    abstention rate: {m.abstentions}/{m.n} ({_pct(m.abstention_rate)}), "
+              f"precision {m.correct_abstentions}/{m.abstentions} ({_pct(m.abstention_precision)})")
+    gaps = {c.case.id: c.gold.get("known_system_gap") for c in cases}
+    for r in report.results:
+        if not r.correct:
+            note = "known gap" if gaps[r.case] else "UNEXPLAINED"
+            print(f"    {r.arm} {r.case}: gold {r.gold}, got {r.outcome}  [{note}]")
+    now = datetime.now(timezone.utc)
+    record = {
+        "date": now.isoformat(timespec="seconds"),
+        "git_sha": _git_sha(),
+        "expected_cases": report.expected,
+        "arms": {
+            name: {"model": None, **asdict(m), "accuracy": m.accuracy,
+                   "abstention_rate": m.abstention_rate, "abstention_precision": m.abstention_precision}
+            for name, m in report.arms.items()
+        },
+        "results": [{**asdict(r), "correct": r.correct} for r in report.results],
+    }
+    out_dir.mkdir(parents=True, exist_ok=True)
+    path = out_dir / f"eval-{now.strftime('%Y%m%dT%H%M%SZ')}.json"
+    path.write_text(json.dumps(record, indent=2) + "\n")
+    print(f"results: {path}")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="rcm-ai")
     sub = parser.add_subparsers(dest="command", required=True)
     triage = sub.add_parser("triage", help="adjudicate one synthetic denied claim")
     triage.add_argument("case", type=Path)
     triage.add_argument("--data", type=Path, default=Path("data"))
+    ev = sub.add_parser("eval", help="score the arms against the locked eval set")
+    ev.add_argument("--data", type=Path, default=Path("data"))
+    ev.add_argument("--out", type=Path, default=Path("eval-results"))
     args = parser.parse_args(argv)
+    if args.command == "eval":
+        return _eval(args.data, args.out)
     return _triage(args.case, args.data)
 
 
