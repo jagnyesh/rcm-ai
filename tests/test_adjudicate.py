@@ -261,8 +261,8 @@ def test_excludes1_range_and_exact_targets_are_conflicts(billed, rule):
     verdict = adjudicate(claim, case.evidence, build_graph(DATA))
 
     assert verdict.outcome == "needs_human"
-    assert [f.type for f in verdict.findings] == ["excludes1"]
-    assert verdict.findings[0].anchor.endswith(rule) or "(E11.A)" in verdict.findings[0].anchor
+    assert verdict.findings and {f.type for f in verdict.findings} == {"excludes1"}
+    assert any(f.anchor.endswith(rule) or "(E11.A)" in f.anchor for f in verdict.findings)
 
 
 def test_a_seventh_character_hop_names_the_code_that_defines_its_character():
@@ -281,4 +281,6 @@ def test_documented_codes_in_an_excludes1_conflict_are_not_overturnable():
     verdict = adjudicate(claim, evidence, build_graph(DATA))
 
     assert verdict.outcome == "needs_human"
-    assert [f.type for f in verdict.findings] == ["excludes1"]
+    # E10.9 conflicts with both E11 codes; each conflicting pair is reported.
+    assert {frozenset(f.codes) for f in verdict.findings} >= {frozenset({"E11.65", "E10.9"})}
+    assert {f.type for f in verdict.findings} == {"excludes1"}
