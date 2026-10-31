@@ -8,7 +8,6 @@ from rcm_ai.codes import is_cpt, is_hcpcs_level2, is_icd10cm
 # Claim adjustment reason codes are 1-3 digits, some with a one-letter prefix (e.g. "50", "B7").
 _CARC = re.compile(r"[A-Z]?[0-9]{1,3}")
 COVERAGE_PERIODS = ("initial", "continued")
-# "uphold" is a gold label in the eval set; the adjudicator does not produce it until #5.
 OUTCOMES = ("overturnable", "uphold", "needs_human")
 
 

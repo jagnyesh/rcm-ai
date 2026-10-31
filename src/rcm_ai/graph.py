@@ -148,6 +148,17 @@ class CoverageGraph:
             initNs={"rcm": RCM}, initBindings={"dx": ICD[dx]},
         ).askAnswer)
 
+    def covered_codes_under(self, dx: str) -> list[str]:
+        """Covered codes below dx in the code hierarchy (dx itself excluded)."""
+        rows = self._ds.query(
+            """SELECT DISTINCT ?d WHERE { GRAPH ?g { ?article rcm:coversDiagnosis ?d }
+                 FILTER(STRSTARTS(STR(?d), STR(?dx)) && ?d != ?dx) }""",
+            initNs={"rcm": RCM}, initBindings={"dx": ICD[dx]},
+        )
+        under = sorted(_local(r.d) for r in rows)
+        # Prefix match on the IRI; keep only codes whose ancestor chain really contains dx.
+        return [d for d in under if dx in self.ancestors(d)[1:]]
+
     def coverage_paths(self, hcpcs: str, dx: str) -> list[CoveragePath]:
         rows = self._ds.query(
             """

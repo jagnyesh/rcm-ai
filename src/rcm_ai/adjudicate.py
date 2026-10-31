@@ -8,7 +8,9 @@ MEDICAL_NECESSITY_CARCS = {"50"}
 
 
 def _met_leaf(c: Criterion, met: set[str]) -> Criterion | None:
-    """The evidenced criterion that satisfies c: c itself, or one any-of branch, recursively."""
+    """The evidenced criterion that satisfies c: c itself, or one any-of branch, recursively.
+    Only leaves can satisfy: "history of problematic hypoglycemia" stated at the 4b level does
+    not meet 4b, which needs a documented level 2 or level 3 event."""
     if c.any_of:
         return next((leaf for s in c.any_of if (leaf := _met_leaf(s, met))), None)
     return c if c.id in met else None
@@ -25,19 +27,26 @@ def _not_met_spans(c: Criterion, not_met: dict[str, str]) -> list[str]:
     return []
 
 
+def _claimed_met(c: Criterion, met: set[str]) -> bool:
+    """Whether the evidence claims c is met at any level, satisfying or not."""
+    return c.id in met or any(_claimed_met(s, met) for s in c.any_of)
+
+
 def _conflicting(c: Criterion, met: set[str], not_met: dict[str, str]) -> bool:
-    if c.id in met and c.id in not_met:
+    """Claimed met (at any level) and shown not met (its own id or every branch) at once."""
+    if _claimed_met(c, met) and _not_met_spans(c, not_met):
         return True
-    if c.any_of:
-        if any(_conflicting(s, met, not_met) for s in c.any_of):
-            return True
-        return c.id in not_met and _met_leaf(c, met) is not None
-    return False
+    return any(_conflicting(s, met, not_met) for s in c.any_of)
 
 
 def _assess(c: Criterion, dx: str, met: set[str], not_met: dict[str, str]) -> tuple[str, Hop | Reason]:
     """("met", Hop) or ("conflicting" | "not_met" | "missing", Reason) for one required criterion."""
     if c.satisfied_by == "covered_diagnosis":
+        if c.id in not_met:  # the note contradicts the covered diagnosis it documents
+            return "conflicting", Reason(
+                "criterion_conflicting",
+                f"Criterion {c.id} is met by covered diagnosis {dx} but the note says it is not",
+                c.quote, c.source, not_met[c.id])
         return "met", Hop(f"Criterion {c.id} met by covered diagnosis {dx}", c.quote, c.source)
     if _conflicting(c, met, not_met):
         return "conflicting", Reason(
@@ -155,12 +164,18 @@ def adjudicate(claim: Claim, evidence: Evidence, graph: CoverageGraph) -> Verdic
             if graph.on_covered_list(dx):
                 outcomes.append(_hand_off(Reason(
                     "diagnosis_not_in_terminology", f"{dx} is on the covered list but not in the loaded ICD-10-CM slice")))
+            elif graph.covered_codes_under(dx):
+                outcomes.append(_hand_off(Reason(
+                    "diagnosis_not_billable",
+                    f"{dx} is a header code; covered codes under it ({', '.join(graph.covered_codes_under(dx)[:3])}...) "
+                    "need the specific code: recode")))
             elif any(graph.on_covered_list(d) for d in documented):
                 outcomes.append(_hand_off(Reason(
                     "covered_diagnosis_not_billed", f"Billed {dx} is not covered, but the note documents a covered diagnosis: recode")))
             else:
                 outcomes.append(Verdict("uphold", (), reasons=(Reason(
-                    "diagnosis_not_covered", f"{dx} is not on the covered diagnosis list for {claim.hcpcs}; criterion cgm-1-diabetes fails"),)))
+                    "diagnosis_not_covered",
+                    f"{dx} is not on the covered diagnosis list for {claim.hcpcs}, and no documented diagnosis is"),)))
             continue
         p = paths[0]
         assessed = [_assess(c, dx, met, not_met) for c in graph.criteria(p.lcd)]
