@@ -54,20 +54,20 @@ class Parsed:
 Extractor = Callable[[str, list[Criterion]], Extraction]
 
 
-def _describe(criteria: list[Criterion], depth: int = 0) -> list[str]:
+def describe_criteria(criteria: list[Criterion], depth: int = 0) -> list[str]:
     lines = []
     for c in criteria:
         note = " (decided from the diagnosis code)" if c.satisfied_by == "covered_diagnosis" else ""
         alternatives = " Met by any one of these alternatives:" if c.any_of else ""
         lines.append(f"{'  ' * depth}- {c.id}{note}: \"{c.quote}\"{alternatives}")
-        lines.extend(_describe(list(c.any_of), depth + 1))
+        lines.extend(describe_criteria(list(c.any_of), depth + 1))
     return lines
 
 
 def build_request(note: str, criteria: list[Criterion]) -> dict:
     """Keyword arguments for messages.create. Criteria are top-level ones; alternatives nest."""
     content = (
-        "Coverage criteria (id: policy text):\n" + "\n".join(_describe(criteria))
+        "Coverage criteria (id: policy text):\n" + "\n".join(describe_criteria(criteria))
         + f"\n\nNote:\n<note>\n{note}\n</note>"
     )
     return {
@@ -80,8 +80,12 @@ def build_request(note: str, criteria: list[Criterion]) -> dict:
 
 
 def extract(note: str, criteria: list[Criterion], client) -> Extraction:
+    return send(build_request(note, criteria), client)
+
+
+def send(request: dict, client) -> Extraction:
     """One live model call. The record keeps the exact request bytes sent, for the wire check."""
-    raw = client.messages.with_raw_response.create(**build_request(note, criteria))
+    raw = client.messages.with_raw_response.create(**request)
     message = raw.parse()
     record = {
         "request_id": raw.request_id,

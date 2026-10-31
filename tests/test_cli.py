@@ -185,3 +185,16 @@ def test_eval_rejects_an_unknown_arm(tmp_path):
 
     assert result.returncode == 2
     assert "unknown arm bogus" in result.stderr
+
+
+def test_triage_marks_a_hop_without_a_source_as_unsourced(monkeypatch, capsys):
+    import rcm_ai
+    from rcm_ai.schemas import Hop, Verdict
+    monkeypatch.setattr(rcm_ai, "adjudicate", lambda *args: Verdict("overturnable", (Hop("a step with no source row"),)))
+
+    code = rcm_ai.main(["triage", str(REPO / CASE), "--data", str(REPO / "data")])
+
+    out = capsys.readouterr().out.splitlines()
+    assert code == 0
+    step = out.index("  1. a step with no source row")
+    assert out[step + 1] == "     unsourced: no source row backs this step"

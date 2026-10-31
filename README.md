@@ -4,7 +4,7 @@ Exploratory prototype: graph-grounded triage of Medicare medical-necessity denia
 
 ## Problem
 
-A denial analyst working a medical-necessity denial (CARC 50) must decide whether the documented diagnosis supports the billed item under the governing coverage policy, which means cross-referencing the note, the claim's ICD-10-CM and HCPCS codes, the ICD-10-CM hierarchy and Excludes1 rules, and the LCD's billing article. An LLM can draft an appeal, but it decides coverage from memory and cites policy it can't trace. This prototype lets a small terminology-and-policy graph make the coverage decision and return a justification path where every hop points at a row in a public source file. The LLM only extracts evidence from the note. An eval set of 20 labeled synthetic cases scores the graph on supplied evidence and on LLM-extracted evidence, so the value of the knowledge layer is measured, not asserted. Not built yet: the LLM-only baseline arm (#10) and appeal-letter drafting (#11). The labels are Claude's best judgment and await human review (#15).
+A denial analyst working a medical-necessity denial (CARC 50) must decide whether the documented diagnosis supports the billed item under the governing coverage policy, which means cross-referencing the note, the claim's ICD-10-CM and HCPCS codes, the ICD-10-CM hierarchy and Excludes1 rules, and the LCD's billing article. An LLM can draft an appeal, but it decides coverage from memory and cites policy it can't trace. This prototype lets a small terminology-and-policy graph make the coverage decision and return a justification path where every hop points at a row in a public source file. The LLM only extracts evidence from the note. An eval set of 20 labeled synthetic cases scores the graph on supplied evidence and on LLM-extracted evidence against an LLM-only baseline, so the value of the knowledge layer is measured, not asserted. Not built yet: appeal-letter drafting (#11). The labels are Claude's best judgment and await human review (#15).
 
 ## Scope
 
@@ -46,7 +46,7 @@ To score the system against the locked eval set (`data/eval`):
 uv run rcm-ai eval
 ```
 
-It asserts the case count from `data/eval/set.json` and fails with exit code 2 on an empty or partial set. It prints per-arm accuracy, false-overturnable and false-uphold cases, abstention rate and abstention precision, and lists each miss as a known gap or UNEXPLAINED; any arm error makes the run exit 3. Per-case results, with the date, git SHA and model id, go to `eval-results/` (gitignored). `--arms` picks the arms: `graph` (the default, using each case's supplied evidence) and `extracted` (see below).
+It asserts the case count from `data/eval/set.json` and fails with exit code 2 on an empty or partial set. It prints per-arm accuracy, false-overturnable and false-uphold cases, abstention rate and abstention precision, and lists each miss, marking a graph or extracted miss as a known gap or UNEXPLAINED; any arm error makes the run exit 3. Per-case results, with the date, git SHA, model id and the reasons behind each verdict, go to `eval-results/` (gitignored). `--arms` picks the arms: `graph` (the default, using each case's supplied evidence), `extracted` and `llm-only` (see below). With more than one arm, eval also prints each case where the arms' outcomes differ, with the reasons of each arm that missed gold, and records every such case, with all arms' reasons, under `disagreements`.
 
 LCD coverage criteria live in `data/curated/L33822-cgm-criteria.json`, hand-curated with verbatim quotes from the LCD text. In scope: initial coverage of the CGM device (E2102, E2103) for medical-necessity denials (CARC 50). Supply allowances, continued coverage, and other denial reasons return `needs_human`. Evidence spans must appear verbatim in the case note, and evidence naming an unknown criterion is rejected.
 
@@ -72,6 +72,31 @@ First runs, 2026-10-31, 20 cases (labels await review in #15):
   - one, ev-11, where the model didn't take "on a sulfonylurea" to rule out insulin treatment, which the gold label does.
 - **Same outputs replayed at `decc246`:** the same 16/20, with 15 calls. ev-19 and ev-20 bill conflicting codes and now hand off without a model call. The prompt is unchanged since `bb8cb0f`.
 - **Earlier run** with the previous prompt and validation: 15/20. The one-case difference is run-to-run variance: ev-04 failed there only because the model added Z79.84, which it didn't do this time.
+
+### LLM-only baseline
+
+`uv run rcm-ai eval --arms graph,extracted,llm-only` adds the comparison arm. `claude-opus-5-5` reads the claim, the note and the curated criteria of the LCD that lists the billed item (the text the extractor gets), and returns the verdict itself. It gets nothing the graph decides: not the covered-diagnosis list, the linked article, the ICD-10-CM terminology or Excludes1 rules. Its prompt, `src/rcm_ai/prompts/llm_only_verdict.md`, defines the verdicts with the three label rules from `data/eval/README.md` word for word, scope included. Model, effort and `max_tokens` are the extractor's, and its output schema is the extractor's plus `verdict` and `reasons`. Every case gets a model call.
+- Its verdict is taken as given. Its reasons become the verdict's reasons, or, for overturnable, path hops with no source: the model's assertion, not a row in a source file.
+- Its evidence fields are logged but not checked or scored. Comparing how well each arm's claims are grounded is #11.
+- A refusal, a truncated response, or output that isn't a verdict with reasons hands the claim off (`no_verdict`), as a rejected extraction does in the extracted arm. Each model-calling arm's record counts stop reasons and the responses it couldn't use, and eval warns about the latter.
+- It keeps its own run record, and its logs go to `eval-<stamp>-llm-only/`.
+
+Runs on 2026-10-31, each marked dirty only by the untracked `docs/diagrams/`:
+
+| Arm | Run | Accuracy | False overturnable | False uphold | Hand-offs (correct) |
+|---|---|---|---|---|---|
+| graph | both | 20/20 | 0 | 0 | 6 (6) |
+| extracted | `4bc67f4` | 16/20 | 0 | 0 | 10 (6) |
+| llm-only, first prompt | `4bc67f4` | 19/20 | 0 | 0 | 7 (6) |
+| llm-only, label rules verbatim | `1b47e29` | 19/20 | 0 | 1 | 5 (5) |
+
+- **First prompt:** its verdict definitions paraphrased the label rules. The review found that the paraphrase added scope wording and widened "coding error" beyond Excludes1. Its one miss, ev-09, was a hand-off: it wanted the billed E11.9 recoded to E11.22 before an appeal, while gold says overturnable with a specificity finding. The extracted arm missed ev-09 (N18.31 outside the loaded slices), ev-11, ev-12 (`covered_diagnosis_not_ruled_out`) and ev-13 (Z98.84), all as hand-offs. Compared with its earlier run, ev-05 passed and ev-12 missed, at the same prompt.
+- **Label rules verbatim:** ev-09 is now correct, but ev-18 is a false uphold, the costly error. The note says insulin was discussed and doesn't mention hypoglycemia. The model took that silence as criterion 4 failing, where gold says to request records. The graph decides ev-18 by a rule in its code: a criterion the note doesn't mention is undocumented, and the claim goes to a human. The verbatim rules state that only loosely ("the documentation is missing" means needs_human), and their uphold example, "not insulin-treated and no problematic hypoglycemia", also reads onto ev-18. The first prompt stated the graph's rule outright, so this prompt lost a rule the graph keeps. Settling the rules' wording belongs with the label review (#15); the prompt wasn't run a third time.
+- **Reading these numbers:** the baseline matches or beats the extracted arm on accuracy in both runs. That is the outcome the PRD says would count against the premise. Weigh it against four things:
+  - the cases and gold labels were drafted by the same model family the baseline runs on;
+  - the notes are short and test one issue each;
+  - each arm ran once on 20 cases;
+  - the eval scores the verdict, not its grounding: the baseline's overturnable justifications cite nothing a reviewer can check.
 
 For criteria hops, the line number is where the LCD record starts (the record spans about 130 lines). The `look for` text is the HTML-decoded indication text, so search the decoded text: the raw CSV stores `<` as `&lt;`.
 

@@ -518,3 +518,17 @@ def test_prediabetes_billed_beside_documented_diabetes_is_a_coding_conflict():
     (finding,) = verdict.findings
     assert set(finding.codes) == {"R73.03", "E11.65"}
     assert finding.anchor == "diabetes mellitus (E08-E13)"
+
+
+def test_every_hop_of_every_overturnable_eval_verdict_is_found_at_its_source_line():
+    # Hop.source is optional for the LLM-only baseline's unsourced hops; graph hops never are.
+    overturnable = [c for c in sorted(EVAL.glob("*.json")) if json.loads(c.read_text())["gold"]["verdict"] == "overturnable"]
+    graph = build_graph(DATA)
+
+    for path in overturnable:
+        case = load_case(path)
+        verdict = adjudicate(case.claim, case.evidence, graph)
+        assert verdict.outcome == "overturnable", path.name
+        for hop in verdict.path:
+            assert hop.source is not None, (path.name, hop)
+            assert hop.anchor in _record_text_at(FIXTURES / hop.source.path, hop.source.line), (path.name, hop)

@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 
 from rcm_ai.evaluate import EvalError, load_eval_set, run_eval
-from rcm_ai.schemas import Hop, Source, Verdict
+from rcm_ai.schemas import Hop, Reason, Source, Verdict
 
 DATA = Path(__file__).resolve().parents[1] / "data"
 
@@ -147,3 +147,42 @@ def test_an_uphold_where_gold_is_not_uphold_is_counted_as_a_false_uphold():
 
     assert m.false_uphold == ["ev-01", "ev-18"]
     assert m.false_overturnable == []
+
+
+def test_each_result_records_why_its_arm_decided():
+    eval_set = load_eval_set(DATA / "eval")
+
+    def arm(c):
+        if c.gold["verdict"] == "overturnable":
+            return Verdict("overturnable", (Hop("criteria met", "a", Source("p", "v", 1)), Hop("covered")))
+        return Verdict(c.gold["verdict"], (), reasons=(Reason("criterion_not_met", "the note says no"),))
+
+    results = {r.case: r for r in run_eval(eval_set.cases, {"stub": arm}).results}
+
+    assert results["ev-01"].why == ("criteria met", "covered")
+    assert results["ev-10"].why == ("criterion_not_met: the note says no",)
+
+
+def test_cases_where_the_arms_disagree_are_reported_with_gold_and_each_arms_result():
+    eval_set = load_eval_set(DATA / "eval")
+    gold = _gold(eval_set)
+
+    def broken(c):
+        if c.case.id == "ev-02":
+            raise TimeoutError("timed out")
+        return _verdict({**gold, "ev-04": "needs_human", "ev-11": "overturnable"}[c.case.id])
+
+    report = run_eval(eval_set.cases, {"a": _arm(gold), "b": broken})
+
+    assert [d.case for d in report.disagreements] == ["ev-02", "ev-04", "ev-11"]
+    ev11 = report.disagreements[2]
+    assert ev11.gold == "uphold"
+    assert {name: (r.outcome, r.correct) for name, r in ev11.arms.items()} == {
+        "a": ("uphold", True), "b": ("overturnable", False)}
+    assert report.disagreements[0].arms["b"].outcome == "error: TimeoutError: timed out"
+
+
+def test_a_single_arm_has_nothing_to_disagree_with():
+    eval_set = load_eval_set(DATA / "eval")
+
+    assert run_eval(eval_set.cases, {"a": _arm(_gold(eval_set))}).disagreements == []
