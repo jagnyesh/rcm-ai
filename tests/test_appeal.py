@@ -2,6 +2,7 @@ import json
 import os
 import re
 import shutil
+import time
 from pathlib import Path
 
 import pytest
@@ -20,9 +21,13 @@ EVAL = DATA / "eval" / "cases"
 GRAPH = build_graph(DATA)
 
 
-def _path(case_id):
+def _verdict(case_id):
     case = load_case(EVAL / f"{case_id}.json")
-    return adjudicate(case.claim, case.evidence, GRAPH).path
+    return adjudicate(case.claim, case.evidence, GRAPH)
+
+
+def _path(case_id):
+    return _verdict(case_id).path
 
 
 EV01 = _path("ev-01")  # E2103, LCD L33822, article A52464, E11.65
@@ -106,6 +111,29 @@ def test_clinical_abbreviations_and_other_numbers_are_not_citations():
     assert ap.check_citations(letter, EV01).citations == ()
 
 
+@pytest.mark.parametrize("cited", ["E21.03", "L33.822", "A52.464", "E1165-KX", "E1165XY", "E116512"])
+def test_a_made_up_code_sharing_a_path_codes_characters_fails(cited):
+    # Only an ICD-10-CM code is written with a dot, and only a HCPCS code carries modifiers.
+    assert ap.check_citations(f"Diagnosis {cited} applies.", EV01).unsupported == (cited,)
+
+
+def test_a_code_written_two_ways_is_counted_once():
+    check = ap.check_citations("Insulin use Z79.4 (Z794). Item E2103, billed as E2103-KX.", EV01)
+
+    assert check.citations == ("Z79.4", "E2103")
+    assert check.unsupported == ("Z79.4",)
+
+
+def test_a_long_whitespace_run_after_a_label_is_read_quickly():
+    # The letter is model output; a label's optional parts between adjacent \s* backtracked
+    # cubically on a whitespace run (2,000 spaces took about 12 s).
+    text = " x. ".join(label + " " * 2000 for label in ("CPT", "LCD", "article", "NCD")) + " x."
+
+    start = time.perf_counter()
+    assert ap.citations(text) == ()
+    assert time.perf_counter() - start < 1
+
+
 def test_codes_are_found_next_to_punctuation_and_counted_once():
     check = ap.check_citations("Diagnosis (E11.65). Again: E11.65; item E2103, LCD L33822.", EV01)
 
@@ -131,6 +159,26 @@ def test_a_code_named_only_in_a_statements_aside_is_not_established():
 
     assert "E11.32" in " ".join(h.statement for h in ev07)
     assert ap.check_citations("The diagnosis E11.32 is covered.", ev07).unsupported == ("E11.32",)
+
+
+def test_an_unsourced_steps_aside_is_part_of_what_it_asserts():
+    # The baseline's reasons are its own claims, so its "(Z79.4)" is a citation, not provenance.
+    case = load_case(EVAL / "ev-01.json")
+    reason = Hop("cgm-4a-insulin: the beneficiary is insulin-treated (Z79.4 supported).")
+
+    content = ap.build_request(case.claim, (reason,), [])["messages"][0]["content"]
+
+    assert "insulin-treated (Z79.4 supported)." in content
+    assert ap.established((reason,)) == ("Z79.4",)
+
+
+def test_a_code_the_verdicts_findings_name_is_established():
+    # ev-08 bills E11.9, and the graph finds the note documents the more specific E11.65.
+    ev08 = _verdict("ev-08")
+    letter = "The note supports the more specific E11.65 over the billed E11.9."
+
+    assert ap.check_citations(letter, ev08.path).unsupported == ("E11.65",)
+    assert ap.check_citations(letter, ev08.path, ev08.findings).passed
 
 
 # The drafter: an LLM writes the letter from the claim, the path and the note's quotes.
@@ -174,6 +222,14 @@ def test_a_sourced_and_an_unsourced_step_read_the_same_to_the_drafter():
     assert ap.build_request(case.claim, (sourced,), []) == ap.build_request(case.claim, (unsourced,), [])
 
 
+def test_the_drafter_sees_the_verdicts_findings():
+    case, ev08 = load_case(EVAL / "ev-08.json"), _verdict("ev-08")
+
+    content = ap.build_request(case.claim, ev08.path, [], ev08.findings)["messages"][0]["content"]
+
+    assert f"Findings:\n- {ev08.findings[0].statement}\n" in content
+
+
 def test_quotes_come_from_the_evidence_diagnoses_first_without_their_codes():
     case = load_case(EVAL / "ev-01.json")
 
@@ -200,7 +256,7 @@ def test_a_draft_that_raised_is_an_error_not_a_draft_without_a_letter():
     assert (tallied["drafted"], tallied["errors"], tallied["without_letter"]) == (2, 1, 1)
 
 
-def test_ask_sends_the_draft_request(monkeypatch):
+def test_draft_sends_the_draft_request(monkeypatch):
     case = load_case(EVAL / "ev-01.json")
     sent = []
     monkeypatch.setattr(ex, "send", lambda request, client: sent.append(request) or Extraction(None, "refusal", {}))
@@ -212,7 +268,8 @@ def test_ask_sends_the_draft_request(monkeypatch):
 
 def test_the_baselines_evidence_is_read_without_checking_it():
     response = Extraction({"diagnoses": [{"code": "E11.65", "span": "not in any note"}, "junk"],
-                           "criteria_met": [{"criterion": "made-up", "span": "x"}], "criteria_not_met": [],
+                           "criteria_met": [{"criterion": "made-up", "span": "x"}],
+                           "criteria_not_met": [{"criterion": "cgm-4b-hypoglycemia", "span": "No hypoglycemic events"}],
                            "verdict": "overturnable", "reasons": ["r"]}, "end_turn", {})
 
     evidence = bl.evidence_from(response)
@@ -225,11 +282,11 @@ def test_the_baselines_evidence_is_read_without_checking_it():
 
 def _drafting(letter=None, seen=None):
     """A stand-in drafter that writes `letter`, or by default echoes the steps it was given."""
-    def stand_in(claim, path, quotes, client):
+    def stand_in(claim, path, quotes, client, findings=()):
         if seen is not None:
             seen.append((claim, path, quotes))
-        sent = ap.build_request(claim, path, quotes)
-        text = letter if letter is not None else " ".join(ap.asserted(h.statement) for h in path)
+        sent = ap.build_request(claim, path, quotes, findings)
+        text = letter if letter is not None else " ".join(ap.asserted(h) for h in path)
         return Extraction({"letter": text}, "end_turn", {
             "request_id": "req_draft", "http_request_body": json.dumps(sent), "response": {"model": sent["model"]}})
     return stand_in
@@ -306,8 +363,30 @@ def test_triage_extract_draft_drafts_from_the_extracted_evidence_with_one_client
     assert len(clients) == 1
 
 
+def test_triage_draft_gives_the_drafter_the_findings_and_checks_against_them(tmp_path, monkeypatch, capsys):
+    code = _triage(tmp_path, monkeypatch, "ev-08", _drafting("We appeal E2103; the note supports E11.65."))
+
+    (log,) = tmp_path.glob("eval-results/drafts/ev-08-*.json")
+    sent = json.loads(json.loads(log.read_text())["http_request_body"])
+    assert code == 0
+    assert "Findings:\n- Billed E11.9 is covered" in sent["messages"][0]["content"]
+    assert "citation check: passed (E2103, E11.65)" in capsys.readouterr().out
+
+
+def test_triage_prints_the_letter_when_its_log_cannot_be_written(tmp_path, monkeypatch, capsys):
+    (tmp_path / "eval-results").write_text("")  # a file where the log directory would go
+
+    code = _triage(tmp_path, monkeypatch, "ev-01", _drafting("We appeal E2103 under LCD L33822."))
+
+    captured = capsys.readouterr()
+    assert code == 3
+    assert captured.out.startswith("ev-01: overturnable")
+    assert "citation check: passed (E2103, L33822)" in captured.out
+    assert "appeal draft log not written:" in captured.err
+
+
 def test_triage_keeps_the_verdict_when_drafting_fails(tmp_path, monkeypatch, capsys):
-    def overloaded(*args):
+    def overloaded(*args, **kwargs):
         raise RuntimeError("529 overloaded")
 
     code = _triage(tmp_path, monkeypatch, "ev-01", overloaded)
@@ -318,8 +397,24 @@ def test_triage_keeps_the_verdict_when_drafting_fails(tmp_path, monkeypatch, cap
     assert "appeal draft failed: RuntimeError: 529 overloaded" in captured.err
 
 
+def test_triage_draft_without_a_letter_says_so_and_checks_nothing(tmp_path, monkeypatch, capsys):
+    def refuses(claim, path, quotes, client, findings=()):
+        return Extraction(None, "refusal", {"request_id": "req_draft",
+                                            "http_request_body": json.dumps(ap.build_request(claim, path, quotes, findings)),
+                                            "response": {"model": ex.MODEL}})
+
+    code = _triage(tmp_path, monkeypatch, "ev-01", refuses)
+
+    out = capsys.readouterr().out
+    (log,) = tmp_path.glob("eval-results/drafts/ev-01-*.json")
+    assert code == 0
+    assert "  no appeal letter: the drafter returned none (stop refusal)" in out
+    assert "appeal draft:" not in out and "citation check" not in out
+    assert f"draft log: {log.relative_to(tmp_path)}" in out
+
+
 def test_triage_draft_of_a_verdict_that_is_not_overturnable_makes_no_call(tmp_path, monkeypatch, capsys):
-    def must_not_call(*args):
+    def must_not_call(*args, **kwargs):
         raise AssertionError("the drafter was called for a claim that is not overturnable")
 
     code = _triage(tmp_path, monkeypatch, "ev-10", must_not_call)
@@ -371,15 +466,17 @@ def test_eval_draft_checks_each_overturnable_verdict_against_the_graphs_path_for
     assert {k: graph[k] for k in ("drafted", "failed", "unsupported")} == {"drafted": 9, "failed": 0, "unsupported": 0}
     assert graph["unsupported_rate"] == 0.0
     # The baseline overturns all 20 and cites L33822 and E11.65 each time. Against the graph's
-    # path, both are unsupported on the 11 claims the graph doesn't overturn, and E11.65 is on
-    # the 8 overturnable claims with another diagnosis; only ev-01 bills E11.65.
+    # verdict, both are unsupported on the 11 claims the graph doesn't overturn, and E11.65 is on
+    # 7 of the 9 it does: ev-01 bills E11.65, and on ev-08 the graph's specificity finding names it.
     assert {k: baseline[k] for k in ("drafted", "failed", "citations", "unsupported")} == {
-        "drafted": 20, "failed": 19, "citations": 40, "unsupported": 30}
-    assert baseline["unsupported_rate"] == pytest.approx(0.75)
+        "drafted": 20, "failed": 18, "citations": 40, "unsupported": 29}
+    assert baseline["unsupported_rate"] == pytest.approx(29 / 40)
     ev10 = next(r for r in record["results"] if r["arm"] == "llm-only" and r["case"] == "ev-10")
     assert ev10["appeal"]["unsupported"] == ["L33822", "E11.65"] and ev10["appeal"]["reference"] == []
-    assert "appeals: 20 drafted, 19 failed the citation check, 0 without a letter, 0 errors; " \
-           "unsupported citations 30/40 (75%)" in out
+    ev08 = next(r for r in record["results"] if r["arm"] == "llm-only" and r["case"] == "ev-08")
+    assert ev08["appeal"]["unsupported"] == [] and "E11.65" in ev08["appeal"]["reference"]
+    assert "appeals: 20 drafted, 18 failed the citation check, 0 without a letter, 0 errors; " \
+           "unsupported citations 29/40 (72%)" in out
     assert len(list(tmp_path.glob("eval-*-drafts/*.json"))) == 29
     assert record["drafting"]["calls"] == 29 and record["drafting"]["prompt_sha256"]
 
@@ -390,8 +487,9 @@ def test_eval_draft_gives_each_arm_its_own_evidence(tmp_path, monkeypatch):
         "request_id": "req_ex", "http_request_body": json.dumps(ex.build_request(note, criteria)),
         "response": {"model": ex.MODEL}}))
 
-    _eval(tmp_path, monkeypatch, _drafting(seen=seen), arms="graph,extracted,llm-only")
+    code, record = _eval(tmp_path, monkeypatch, _drafting(seen=seen), arms="graph,extracted,llm-only")
 
+    assert code == 0 and record["arms"]["extracted"]["errors"] == 0
     gold = ap.quotes(load_case(EVAL / "ev-01.json").evidence)
     ev01 = [quotes for claim, path, quotes in seen if claim.icd10 == ("E11.65",) and path == EV01]
     assert gold in ev01  # the graph arm, from the case's evidence
@@ -409,14 +507,15 @@ def test_eval_draft_gives_the_extracted_arm_its_own_validated_evidence(tmp_path,
     assert sorted(ev01) == sorted([ap.quotes(load_case(EVAL / "ev-01.json").evidence), EV01_EXTRACTED_QUOTES])
 
 
-def test_a_case_whose_reference_path_cannot_be_built_is_a_draft_error(tmp_path, monkeypatch):
+def _eval_edited(tmp_path, monkeypatch, case_id, edit):
+    """eval --arms llm-only --draft on a copy of the data with one eval case edited."""
     data = tmp_path / "data"
     for d in ("eval", "fixtures", "curated"):
         shutil.copytree(DATA / d, data / d)
-    ev01 = data / "eval" / "cases" / "ev-01.json"
-    raw = json.loads(ev01.read_text())
-    raw["evidence"]["criteria"][0]["criterion"] = "bogus"
-    ev01.write_text(json.dumps(raw))
+    case = data / "eval" / "cases" / f"{case_id}.json"
+    raw = json.loads(case.read_text())
+    edit(raw)
+    case.write_text(json.dumps(raw))
     monkeypatch.setattr(rcm_ai, "_client", lambda: None)
     monkeypatch.setattr(bl, "ask", _baseline_overturns)
     monkeypatch.setattr(ap, "draft", _drafting())
@@ -424,14 +523,38 @@ def test_a_case_whose_reference_path_cannot_be_built_is_a_draft_error(tmp_path, 
     code = rcm_ai.main(["eval", "--arms", "llm-only", "--data", str(data), "--out", str(tmp_path / "out"), "--draft"])
 
     (record,) = (tmp_path / "out").glob("eval-*.json")
-    results = {r["case"]: r for r in json.loads(record.read_text())["results"]}
+    return code, json.loads(record.read_text())
+
+
+def test_a_case_whose_graph_verdict_differs_from_its_gold_label_has_no_reference(tmp_path, monkeypatch):
+    def relabel(raw):
+        raw["gold"]["verdict"] = "needs_human"
+
+    code, record = _eval_edited(tmp_path, monkeypatch, "ev-02", relabel)
+
+    ev02 = next(r for r in record["results"] if r["case"] == "ev-02")["appeal"]
+    assert code == 3
+    assert ev02["error"].startswith("EvalError") and "gold label" in ev02["error"]
+    assert ev02["reference"] is None
+    assert record["drafting"]["calls"] == 19  # ev-02 never reached the drafter
+
+
+def test_a_case_whose_reference_path_cannot_be_built_is_a_draft_error(tmp_path, monkeypatch):
+    def break_evidence(raw):
+        raw["evidence"]["criteria"][0]["criterion"] = "bogus"
+
+    code, record = _eval_edited(tmp_path, monkeypatch, "ev-01", break_evidence)
+
+    results = {r["case"]: r for r in record["results"]}
     assert code == 3
     assert results["ev-01"]["appeal"]["error"].startswith("SchemaError")
+    assert results["ev-01"]["appeal"]["reference"] is None
     assert results["ev-02"]["appeal"]["error"] is None
+    assert record["drafting"]["calls"] == record["drafting"]["responses"] == 19  # ev-01 never reached the drafter
 
 
 def test_eval_without_draft_drafts_nothing(tmp_path, monkeypatch):
-    def must_not_call(*args):
+    def must_not_call(*args, **kwargs):
         raise AssertionError("eval drafted without --draft")
 
     code, record = _eval(tmp_path, monkeypatch, must_not_call, draft=False)
@@ -441,9 +564,9 @@ def test_eval_without_draft_drafts_nothing(tmp_path, monkeypatch):
 
 
 def test_a_draft_without_a_letter_is_counted_and_never_passes(tmp_path, monkeypatch, capsys):
-    def refuses(claim, path, quotes, client):
+    def refuses(claim, path, quotes, client, findings=()):
         return Extraction(None, "refusal", {"request_id": "req_draft",
-                                            "http_request_body": json.dumps(ap.build_request(claim, path, quotes)),
+                                            "http_request_body": json.dumps(ap.build_request(claim, path, quotes, findings)),
                                             "response": {"model": ex.MODEL}})
 
     code, record = _eval(tmp_path, monkeypatch, refuses, arms="graph")
@@ -456,7 +579,7 @@ def test_a_draft_without_a_letter_is_counted_and_never_passes(tmp_path, monkeypa
 
 
 def test_a_drafting_error_keeps_the_verdict_and_marks_the_run_incomplete(tmp_path, monkeypatch, capsys):
-    def overloaded(claim, path, quotes, client):
+    def overloaded(claim, path, quotes, client, findings=()):
         raise RuntimeError("529 overloaded")
 
     code, record = _eval(tmp_path, monkeypatch, overloaded, arms="graph")
@@ -466,7 +589,33 @@ def test_a_drafting_error_keeps_the_verdict_and_marks_the_run_incomplete(tmp_pat
     assert (arm["correct"], arm["errors"]) == (20, 0)  # verdicts are scored as without drafting
     assert (arm["appeals"]["drafted"], arm["appeals"]["errors"]) == (9, 9)
     assert record["drafting"]["calls"] == 9 and record["drafting"]["responses"] == 0
+    ev01 = next(r for r in record["results"] if r["case"] == "ev-01")
+    assert ev01["appeal"]["reference"] == ["E2103", "L33822", "A52464", "E11.65"]  # built before the call failed
     assert "9 appeal draft errors" in capsys.readouterr().err
+
+
+# triage's verdict needs no model, so it's still printed; eval checks credentials before any case.
+@pytest.mark.parametrize("argv, code, message, out", [
+    (["triage", str(EVAL / "ev-01.json"), "--draft"], 3,
+     "appeal draft failed: CredentialError: no Anthropic credentials", "ev-01: overturnable"),
+    (["eval", "--arms", "graph", "--draft", "--out", "out"], 2, "eval failed: no Anthropic credentials", ""),
+])
+def test_draft_without_credentials_drafts_nothing(tmp_path, monkeypatch, capsys, argv, code, message, out):
+    def no_credentials():
+        raise rcm_ai.CredentialError("no Anthropic credentials found; set ANTHROPIC_API_KEY")
+
+    def must_not_call(*args, **kwargs):
+        raise AssertionError("drafted without a client")
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(rcm_ai, "_client", no_credentials)
+    monkeypatch.setattr(ap, "draft", must_not_call)
+
+    assert rcm_ai.main([*argv, "--data", str(DATA)]) == code
+    captured = capsys.readouterr()
+    assert message in captured.err
+    assert captured.out.startswith(out)
+    assert list(tmp_path.iterdir()) == []
 
 
 # Live: calls the model. Needs credentials and is skipped, visibly, without them.
@@ -489,3 +638,5 @@ def test_live_draft_returns_a_letter_and_logs_the_wire_request():
     assert response.record["request_id"]
     letter = ap.letter_of(response)
     assert letter and re.search(r"\bE2103\b", letter)
+    check = ap.check_citations(letter, EV01)
+    assert check.passed, check.unsupported
