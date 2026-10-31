@@ -177,6 +177,10 @@ def adjudicate(claim: Claim, evidence: Evidence, graph: CoverageGraph) -> Verdic
             elif any(graph.on_covered_list(d) or graph.covered_codes_under(d) for d in documented):
                 outcomes.append(_hand_off(Reason(
                     "covered_diagnosis_not_billed", f"Billed {dx} is not covered, but the note documents a covered diagnosis: recode")))
+            elif graph.covered_list_incomplete():
+                outcomes.append(_hand_off(Reason(
+                    "covered_list_incomplete",
+                    f"{dx} is not on the loaded covered list, but ingest rejected covered-list rows: check them first")))
             else:
                 outcomes.append(Verdict("uphold", (), reasons=(Reason(
                     "diagnosis_not_covered",

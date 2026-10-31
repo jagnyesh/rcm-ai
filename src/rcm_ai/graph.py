@@ -167,6 +167,11 @@ class CoverageGraph:
         )
         return sorted(_local(r.lcd) for r in rows)
 
+    def covered_list_incomplete(self) -> bool:
+        """Whether any covered-diagnosis row was rejected at ingest, so a code missing from the
+        covered list may only be missing from what loaded."""
+        return any(s.rejected for s in self.ingest if s.table == "article_x_icd10_covered")
+
     def on_covered_list(self, dx: str) -> bool:
         """Whether any loaded article lists the code, whether or not the code is in the terminology slice."""
         return bool(self._ds.query(
@@ -266,11 +271,11 @@ def _reject_reason(table: str, row: dict) -> str | None:
 
 
 def _tabular_lines(text_lines: list[str]) -> dict[str, int]:
-    """Line of each diag code, section id and chapter ("chapter-15") in a tabular file."""
+    """Line of each diag code, section ("section-E08-E13") and chapter ("chapter-15") in a tabular file."""
     lines = {}
     for n, text in enumerate(text_lines, start=1):
         if m := re.search(r'<section id="([^"]+)">', text):
-            lines[m.group(1)] = n
+            lines[f"section-{m.group(1)}"] = n
         elif m := re.search(r"<name>([^<]+)</name>", text):
             chapter = n > 1 and text_lines[n - 2].strip() == "<chapter>"
             lines[f"chapter-{m.group(1)}" if chapter else m.group(1)] = n
@@ -347,7 +352,7 @@ def build_graph(data_dir: Path) -> CoverageGraph:
             if rule.target.end:
                 g.add((node, RCM.refEnd, Literal(rule.target.end)))
             g.add((node, RCM.note, Literal(rule.note)))
-        loads.append((src.path, TABULAR, src.record_count, ()))
+        loads.append((src.path, TABULAR, sum(1 for c in tab.concepts.values() if c.kind == "diag"), ()))
 
     lcd_records: dict[str, tuple[str, int, dict]] = {}
     # The graph names LCDs and articles without their version, so one version of each may load.
@@ -365,6 +370,9 @@ def build_graph(data_dir: Path) -> CoverageGraph:
                         named = ", ".join(f"{k}={v}" for k, v in zip(CSV_KEYS[table], key))
                         raise IngestError(f"{src.path}:{line}: duplicate key {named} (first at {seen[key]})")
                     seen[key] = f"{src.path}:{line}"
+                if table == "article_x_icd10_covered" and row.get("icd10_covered_group"):
+                    # Counted before rejection, so a group whose rows all fail still shows up.
+                    covered_groups.setdefault(f"A{row['article_id']}", set()).add(row["icd10_covered_group"])
                 if reason := _reject_reason(table, row):
                     rejected.append(Rejected(line, reason))
                     continue
@@ -384,10 +392,10 @@ def build_graph(data_dir: Path) -> CoverageGraph:
                     # article version whose covered codes we load; keep it so the path can show it.
                     g.add((article, RCM.citedVersion, Literal(row["r_article_version"])))
                 else:
-                    covered_groups.setdefault(doc, set()).add(row["icd10_covered_group"])
                     g.add((ARTICLE["A" + row["article_id"]], RCM.coversDiagnosis, ICD[row["icd10_code_id"]]))
-            if parsed != src.record_count:
-                raise IngestError(f"{src.path}: read {parsed} records, manifest says {src.record_count}")
+            if parsed and len(rejected) == parsed:
+                raise IngestError(f"{src.path}: 0 of {parsed} rows loaded; first rejection: "
+                                  f"line {rejected[0].line}: {rejected[0].reason}")
             loads.append((src.path, table, parsed, tuple(rejected)))
     for doc, found in sorted(doc_versions.items()):
         if len(found) > 1:

@@ -25,7 +25,7 @@ class CodeRef:
 
 @dataclass(frozen=True)
 class Excludes1:
-    code: str  # the owning diag code, section id ("E08-E13") or chapter ("chapter-15")
+    code: str  # the owning diag code, section ("section-E08-E13") or chapter ("chapter-15")
     target: CodeRef
     note: str
 
@@ -117,9 +117,11 @@ def parse_tabular(path: Path) -> Tabular:
                 define(Concept(full, f"{title}, {meaning}", code, "seventh", defined_at))
 
     def walk_section(section: ET.Element, chapter: str | None) -> None:
-        add(section, section.get("id"), chapter, "section")
+        # Prefixed, because 38 sections share their id with their only category (E89, O09, T07).
+        code = f"section-{section.get('id')}"
+        add(section, code, chapter, "section")
         for diag in section.findall("diag"):
-            walk(diag, section.get("id"), None)
+            walk(diag, code, None)
 
     # Sections and chapters become ancestors of their categories, so their Excludes1 notes
     # reach every code below them. A slice may hold a bare section without its chapter.
