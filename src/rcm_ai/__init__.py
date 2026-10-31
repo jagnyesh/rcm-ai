@@ -3,6 +3,7 @@ import hashlib
 import json
 import subprocess
 import sys
+from collections import Counter
 from dataclasses import asdict
 from datetime import datetime, timezone
 from pathlib import Path
@@ -93,6 +94,8 @@ def _triage(case_path: Path, data_dir: Path, extract: bool = False, log_dir: Pat
         if hop.source:
             print(f"     {data_dir / 'fixtures' / hop.source.path}:{hop.source.line}  [{hop.source.version}]")
             print(f"     look for: {hop.anchor}")
+        else:
+            print("     unsourced: no source row backs this step")
     for f in verdict.findings:
         print(f"  finding ({f.type}): {f.statement}")
         if f.source:
@@ -126,6 +129,8 @@ def _ingest(data_dir: Path) -> int:
 ARM_MODELS = {"graph": None, "extracted": ex.MODEL, "llm-only": ex.MODEL}
 # Each model-calling arm logs its calls to eval-<stamp>-<suffix>/ in the output directory.
 LOG_SUFFIXES = {"extracted": "extractions", "llm-only": "llm-only"}
+# The arms that run this system; a case's known_system_gap explains their misses, not the baseline's.
+SYSTEM_ARMS = {"graph", "extracted"}
 
 
 def _served(extraction) -> dict:
@@ -145,7 +150,8 @@ def _canonical_sha256(value) -> str | None:
 def _sent_config(extractions: list, calls: int) -> dict:
     """The configuration read from the request bodies sent, not from constants or files that
     could change mid-run; a setting that varied is recorded as every value sent. Only calls
-    that returned have a body to read, so calls and responses are counted apart."""
+    that returned have a body to read, so calls and responses are counted apart, and responses
+    without output (refused, truncated, not JSON) are counted so a failing run isn't silent."""
     # Opus 5.5 rejects temperature, so runs are not deterministic; effort and the exact
     # prompt and schema are what pin the configuration. The schema is hashed as canonical
     # JSON because the request carries it re-serialized.
@@ -161,7 +167,9 @@ def _sent_config(extractions: list, calls: int) -> dict:
         }.items():
             seen.setdefault(key, set()).add(value)
     config = {key: next(iter(v)) if len(v) == 1 else sorted(v, key=str) for key, v in seen.items()}
-    return {**config, "calls": calls, "responses": len(extractions)}
+    return {**config, "calls": calls, "responses": len(extractions),
+            "stop_reasons": dict(sorted(Counter(e.stop_reason for e in extractions).items())),
+            "without_output": sum(e.raw is None for e in extractions)}
 
 
 def _git(*args: str) -> str | None:
@@ -228,8 +236,8 @@ def _eval(data_dir: Path, out_dir: Path, arm_names: list[str] = ("graph",)) -> i
     gaps = {c.case.id: c.gold.get("known_system_gap") for c in eval_set.cases}
     for r in report.results:
         if not r.correct:
-            note = "known gap" if gaps[r.case] else "UNEXPLAINED"
-            print(f"    {r.arm} {r.case}: gold {r.gold}, got {r.outcome}  [{note}]")
+            note = f"  [{'known gap' if gaps[r.case] else 'UNEXPLAINED'}]" if r.arm in SYSTEM_ARMS else ""
+            print(f"    {r.arm} {r.case}: gold {r.gold}, got {r.outcome}{note}")
     if len(report.arms) > 1:
         print(f"  arms disagree on {len(report.disagreements)} of {len(eval_set.cases)} cases")
         for d in report.disagreements:
@@ -238,6 +246,8 @@ def _eval(data_dir: Path, out_dir: Path, arm_names: list[str] = ("graph",)) -> i
                 if not r.correct:
                     for line in r.why:
                         print(f"      {name}: {line}")
+    sent = {name: _sent_config(list(responses[name].values()), len(called[name]))
+            for name in report.arms if name in LOG_SUFFIXES}
     record = {
         "date": started.isoformat(timespec="seconds"),
         "git_sha": _git_sha(),
@@ -245,12 +255,13 @@ def _eval(data_dir: Path, out_dir: Path, arm_names: list[str] = ("graph",)) -> i
                      "sha256": eval_set.sha256},
         "arms": {
             name: {"model": ARM_MODELS[name],
-                   **(_sent_config(list(responses[name].values()), len(called[name])) if name in LOG_SUFFIXES else {}),
+                   **sent.get(name, {}),
                    **asdict(m), "accuracy": m.accuracy,
                    "abstention_rate": m.abstention_rate, "abstention_precision": m.abstention_precision}
             for name, m in report.arms.items()
         },
-        "results": [{**asdict(r), "correct": r.correct, "known_system_gap": gaps[r.case],
+        "results": [{**asdict(r), "correct": r.correct,
+                     "known_system_gap": gaps[r.case] if r.arm in SYSTEM_ARMS else None,
                      **({"model_called": r.case in called[r.arm], **_served(responses[r.arm].get(r.case))}
                         if r.arm in LOG_SUFFIXES else {})}
                     for r in report.results],
@@ -264,9 +275,15 @@ def _eval(data_dir: Path, out_dir: Path, arm_names: list[str] = ("graph",)) -> i
     path = out_dir / f"eval-{stamp}.json"
     path.write_text(json.dumps(record, indent=2) + "\n")
     print(f"results: {path}")
-    for arm, logged in responses.items():
-        if logged:
-            print(f"{arm} logs: {log_dirs[arm]}")
+    for arm, s in sent.items():
+        stops = ", ".join(f"{k} {n}" for k, n in s["stop_reasons"].items())
+        print(f"{arm}: {s['calls']} model calls, {s['responses']} responses, {s['without_output']} without output"
+              + (f" (stop reasons: {stops})" if stops else ""))
+        if s["responses"]:
+            print(f"  logs: {log_dirs[arm]}")
+        if s["without_output"]:
+            print(f"warning: {arm}: {s['without_output']} of {s['responses']} responses had no usable output",
+                  file=sys.stderr)
     errors = sum(m.errors for m in report.arms.values())
     if errors:
         print(f"eval incomplete: {errors} arm error{'s' if errors > 1 else ''}; metrics are not comparable",
