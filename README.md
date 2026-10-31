@@ -38,7 +38,7 @@ From the repo root:
 uv run rcm-ai triage data/synthetic/case-001.json
 ```
 
-It prints the verdict (`overturnable` or `needs_human`). For an overturnable case, it also prints each step of the justification path: the fixture file and line, the source version, and the text to look for there. Cases must be marked `"synthetic": true`. A malformed or unreadable case is rejected on stderr with exit code 2. `--data` points at a different data directory (default `data`, relative to the current directory).
+It prints the verdict: `overturnable` (with each step of the justification path: the fixture file and line, the source version, and the text to look for there), `uphold` (with the coverage condition the note shows failing, or an uncovered diagnosis), or `needs_human` (with the reason: out of scope, coding conflict, undocumented or conflicting evidence, or a gap in the loaded data). Uphold always rests on something the note says; a criterion the note doesn't mention is a hand-off, not an uphold. Cases must be marked `"synthetic": true`. A malformed or unreadable case is rejected on stderr with exit code 2. `--data` points at a different data directory (default `data`, relative to the current directory).
 
 To score the system against the locked eval set (`data/eval`):
 

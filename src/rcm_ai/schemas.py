@@ -8,7 +8,6 @@ from rcm_ai.codes import is_cpt, is_hcpcs_level2, is_icd10cm
 # Claim adjustment reason codes are 1-3 digits, some with a one-letter prefix (e.g. "50", "B7").
 _CARC = re.compile(r"[A-Z]?[0-9]{1,3}")
 COVERAGE_PERIODS = ("initial", "continued")
-# "uphold" is a gold label in the eval set; the adjudicator does not produce it until #5.
 OUTCOMES = ("overturnable", "uphold", "needs_human")
 
 
@@ -55,6 +54,7 @@ class CriterionEvidence:
 class Evidence:
     diagnoses: tuple[DocumentedCode, ...]
     criteria: tuple[CriterionEvidence, ...]
+    criteria_not_met: tuple[CriterionEvidence, ...] = ()  # spans showing a criterion affirmatively fails
 
 
 @dataclass(frozen=True)
@@ -81,10 +81,21 @@ class Finding:
 
 
 @dataclass(frozen=True)
+class Reason:
+    """Why a verdict is uphold or needs_human."""
+    kind: str
+    statement: str
+    anchor: str | None = None  # text to look for at source
+    source: Source | None = None
+    span: str | None = None  # the note text the reason rests on
+
+
+@dataclass(frozen=True)
 class Verdict:
     outcome: str  # one of OUTCOMES
     path: tuple[Hop, ...]
     findings: tuple[Finding, ...] = ()
+    reasons: tuple[Reason, ...] = ()
 
     def __post_init__(self):
         if self.outcome not in OUTCOMES:
@@ -141,6 +152,10 @@ def load_case(path: Path) -> Case:
                 tuple(
                     CriterionEvidence(x["criterion"], _span(x, note, x["criterion"], path))
                     for x in e["criteria"]
+                ),
+                tuple(
+                    CriterionEvidence(x["criterion"], _span(x, note, x["criterion"], path))
+                    for x in e.get("criteria_not_met", [])
                 ),
             ),
             note=note,

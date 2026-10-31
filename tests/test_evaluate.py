@@ -135,3 +135,15 @@ def test_a_malformed_eval_directory_fails_as_an_eval_error(tmp_path, setup):
 def test_running_with_no_arms_fails():
     with pytest.raises(EvalError, match="arm"):
         run_eval(load_eval_set(DATA / "eval").cases, {})
+
+
+def test_an_uphold_where_gold_is_not_uphold_is_counted_as_a_false_uphold():
+    eval_set = load_eval_set(DATA / "eval")
+    # ev-01 is gold overturnable: upholding it writes off a claim that should be appealed.
+    # ev-18 is gold needs_human: upholding it writes off a claim that needed records.
+    outcomes = {**_gold(eval_set), "ev-01": "uphold", "ev-18": "uphold"}
+
+    m = run_eval(eval_set.cases, {"stub": _arm(outcomes)}).arms["stub"]
+
+    assert m.false_uphold == ["ev-01", "ev-18"]
+    assert m.false_overturnable == []

@@ -284,3 +284,198 @@ def test_documented_codes_in_an_excludes1_conflict_are_not_overturnable():
     # E10.9 conflicts with both E11 codes; each conflicting pair is reported.
     assert {frozenset(f.codes) for f in verdict.findings} >= {frozenset({"E11.65", "E10.9"})}
     assert {f.type for f in verdict.findings} == {"excludes1"}
+
+
+# Issue #5: every non-overturnable verdict says why; uphold rests on what the note says.
+def _reasons(verdict):
+    return [r.kind for r in verdict.reasons]
+
+
+@pytest.mark.parametrize("case_id, unmet", [
+    ("ev-10", "cgm-4-glycemic-control"),  # metformin alone, no hypoglycemia
+    ("ev-11", "cgm-4-glycemic-control"),  # one level 2 reading, no assistance
+    ("ev-14", "cgm-5-visit"),             # last visit 11 months ago
+])
+def test_a_criterion_the_note_shows_is_not_met_upholds_the_denial(case_id, unmet):
+    verdict = _eval_case(case_id)
+
+    assert verdict.outcome == "uphold"
+    (reason,) = verdict.reasons
+    assert reason.kind == "criterion_not_met"
+    assert unmet in reason.statement
+    assert reason.anchor in _record_text_at(FIXTURES / reason.source.path, reason.source.line)
+    note = load_case(EVAL / f"{case_id}.json").note
+    assert reason.span and reason.span in note
+
+
+@pytest.mark.parametrize("case_id", ["ev-12", "ev-13"])  # R73.03 prediabetes; E16.2 hypoglycemia
+def test_a_documented_diagnosis_off_the_covered_list_upholds_the_denial(case_id):
+    verdict = _eval_case(case_id)
+
+    assert verdict.outcome == "uphold"
+    assert _reasons(verdict) == ["diagnosis_not_covered"]
+
+
+def test_an_undocumented_criterion_is_a_hand_off_not_an_uphold():
+    verdict = _eval_case("ev-18")  # insulin undecided, no hypoglycemia mentioned
+
+    assert verdict.outcome == "needs_human"
+    assert _reasons(verdict) == ["criterion_not_documented"]
+    assert "cgm-4-glycemic-control" in verdict.reasons[0].statement
+
+
+def test_a_criterion_both_met_and_not_met_is_a_hand_off():
+    case = _case()
+    evidence = replace(case.evidence, criteria_not_met=(CriterionEvidence("cgm-4a-insulin", NOTE_SPAN),))
+
+    verdict = adjudicate(case.claim, evidence, build_graph(DATA))
+
+    assert verdict.outcome == "needs_human"
+    assert _reasons(verdict) == ["criterion_conflicting"]
+
+
+def test_one_met_branch_satisfies_an_any_of_criterion_even_if_another_branch_is_not_met():
+    case = _case()  # insulin-treated, and the note says there is no problematic hypoglycemia
+    evidence = replace(case.evidence, criteria_not_met=(CriterionEvidence("cgm-4b-hypoglycemia", NOTE_SPAN),))
+
+    assert adjudicate(case.claim, evidence, build_graph(DATA)).outcome == "overturnable"
+
+
+def test_a_documented_covered_code_beside_an_uncovered_billed_code_is_a_hand_off_not_an_uphold():
+    case = _case()  # billed R73.03, but the note documents covered E11.65: recode, don't write off
+    claim = replace(case.claim, icd10=("R73.03",))
+
+    verdict = adjudicate(claim, case.evidence, build_graph(DATA))
+
+    assert verdict.outcome == "needs_human"
+    assert _reasons(verdict) == ["diagnosis_not_documented"]
+
+
+@pytest.mark.parametrize("change, kind", [
+    ({"carc": "29"}, "denial_out_of_scope"),
+    ({"coverage": "continued"}, "coverage_out_of_scope"),
+    ({"hcpcs": "E0601"}, "no_lcd_for_item"),
+    ({"hcpcs": "A4239"}, "item_not_in_criteria"),
+])
+def test_out_of_scope_claims_are_handed_off_with_a_distinct_reason(change, kind):
+    case = _case()
+
+    verdict = adjudicate(replace(case.claim, **change), case.evidence, build_graph(DATA))
+
+    assert verdict.outcome == "needs_human"
+    assert _reasons(verdict) == [kind]
+
+
+def test_a_billed_diagnosis_without_documentation_is_handed_off():
+    case = _case()
+
+    verdict = adjudicate(case.claim, replace(case.evidence, diagnoses=()), build_graph(DATA))
+
+    assert verdict.outcome == "needs_human"
+    assert _reasons(verdict) == ["diagnosis_not_documented"]
+
+
+def test_a_covered_diagnosis_missing_from_the_terminology_slice_is_handed_off():
+    verdict = _eval_case("ev-06")  # O24.111 is on the covered list; O24 isn't in the slice yet
+
+    assert verdict.outcome == "needs_human"
+    assert _reasons(verdict) == ["diagnosis_not_in_terminology"]
+
+
+def test_an_excludes1_conflict_gives_a_coding_conflict_reason():
+    assert _reasons(_eval_case("ev-19")) == ["coding_conflict"]
+
+
+def test_an_overturnable_verdict_has_no_reasons():
+    assert _case() and adjudicate(_case().claim, _case().evidence, build_graph(DATA)).reasons == ()
+
+
+# Fresh-context review of #5 (2026-10-30): wrong verdicts and untested guards.
+def _with(evidence, met=(), not_met=(), drop=()):
+    kept = tuple(c for c in evidence.criteria if c.criterion not in drop)
+    return replace(
+        evidence,
+        criteria=kept + tuple(CriterionEvidence(i, NOTE_SPAN) for i in met),
+        criteria_not_met=tuple(CriterionEvidence(i, NOTE_SPAN) for i in not_met),
+    )
+
+
+def _outcome_and_reasons(claim, evidence):
+    v = adjudicate(claim, evidence, build_graph(DATA))
+    return v.outcome, _reasons(v)
+
+
+@pytest.mark.parametrize("met, not_met", [
+    (["cgm-4b-hypoglycemia"], ["cgm-4b1-level2", "cgm-4b2-level3"]),           # parent met, every branch not
+    (["cgm-4-glycemic-control"], ["cgm-4a-insulin", "cgm-4b-hypoglycemia"]),   # top-level met, every branch not
+    (["cgm-4b1-level2"], ["cgm-4-glycemic-control"]),                           # branch met, parent not
+])
+def test_met_and_not_met_at_different_levels_of_an_any_of_criterion_is_a_conflict(met, not_met):
+    case = _case()
+    evidence = _with(case.evidence, met=met, not_met=not_met, drop={"cgm-4a-insulin"})
+
+    assert _outcome_and_reasons(case.claim, evidence) == ("needs_human", ["criterion_conflicting"])
+
+
+def test_a_note_saying_the_diagnosis_criterion_fails_conflicts_with_the_covered_diagnosis():
+    case = _case()
+
+    assert _outcome_and_reasons(case.claim, _with(case.evidence, not_met=["cgm-1-diabetes"])) == (
+        "needs_human", ["criterion_conflicting"])
+
+
+def test_one_any_of_branch_not_met_with_the_other_unmentioned_is_not_documented():
+    case = _case()
+    evidence = _with(case.evidence, not_met=["cgm-4a-insulin"], drop={"cgm-4a-insulin"})
+
+    assert _outcome_and_reasons(case.claim, evidence) == ("needs_human", ["criterion_not_documented"])
+
+
+def test_a_conflict_outranks_a_documented_failure():
+    case = _case()  # 4a both met and not met; visit not met
+    evidence = _with(case.evidence, not_met=["cgm-4a-insulin", "cgm-5-visit"], drop={"cgm-5-visit"})
+
+    assert _outcome_and_reasons(case.claim, evidence) == ("needs_human", ["criterion_conflicting"])
+
+
+def test_a_documented_failure_outranks_an_undocumented_criterion():
+    case = _case()  # training not mentioned; visit not met
+    evidence = _with(case.evidence, not_met=["cgm-5-visit"], drop={"cgm-2-training", "cgm-5-visit"})
+
+    assert _outcome_and_reasons(case.claim, evidence) == ("uphold", ["criterion_not_met"])
+
+
+def test_an_uncovered_billed_code_beside_a_documented_covered_code_is_a_recode_hand_off():
+    case = _case()  # billed R73.03, documented R73.03 and covered E11.65
+    claim = replace(case.claim, icd10=("R73.03",))
+    evidence = replace(case.evidence, diagnoses=case.evidence.diagnoses + (DocumentedCode("R73.03", NOTE_SPAN),))
+
+    assert _outcome_and_reasons(claim, evidence) == ("needs_human", ["covered_diagnosis_not_billed"])
+
+
+# E11.37X's covered children (E11.37X1-9) skip it in the parent chain; O24.01's are outside the slice.
+@pytest.mark.parametrize("header", ["E11.64", "E11.3", "E11.37X", "O24.01"])
+def test_a_non_billable_header_with_covered_children_is_a_recode_hand_off_not_an_uphold(header):
+    case = _case()
+    claim = replace(case.claim, icd10=(header,))
+    evidence = replace(case.evidence, diagnoses=(DocumentedCode(header, NOTE_SPAN),))
+
+    assert _outcome_and_reasons(claim, evidence) == ("needs_human", ["diagnosis_not_billable"])
+
+
+def test_an_unknown_code_inside_a_loaded_category_is_a_hand_off_not_an_uphold():
+    case = _case()  # E11.99 is not an ICD-10-CM code, though E11 is loaded
+    claim = replace(case.claim, icd10=("E11.99",))
+    evidence = replace(case.evidence, diagnoses=(DocumentedCode("E11.99", NOTE_SPAN),))
+
+    assert _outcome_and_reasons(claim, evidence) == ("needs_human", ["diagnosis_not_in_terminology"])
+
+
+@pytest.mark.parametrize("documented_header", ["E11.64", "E11.37X", "O24.01"])
+def test_a_documented_header_with_covered_codes_under_it_blocks_an_uphold(documented_header):
+    case = _case()  # billed R73.9 (not covered); the note also documents a recodable diabetes header
+    claim = replace(case.claim, icd10=("R73.9",))
+    evidence = replace(case.evidence, diagnoses=(
+        DocumentedCode("R73.9", NOTE_SPAN), DocumentedCode(documented_header, NOTE_SPAN)))
+
+    assert _outcome_and_reasons(claim, evidence) == ("needs_human", ["covered_diagnosis_not_billed"])

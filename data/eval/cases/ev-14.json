@@ -30,13 +30,18 @@
         "criterion": "cgm-4a-insulin",
         "span": "On multiple daily insulin injections."
       }
+    ],
+    "criteria_not_met": [
+      {
+        "criterion": "cgm-5-visit",
+        "span": "last practitioner visit for diabetes was 11 months ago"
+      }
     ]
   },
   "gold": {
     "verdict": "uphold",
     "reason": "Criterion 5 fails: no qualifying visit within six months before the order.",
     "findings": [],
-    "label_status": "claude-labeled",
-    "known_system_gap": "uphold arrives in #5; visit timing is not modeled."
+    "label_status": "claude-labeled"
   }
 }

@@ -20,8 +20,11 @@ def _triage(case_path: Path, data_dir: Path) -> int:
         print(f"rejected: {e}", file=sys.stderr)
         return 2
     print(f"{case.id}: {verdict.outcome}")
-    if not verdict.path:
-        print("  no complete, criteria-satisfied coverage path in the graph")
+    for r in verdict.reasons:
+        print(f"  reason ({r.kind}): {r.statement}")
+        if r.source:
+            print(f"     {data_dir / 'fixtures' / r.source.path}:{r.source.line}  [{r.source.version}]")
+            print(f"     look for: {r.anchor}")
     for n, hop in enumerate(verdict.path, start=1):
         print(f"  {n}. {hop.statement}")
         print(f"     {data_dir / 'fixtures' / hop.source.path}:{hop.source.line}  [{hop.source.version}]")
@@ -67,6 +70,7 @@ def _eval(data_dir: Path, out_dir: Path) -> int:
     for name, m in report.arms.items():
         print(f"  {name}: accuracy {m.correct}/{m.n} ({_pct(m.accuracy)}), errors {m.errors}")
         print(f"    false overturnable: {len(m.false_overturnable)} {m.false_overturnable}")
+        print(f"    false uphold: {len(m.false_uphold)} {m.false_uphold}")
         print(f"    abstention rate: {m.abstentions}/{m.n} ({_pct(m.abstention_rate)}), "
               f"precision {m.correct_abstentions}/{m.abstentions} ({_pct(m.abstention_precision)})")
     gaps = {c.case.id: c.gold.get("known_system_gap") for c in eval_set.cases}

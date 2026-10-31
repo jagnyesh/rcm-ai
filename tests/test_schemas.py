@@ -85,3 +85,12 @@ def test_a_verdict_cannot_be_overturnable_without_a_path_or_have_an_unknown_outc
         Verdict("overturnable", ())
     with pytest.raises(ValueError):
         Verdict("approved", ())
+
+
+def test_not_met_evidence_loads_and_its_spans_must_appear_in_the_note(tmp_path):
+    case = load_case(Path(__file__).resolve().parents[1] / "data" / "eval" / "cases" / "ev-14.json")
+    assert [c.criterion for c in case.evidence.criteria_not_met] == ["cgm-5-visit"]
+
+    bad = {"evidence__criteria_not_met": [{"criterion": "cgm-5-visit", "span": "not in the note"}]}
+    with pytest.raises(SchemaError, match="note"):
+        load_case(_write_case(tmp_path, **bad))

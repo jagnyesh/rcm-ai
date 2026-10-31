@@ -1,7 +1,8 @@
 """Run named arms over the locked eval set and score them against gold labels.
 
-An arm is any callable from an EvalCase to a Verdict. Metrics treat a wrong
-"overturnable" as the costly error, so it is counted separately.
+An arm is any callable from an EvalCase to a Verdict. Metrics count the two
+costly errors separately: a wrong "overturnable" (an appeal that shouldn't be sent) and
+a wrong "uphold" (a claim written off that should have been appealed or reviewed).
 """
 
 import hashlib
@@ -43,6 +44,7 @@ class ArmMetrics:
     correct_abstentions: int = 0
     errors: int = 0
     false_overturnable: list[str] = field(default_factory=list)
+    false_uphold: list[str] = field(default_factory=list)
 
     @property
     def accuracy(self) -> float:
@@ -130,4 +132,6 @@ def run_eval(cases: list[EvalCase], arms: dict[str, Arm]) -> EvalReport:
                 m.correct_abstentions += r.gold == "needs_human"
             if outcome == "overturnable" and r.gold != "overturnable":
                 m.false_overturnable.append(r.case)
+            if outcome == "uphold" and r.gold != "uphold":
+                m.false_uphold.append(r.case)
     return EvalReport(results, metrics)

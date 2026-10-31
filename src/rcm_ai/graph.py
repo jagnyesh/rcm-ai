@@ -134,6 +134,30 @@ class CoverageGraph:
             ]
         return rules
 
+    def lcds_listing(self, hcpcs: str) -> list[str]:
+        rows = self._ds.query(
+            "SELECT DISTINCT ?lcd WHERE { GRAPH ?g { ?lcd rcm:listsHcpcs ?hcpcs } }",
+            initNs={"rcm": RCM}, initBindings={"hcpcs": HCPCS[hcpcs]},
+        )
+        return sorted(_local(r.lcd) for r in rows)
+
+    def on_covered_list(self, dx: str) -> bool:
+        """Whether any loaded article lists the code, whether or not the code is in the terminology slice."""
+        return bool(self._ds.query(
+            "ASK { GRAPH ?g { ?article rcm:coversDiagnosis ?dx } }",
+            initNs={"rcm": RCM}, initBindings={"dx": ICD[dx]},
+        ).askAnswer)
+
+    def covered_codes_under(self, dx: str) -> list[str]:
+        """Covered codes below dx (dx itself excluded). ICD-10-CM codes nest by prefix, which also
+        reaches 7th-character codes (E11.37X1 under E11.37X) and codes outside the loaded slice."""
+        rows = self._ds.query(
+            """SELECT DISTINCT ?d WHERE { GRAPH ?g { ?article rcm:coversDiagnosis ?d }
+                 FILTER(STRSTARTS(STR(?d), STR(?dx)) && ?d != ?dx) }""",
+            initNs={"rcm": RCM}, initBindings={"dx": ICD[dx]},
+        )
+        return sorted(_local(r.d) for r in rows)
+
     def coverage_paths(self, hcpcs: str, dx: str) -> list[CoveragePath]:
         rows = self._ds.query(
             """
