@@ -58,6 +58,20 @@ def test_the_prompt_defines_the_verdicts_with_the_gold_label_rules_word_for_word
         assert f"- {outcome}: {rule}" in prompt
 
 
+def test_the_prompts_verdict_definitions_are_the_label_rules_and_nothing_else():
+    rules = (DATA / "eval" / "README.md").read_text()
+    lines = bl.PROMPT.read_text().splitlines()
+
+    start = next(n for n, line in enumerate(lines) if line.startswith("verdict:")) + 1
+    end = lines.index("", start)
+    assert lines[start:end] == [
+        f"- {outcome}: " + re.search(rf"^- \*\*{outcome}:\*\* (.+)$", rules, re.MULTILINE).group(1)
+        for outcome in OUTCOMES]
+    # Verdict guidance anywhere else would name a verdict; only the reasons instruction may.
+    elsewhere = [line for line in lines[:start] + lines[end:] if any(o in line for o in OUTCOMES)]
+    assert [line.split(":")[0] for line in elsewhere] == ["reasons"]
+
+
 def test_the_prompt_carries_nothing_the_graph_decides():
     prompt = bl.PROMPT.read_text()
 
@@ -211,6 +225,28 @@ def test_responses_without_output_are_counted_and_warned_about(tmp_path, monkeyp
     assert "warning: llm-only: 20 of 20 responses had no usable output" in captured.err
 
 
+def test_a_response_that_is_not_a_verdict_counts_as_without_output(tmp_path, monkeypatch, capsys):
+    # Schema-valid, but an overturnable needs reasons to stand as a verdict.
+    code, record = _eval(tmp_path, monkeypatch, _replying({**EVIDENCE, "verdict": "overturnable", "reasons": []}))
+
+    assert code == 0
+    assert record["arms"]["llm-only"]["without_output"] == 20
+    assert "warning: llm-only: 20 of 20 responses had no usable output" in capsys.readouterr().err
+
+
+def test_a_run_record_is_written_when_a_stop_reason_is_missing(tmp_path, monkeypatch):
+    usable = _replying({**EVIDENCE, "verdict": "uphold", "reasons": ["r"]})
+
+    def mixed(claim, note, policy, client):
+        response = usable(claim, note, policy, client)
+        return Extraction(response.raw, None if "E10.65" in claim.icd10 else "end_turn", response.record)
+
+    code, record = _eval(tmp_path, monkeypatch, mixed)
+
+    assert code == 0
+    assert record["arms"]["llm-only"]["stop_reasons"] == {"null": 1, "end_turn": 19}
+
+
 def test_a_known_system_gap_is_not_applied_to_the_baseline(tmp_path, monkeypatch, capsys):
     data = tmp_path / "data"
     for d in ("eval", "fixtures", "curated"):
@@ -221,14 +257,18 @@ def test_a_known_system_gap_is_not_applied_to_the_baseline(tmp_path, monkeypatch
     ev01.write_text(json.dumps(raw))
     monkeypatch.setattr(rcm_ai, "_client", lambda: None)
     monkeypatch.setattr(bl, "ask", _replying({**EVIDENCE, "verdict": "uphold", "reasons": ["r"]}))
+    monkeypatch.setattr(ex, "extract", lambda note, criteria, client: Extraction(None, "refusal", {
+        "request_id": "req_extract", "http_request_body": json.dumps(ex.build_request(note, criteria)),
+        "response": {"model": ex.MODEL}}))
 
-    rcm_ai.main(["eval", "--arms", "graph,llm-only", "--data", str(data), "--out", str(tmp_path / "out")])
+    rcm_ai.main(["eval", "--arms", "graph,extracted,llm-only", "--data", str(data), "--out", str(tmp_path / "out")])
 
-    out = capsys.readouterr().out
+    out = capsys.readouterr().out.splitlines()
     (record,) = (tmp_path / "out").glob("eval-*.json")
     results = {(r["arm"], r["case"]): r for r in json.loads(record.read_text())["results"]}
-    (line,) = [x for x in out.splitlines() if "llm-only ev-01:" in x]
-    assert "known gap" not in line and "UNEXPLAINED" not in line
+    assert "    extracted ev-01: gold overturnable, got needs_human  [known gap]" in out
+    assert "    extracted ev-02: gold overturnable, got needs_human  [UNEXPLAINED]" in out
+    assert "    llm-only ev-01: gold overturnable, got uphold" in out
     assert results[("llm-only", "ev-01")]["known_system_gap"] is None
     assert results[("graph", "ev-01")]["known_system_gap"] == "a gap in the graph"
 
