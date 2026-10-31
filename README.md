@@ -52,7 +52,24 @@ LCD coverage criteria live in `data/curated/L33822-cgm-criteria.json`, hand-cura
 
 ### LLM evidence extraction
 
-`uv run rcm-ai triage <case> --extract` and `uv run rcm-ai eval --arms graph,extracted` have `claude-opus-5-5` read the note and return diagnoses with ICD-10-CM codes, plus the criteria the note shows met or not met, each with a span copied from the note. The prompt and the JSON output schema are files in `src/rcm_ai/prompts/`. Before anything is adjudicated, the extraction is checked: every span must appear verbatim in the note and be at least 10 characters, every code must exist in the loaded ICD-10-CM terminology, and every criterion must be a curated one. One failure rejects the whole extraction and the claim goes to `needs_human`; so does a refusal or a truncated response. There is no fallback model. These commands call the Anthropic API and need credentials (for example `ANTHROPIC_API_KEY`); a one-call check fails fast with exit code 2 without them. The API rejects `temperature`, so runs are not deterministic; each run records the effort setting, the prompt and schema hashes, and per case the model that answered and the request id, and each extraction log keeps the exact request bytes sent. The extracted arm has not been run against the eval set yet.
+`uv run rcm-ai triage <case> --extract` and `uv run rcm-ai eval --arms graph,extracted` have `claude-opus-5-5` read the note and return diagnoses with ICD-10-CM codes, plus the criteria the note shows met or not met, each with a span copied from the note. The prompt and the JSON output schema are files in `src/rcm_ai/prompts/`. A claim that is out of scope from the claim alone (denial reason, continued coverage, an item no modeled criteria apply to) is handed off before any model call. Before anything is adjudicated, the extraction is checked:
+- every span must appear verbatim in the note and be at least 10 characters;
+- every code must exist in the loaded ICD-10-CM terminology. The rejection says whether a code is invalid or a real code outside the loaded slices;
+- every criterion must be one offered for the claim's LCD;
+- a criterion with alternatives may be marked not met only through each of its alternatives.
+
+One failure rejects the whole extraction and the claim goes to `needs_human`, and so does a refusal or a truncated response. There is no fallback model. On extracted evidence, an uncovered billed diagnosis is upheld only when the note rules out the covered condition, because the model may have missed a covered diagnosis the note documents.
+
+**Known limit:** validation proves each span is in the note, not that it supports what it's attached to. A negated phrase ("on insulin" inside "not on insulin"), one span reused for another criterion, or a code whose span describes a different condition all pass. Checking that a span entails its claim, with an NLI model or a second model pass, is not built.
+
+These commands call the Anthropic API and need credentials (for example `ANTHROPIC_API_KEY`). A one-call check fails fast with exit code 2 without them. The API rejects `temperature`, so runs are not deterministic. Each run record reads the model, effort and the prompt and schema hashes from the request bodies actually sent, plus per case the model that answered and the request id. Each extraction log keeps the exact request bytes and is written as soon as the call returns.
+
+First runs, 2026-10-31, 20 cases (labels await review in #15):
+- **Graph arm:** 20/20.
+- **Extracted arm at `bb8cb0f`:** 16/20, 0 false overturnable, 0 false uphold, 17 model calls. All four misses are hand-offs:
+  - three for a correct secondary code outside the loaded ICD-10-CM slices (Z90.411, N18.31, Z98.84);
+  - one, ev-11, where the model didn't take "on a sulfonylurea" to rule out insulin treatment, which the gold label does.
+- **Earlier run** with the previous prompt and validation: 15/20. The one-case difference is run-to-run variance: ev-04 failed there only because the model added Z79.84, which it didn't do this time.
 
 For criteria hops, the line number is where the LCD record starts (the record spans about 130 lines). The `look for` text is the HTML-decoded indication text, so search the decoded text: the raw CSV stores `<` as `&lt;`.
 
