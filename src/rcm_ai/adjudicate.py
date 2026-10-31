@@ -49,8 +49,10 @@ def _assess(c: Criterion, dx: str, met: set[str], not_met: dict[str, str]) -> tu
                 c.quote, c.source, not_met[c.id])
         return "met", Hop(f"Criterion {c.id} met by covered diagnosis {dx}", c.quote, c.source)
     if _conflicting(c, met, not_met):
+        said = "; ".join(f'"{x}"' for x in _not_met_spans(c, not_met))
         return "conflicting", Reason(
-            "criterion_conflicting", f"Criterion {c.id} is documented both as met and as not met",
+            "criterion_conflicting",
+            f"Criterion {c.id} is documented as met, but the note also says it is not: {said}",
             c.quote, c.source)
     leaf = _met_leaf(c, met)
     if leaf is not None:
@@ -164,12 +166,15 @@ def adjudicate(claim: Claim, evidence: Evidence, graph: CoverageGraph) -> Verdic
             if graph.on_covered_list(dx):
                 outcomes.append(_hand_off(Reason(
                     "diagnosis_not_in_terminology", f"{dx} is on the covered list but not in the loaded ICD-10-CM slice")))
-            elif graph.covered_codes_under(dx):
+            elif under := graph.covered_codes_under(dx):
+                shown = ", ".join(under[:3]) + (", ..." if len(under) > 3 else "")
                 outcomes.append(_hand_off(Reason(
                     "diagnosis_not_billable",
-                    f"{dx} is a header code; covered codes under it ({', '.join(graph.covered_codes_under(dx)[:3])}...) "
-                    "need the specific code: recode")))
-            elif any(graph.on_covered_list(d) for d in documented):
+                    f"{dx} is a header code; covered codes under it ({shown}) need the specific code: recode")))
+            elif graph.title(dx) is None and graph.title(dx[:3]) is not None:
+                outcomes.append(_hand_off(Reason(
+                    "diagnosis_not_in_terminology", f"{dx} is not a code in the loaded ICD-10-CM category {dx[:3]}")))
+            elif any(graph.on_covered_list(d) or graph.covered_codes_under(d) for d in documented):
                 outcomes.append(_hand_off(Reason(
                     "covered_diagnosis_not_billed", f"Billed {dx} is not covered, but the note documents a covered diagnosis: recode")))
             else:
