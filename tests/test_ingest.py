@@ -287,8 +287,60 @@ def test_a_section_excludes1_note_is_sourced_to_its_excludes1_line_not_an_identi
     entry["sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
     (data / "fixtures" / "MANIFEST.json").write_text(json.dumps(manifest))
 
-    (rule,) = [r for r in build_graph(data).excludes1_rules("O24.111") if r.owner == "O20-O29"]
+    (rule,) = [r for r in build_graph(data).excludes1_rules("O24.111") if r.owner == "section-O20-O29"]
 
     lines = path.read_text(encoding="utf-8").splitlines()
     assert note in lines[rule.source.line - 1]
     assert lines[rule.source.line - 2].strip() == "<excludes1>"
+
+
+# Re-review of #6 fixes (2026-10-30).
+def _blank_column(data: Path, path: str, column: str):
+    target = data / "fixtures" / path
+    with target.open(encoding="utf-8", newline="") as fh:
+        reader = csv.DictReader(fh)
+        fields, rows = reader.fieldnames, [{**r, column: ""} for r in reader]
+    out = io.StringIO(newline="")
+    w = csv.DictWriter(out, fields, lineterminator="\n")
+    w.writeheader()
+    w.writerows(rows)
+    target.write_text(out.getvalue(), encoding="utf-8")
+    _pin(data, path)
+
+
+def test_a_source_whose_every_row_is_rejected_fails_ingest(tmp_path):
+    data = _copy_data(tmp_path)  # an export without group values would otherwise load an empty covered list
+    _blank_column(data, COVERED, "icd10_covered_group")
+
+    with pytest.raises(IngestError, match=r"article_x_icd10_covered-A52464-v65\.csv.*0 of 461"):
+        build_graph(data)
+
+
+@pytest.mark.parametrize("case_id", ["ev-12", "ev-13"])
+def test_not_covered_is_not_upheld_when_the_covered_list_lost_rows_at_ingest(tmp_path, case_id):
+    from rcm_ai.schemas import load_case
+
+    data = _copy_data(tmp_path)
+    _append_row(data, COVERED, icd10_code_id="E11.9!", sort_order="9999")
+    case = load_case(DATA / "eval" / "cases" / f"{case_id}.json")  # gold uphold: diagnosis not covered
+
+    verdict = adjudicate(case.claim, case.evidence, build_graph(data))
+
+    assert verdict.outcome == "needs_human"
+    assert [r.kind for r in verdict.reasons] == ["covered_list_incomplete"]
+
+
+def test_a_rejected_row_in_a_second_group_still_counts_toward_the_group_check(tmp_path):
+    data = _copy_data(tmp_path)
+    _append_row(data, COVERED, icd10_code_id="E11.9!", icd10_covered_group="2", sort_order="9999")
+
+    with pytest.raises(IngestError, match="group"):
+        build_graph(data)
+
+
+def test_two_versions_of_one_article_fail_ingest(tmp_path):
+    data = _copy_data(tmp_path)
+    _append_row(data, COVERED, article_version="66", sort_order="9999")
+
+    with pytest.raises(IngestError, match="A52464.*65.*66"):
+        build_graph(data)

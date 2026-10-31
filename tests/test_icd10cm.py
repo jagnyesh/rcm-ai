@@ -22,9 +22,9 @@ def test_every_diag_in_the_slice_becomes_a_concept_with_title_and_parent():
     assert tab.concepts["E11.21"].title == "Type 2 diabetes mellitus with diabetic nephropathy"
     assert tab.concepts["E11.21"].parent == "E11.2"
     assert tab.concepts["E11.2"].parent == "E11"
-    assert tab.concepts["E11"].parent == "E08-E13"
-    assert tab.concepts["E08-E13"].kind == "section"
-    assert tab.concepts["E08-E13"].parent is None  # the slice has no chapter wrapper
+    assert tab.concepts["E11"].parent == "section-E08-E13"
+    assert tab.concepts["section-E08-E13"].kind == "section"
+    assert tab.concepts["section-E08-E13"].parent is None  # the slice has no chapter wrapper
 
 
 def test_excludes1_notes_become_code_references_of_all_three_source_forms():
@@ -100,8 +100,8 @@ def test_every_covered_o24_code_in_the_policy_article_is_a_concept_under_its_sec
     o24 = {c for c in covered if c.startswith("O24")}
     assert len(o24) == 30
     assert sorted(o24 - tab.concepts.keys()) == []
-    assert tab.concepts["O24"].parent == "O20-O29"
-    assert tab.concepts["O20-O29"].parent == "chapter-15"
+    assert tab.concepts["O24"].parent == "section-O20-O29"
+    assert tab.concepts["section-O20-O29"].parent == "chapter-15"
     assert tab.concepts["chapter-15"].kind == "chapter"
     assert tab.concepts["chapter-15"].title == "Pregnancy, childbirth and the puerperium (O00-O9A)"
 
@@ -138,9 +138,9 @@ def test_a_section_level_excludes1_note_is_kept_with_the_section_as_its_owner(tm
 
     tab = parse_tabular(xml)
 
-    assert [(r.code, r.target) for r in tab.excludes1] == [("A15-A19", CodeRef("exact", "P37.0"))]
-    assert tab.concepts["A15"].parent == "A15-A19"
-    assert tab.concepts["A15-A19"].parent == "chapter-1"
+    assert [(r.code, r.target) for r in tab.excludes1] == [("section-A15-A19", CodeRef("exact", "P37.0"))]
+    assert tab.concepts["A15"].parent == "section-A15-A19"
+    assert tab.concepts["section-A15-A19"].parent == "chapter-1"
 
 
 def test_an_unparseable_section_level_note_raises_instead_of_being_dropped(tmp_path):
@@ -164,3 +164,32 @@ def test_an_unparseable_section_level_note_raises_instead_of_being_dropped(tmp_p
 )
 def test_a_note_naming_several_codes_yields_one_reference_per_code(note, expected):
     assert parse_code_refs(note) == expected
+
+
+# Re-review of #6: 38 real sections share their id with their only category (E89, O09, T07).
+_ONE_CODE_SECTION = """<?xml version="1.0" encoding="utf-8"?>
+<ICD10CM.tabular>
+    <section id="E89">
+      <desc>Postprocedural endocrine and metabolic complications and disorders, not elsewhere classified (E89)</desc>
+      <diag>
+        <name>E89</name>
+        <desc>Postprocedural endocrine and metabolic complications and disorders, not elsewhere classified</desc>
+        <diag>
+          <name>E89.0</name>
+          <desc>Postprocedural hypothyroidism</desc>
+        </diag>
+      </diag>
+    </section>
+</ICD10CM.tabular>
+"""
+
+
+def test_a_section_whose_id_equals_its_only_category_is_a_separate_concept(tmp_path):
+    xml = tmp_path / "t.xml"
+    xml.write_text(_ONE_CODE_SECTION)
+
+    tab = parse_tabular(xml)
+
+    assert tab.concepts["E89"].kind == "diag"
+    assert tab.concepts["E89"].parent == "section-E89"
+    assert tab.concepts["section-E89"].kind == "section"
