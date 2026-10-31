@@ -1,6 +1,7 @@
 import json
 import os
 import re
+import shutil
 from pathlib import Path
 
 import pytest
@@ -54,18 +55,53 @@ def test_a_fabricated_code_fails():
     assert check.unsupported == ("E11.99",)
 
 
-@pytest.mark.parametrize("cited", ["E11.9", "Z79.4", "A4239", "95250"])
+@pytest.mark.parametrize("cited", ["E11.9", "Z79.4", "A4239"])
 def test_a_real_code_outside_the_path_fails(cited):
-    # A covered diabetes code, a status code, the CGM supply allowance and a CPT code:
-    # all real, none established by this path.
+    # A covered diabetes code, a status code and the CGM supply allowance: all real, none
+    # established by this path.
     check = ap.check_citations(f"See also {cited}.", EV01)
 
     assert check.unsupported == (cited,)
 
 
+@pytest.mark.parametrize("text, cited", [
+    ("CPT 95250", "95250"), ("CPT code 95250", "95250"), ("CPT® 95251", "95251"), ("CPT 3044F", "3044F"),
+])
+def test_a_cpt_code_labeled_as_one_fails(text, cited):
+    assert ap.check_citations(f"Billed as {text}.", EV01).unsupported == (cited,)
+
+
+@pytest.mark.parametrize("cited", ["E119", "Z794", "E11649", "E113213", "O24111"])
+def test_a_code_written_without_its_dot_is_still_a_citation(cited):
+    # Claim forms and remittances carry codes undotted; a code outside the path fails either way.
+    assert ap.check_citations(f"Diagnosis {cited} applies.", EV01).unsupported == (cited,)
+
+
+@pytest.mark.parametrize("text", ["E1165", "E2103KX", "E2103-KX", "LCD 33822", "LCD #33822", "Article 52464",
+                                  "policy article 52464"])
+def test_a_path_code_or_policy_id_in_another_written_form_is_supported(text):
+    check = ap.check_citations(f"Per {text}, coverage applies.", EV01)
+
+    assert check.citations and check.passed
+
+
+@pytest.mark.parametrize("text, cited", [
+    ("A4239NU", "A4239NU"), ("LCD 12345", "L12345"), ("DL33822", "DL33822"), ("NCD 40.2", "NCD 40.2"),
+    ("NCD 280.1", "NCD 280.1"), ("article 12345", "A12345"),
+])
+def test_another_item_or_policy_in_any_written_form_fails(text, cited):
+    assert ap.check_citations(f"Per {text}, coverage applies.", EV01).unsupported == (cited,)
+
+
+@pytest.mark.parametrize("cited", ["T38.3X5A", "C7A.00", "Z3A.20", "E11.3213"])
+def test_long_codes_and_categories_with_a_letter_third_are_read_whole(cited):
+    assert ap.citations(f"Code {cited} was documented.") == (cited,)
+
+
 def test_clinical_abbreviations_and_other_numbers_are_not_citations():
-    letter = ("The A1C is 8.2% (HbA1c). T2D and T1D on MDI. Glucose <54 mg/dL (3.0 mmol/L). "
-              "CARC 50, criteria (1)-(5), version 70, [ZIP code], 42 CFR 405.940.")
+    letter = ("The A1C is 8.2% (HbA1c). T2D, T1D, T2DM and G6PD on MDI. Glucose <54 mg/dL (3.0 mmol/L). "
+              "CARC 50, criteria (1)-(5), version 70, [ZIP code], 42 CFR 405.940. Form CMS-20027, "
+              "P.O. Box 20010, Nashville, TN 37202. 20160 minutes of CGM data; $12500 billed; 95250 alone.")
 
     assert ap.check_citations(letter, EV01).citations == ()
 
@@ -83,8 +119,18 @@ def test_an_empty_path_supports_no_citation():
 
 
 def test_the_checker_reads_the_path_statements_not_their_source_anchors():
-    # The article hop's anchor is "52464", which is CPT-shaped; only the statement establishes A52464.
-    assert ap.check_citations("Code 52464 applies.", EV01).unsupported == ("52464",)
+    hop = Hop("E2103 is listed in LCD L33822", anchor="E11.9", source=EV01[0].source)
+
+    assert ap.established((hop,)) == ("E2103", "L33822")
+
+
+def test_a_code_named_only_in_a_statements_aside_is_not_established():
+    # ev-07's concept hop notes its 7th character comes "from E11.32 sevenChrDef"; E11.32 itself
+    # isn't a billable code, and the path doesn't establish it as the diagnosis.
+    ev07 = _path("ev-07")
+
+    assert "E11.32" in " ".join(h.statement for h in ev07)
+    assert ap.check_citations("The diagnosis E11.32 is covered.", ev07).unsupported == ("E11.32",)
 
 
 # The drafter: an LLM writes the letter from the claim, the path and the note's quotes.
@@ -92,7 +138,7 @@ def test_the_checker_reads_the_path_statements_not_their_source_anchors():
 QUOTES = [("diagnosis", "Type 2 diabetes mellitus with hyperglycemia"), ("cgm-4a-insulin", "On multiple daily insulin injections.")]
 
 
-def test_the_draft_request_carries_the_claim_the_path_with_its_sources_and_the_note_quotes():
+def test_the_draft_request_carries_the_claim_the_path_and_the_note_quotes():
     case = load_case(EVAL / "ev-01.json")
 
     req = ap.build_request(case.claim, EV01, QUOTES)
@@ -101,7 +147,7 @@ def test_the_draft_request_carries_the_claim_the_path_with_its_sources_and_the_n
     for text in ("E2103", "E11.65", "CARC 50", "initial"):
         assert text in content
     for hop in EV01:
-        assert hop.statement in content and hop.source.path in content
+        assert hop.statement in content
     for label, span in QUOTES:
         assert f'{label}: "{span}"' in content
     assert (req["model"], req["max_tokens"], req["output_config"]["effort"]) == (ex.MODEL, ex.MAX_TOKENS, ex.EFFORT)
@@ -110,12 +156,22 @@ def test_the_draft_request_carries_the_claim_the_path_with_its_sources_and_the_n
     assert req["output_config"]["format"]["schema"]["required"] == ["letter"]
 
 
-def test_an_unsourced_step_is_marked_as_having_no_source():
+@pytest.mark.parametrize("case_id", ["ev-01", "ev-06", "ev-07"])
+def test_the_drafter_sees_no_citable_code_the_path_doesnt_establish(case_id):
+    # Source file names such as icd10cm-tabular-2027-E08-E13.xml would put E08 and E13 in front of
+    # the drafter of a sourced path only, where the checker rejects them.
+    case, path = load_case(EVAL / f"{case_id}.json"), _path(case_id)
+
+    content = ap.build_request(case.claim, path, ap.quotes(case.evidence))["messages"][0]["content"]
+
+    assert set(ap.citations(content)) <= set(ap.established(path))
+
+
+def test_a_sourced_and_an_unsourced_step_read_the_same_to_the_drafter():
     case = load_case(EVAL / "ev-01.json")
+    sourced, unsourced = EV01[0], Hop(EV01[0].statement)
 
-    content = ap.build_request(case.claim, (Hop("E11.65 is covered under L33822"),), [])["messages"][0]["content"]
-
-    assert "E11.65 is covered under L33822 (no source)" in content
+    assert ap.build_request(case.claim, (sourced,), []) == ap.build_request(case.claim, (unsourced,), [])
 
 
 def test_quotes_come_from_the_evidence_diagnoses_first_without_their_codes():
@@ -136,6 +192,12 @@ def test_quotes_come_from_the_evidence_diagnoses_first_without_their_codes():
 ])
 def test_a_response_gives_a_letter_only_when_it_holds_one(raw, letter):
     assert ap.letter_of(Extraction(raw, "end_turn", {})) == letter
+
+
+def test_a_draft_that_raised_is_an_error_not_a_draft_without_a_letter():
+    tallied = ap.tally([ap.Appeal(("E2103",), error="RuntimeError: 529"), ap.Appeal(("E2103",))])
+
+    assert (tallied["drafted"], tallied["errors"], tallied["without_letter"]) == (2, 1, 1)
 
 
 def test_ask_sends_the_draft_request(monkeypatch):
@@ -173,11 +235,11 @@ def _drafting(letter=None, seen=None):
     return stand_in
 
 
-def _triage(tmp_path, monkeypatch, case_id, drafter):
+def _triage(tmp_path, monkeypatch, case_id, drafter, *flags, client=lambda: None):
     monkeypatch.chdir(tmp_path)  # the draft log goes under the working directory
-    monkeypatch.setattr(rcm_ai, "_client", lambda: None)
+    monkeypatch.setattr(rcm_ai, "_client", client)
     monkeypatch.setattr(ap, "draft", drafter)
-    return rcm_ai.main(["triage", str(EVAL / f"{case_id}.json"), "--draft", "--data", str(DATA)])
+    return rcm_ai.main(["triage", str(EVAL / f"{case_id}.json"), "--draft", *flags, "--data", str(DATA)])
 
 
 def test_triage_draft_prints_the_letter_and_the_citation_check(tmp_path, monkeypatch, capsys):
@@ -207,6 +269,53 @@ def test_triage_draft_checks_against_the_verdicts_own_path(tmp_path, monkeypatch
     case = load_case(EVAL / "ev-01.json")
     assert path == EV01 and quotes == ap.quotes(case.evidence)
     assert "citation check: passed" in capsys.readouterr().out
+
+
+# A valid extraction for ev-01 whose spans differ from the case's gold evidence.
+EV01_EXTRACTED = {
+    "diagnoses": [{"code": "E11.65", "span": "Type 2 diabetes mellitus with hyperglycemia"}],
+    "criteria_met": [
+        {"criterion": "cgm-5-visit", "span": "Telehealth visit today to review diabetes control"},
+        {"criterion": "cgm-2-training", "span": "Completed CGM device training"},
+        {"criterion": "cgm-3-fda-indication", "span": "CGM prescribed per its FDA-labeled indications"},
+        {"criterion": "cgm-4a-insulin", "span": "On multiple daily insulin injections"},
+    ],
+    "criteria_not_met": [],
+}
+EV01_EXTRACTED_QUOTES = [("diagnosis", "Type 2 diabetes mellitus with hyperglycemia")] + [
+    (c["criterion"], c["span"]) for c in EV01_EXTRACTED["criteria_met"]]
+
+
+def _extracting(note, criteria, client):
+    raw = EV01_EXTRACTED if note == load_case(EVAL / "ev-01.json").note else None
+    return Extraction(raw, "end_turn" if raw else "refusal", {
+        "request_id": "req_ex", "http_request_body": json.dumps(ex.build_request(note, criteria)),
+        "response": {"model": ex.MODEL}})
+
+
+def test_triage_extract_draft_drafts_from_the_extracted_evidence_with_one_client(tmp_path, monkeypatch, capsys):
+    seen, clients = [], []
+    monkeypatch.setattr(ex, "extract", _extracting)
+
+    code = _triage(tmp_path, monkeypatch, "ev-01", _drafting(seen=seen), "--extract",
+                   client=lambda: clients.append(object()) or clients[-1])
+
+    ((claim, path, quotes),) = seen
+    assert code == 0
+    assert path == EV01 and quotes == EV01_EXTRACTED_QUOTES
+    assert len(clients) == 1
+
+
+def test_triage_keeps_the_verdict_when_drafting_fails(tmp_path, monkeypatch, capsys):
+    def overloaded(*args):
+        raise RuntimeError("529 overloaded")
+
+    code = _triage(tmp_path, monkeypatch, "ev-01", overloaded)
+
+    captured = capsys.readouterr()
+    assert code == 3
+    assert captured.out.startswith("ev-01: overturnable")
+    assert "appeal draft failed: RuntimeError: 529 overloaded" in captured.err
 
 
 def test_triage_draft_of_a_verdict_that_is_not_overturnable_makes_no_call(tmp_path, monkeypatch, capsys):
@@ -288,6 +397,37 @@ def test_eval_draft_gives_each_arm_its_own_evidence(tmp_path, monkeypatch):
     assert gold in ev01  # the graph arm, from the case's evidence
     assert [("cgm-2-training", "a baseline span")] in [q for _, _, q in seen]  # the baseline, its own fields
     assert len(seen) == 29  # the refused extractions overturn nothing
+
+
+def test_eval_draft_gives_the_extracted_arm_its_own_validated_evidence(tmp_path, monkeypatch):
+    seen = []
+    monkeypatch.setattr(ex, "extract", _extracting)
+
+    _eval(tmp_path, monkeypatch, _drafting(seen=seen), arms="graph,extracted")
+
+    ev01 = [quotes for claim, path, quotes in seen if path == EV01]
+    assert sorted(ev01) == sorted([ap.quotes(load_case(EVAL / "ev-01.json").evidence), EV01_EXTRACTED_QUOTES])
+
+
+def test_a_case_whose_reference_path_cannot_be_built_is_a_draft_error(tmp_path, monkeypatch):
+    data = tmp_path / "data"
+    for d in ("eval", "fixtures", "curated"):
+        shutil.copytree(DATA / d, data / d)
+    ev01 = data / "eval" / "cases" / "ev-01.json"
+    raw = json.loads(ev01.read_text())
+    raw["evidence"]["criteria"][0]["criterion"] = "bogus"
+    ev01.write_text(json.dumps(raw))
+    monkeypatch.setattr(rcm_ai, "_client", lambda: None)
+    monkeypatch.setattr(bl, "ask", _baseline_overturns)
+    monkeypatch.setattr(ap, "draft", _drafting())
+
+    code = rcm_ai.main(["eval", "--arms", "llm-only", "--data", str(data), "--out", str(tmp_path / "out"), "--draft"])
+
+    (record,) = (tmp_path / "out").glob("eval-*.json")
+    results = {r["case"]: r for r in json.loads(record.read_text())["results"]}
+    assert code == 3
+    assert results["ev-01"]["appeal"]["error"].startswith("SchemaError")
+    assert results["ev-02"]["appeal"]["error"] is None
 
 
 def test_eval_without_draft_drafts_nothing(tmp_path, monkeypatch):
