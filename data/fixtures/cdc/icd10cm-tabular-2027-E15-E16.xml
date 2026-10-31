@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Verbatim excerpt of section E15-E16 from CDC NCHS ICD-10-CM FY2027 tabular XML; see data/fixtures/MANIFEST.json. -->
+<ICD10CM.tabular>
+    <section id="E15-E16">
+      <desc>Other disorders of glucose regulation and pancreatic internal secretion (E15-E16)</desc>
+      <diag>
+        <name>E15</name>
+        <desc>Nondiabetic hypoglycemic coma</desc>
+        <includes>
+          <note>drug-induced insulin coma in nondiabetic</note>
+          <note>hyperinsulinism with hypoglycemic coma</note>
+          <note>hypoglycemic coma NOS</note>
+        </includes>
+      </diag>
+      <diag>
+        <name>E16</name>
+        <desc>Other disorders of pancreatic internal secretion</desc>
+        <diag>
+          <name>E16.0</name>
+          <desc>Drug-induced hypoglycemia without coma</desc>
+          <excludes1>
+            <note>diabetes with hypoglycemia without coma (E09.649)</note>
+          </excludes1>
+          <useAdditionalCode>
+            <note>code for adverse effect, if applicable, to identify drug (T36-T50 with fifth or sixth character 5)</note>
+          </useAdditionalCode>
+          <useAdditionalCode>
+            <note>code for hypoglycemia level, if applicable (E16.A-)</note>
+          </useAdditionalCode>
+        </diag>
+        <diag>
+          <name>E16.1</name>
+          <desc>Other hypoglycemia</desc>
+          <inclusionTerm>
+            <note>Functional hyperinsulinism</note>
+            <note>Functional nonhyperinsulinemic hypoglycemia</note>
+            <note>Hyperinsulinism NOS</note>
+            <note>Hyperplasia of pancreatic islet beta cells NOS</note>
+          </inclusionTerm>
+          <useAdditionalCode>
+            <note>code for hypoglycemia level, if applicable (E16.A-)</note>
+          </useAdditionalCode>
+          <excludes1>
+            <note>diabetes with hypoglycemia (E08.649, E10.649, E11.649, E13.649)</note>
+            <note>hypoglycemia in infant of diabetic mother (P70.1)</note>
+            <note>neonatal hypoglycemia (P70.4)</note>
+          </excludes1>
+        </diag>
+        <diag>
+          <name>E16.2</name>
+          <desc>Hypoglycemia, unspecified</desc>
+          <useAdditionalCode>
+            <note>code for hypoglycemia level, if applicable (E16.A-)</note>
+          </useAdditionalCode>
+          <excludes1>
+            <note>diabetes with hypoglycemia (E08.649, E10.649, E11.649, E13.649)</note>
+          </excludes1>
+        </diag>
+        <diag>
+          <name>E16.3</name>
+          <desc>Increased secretion of glucagon</desc>
+          <inclusionTerm>
+            <note>Hyperplasia of pancreatic endocrine cells with glucagon excess</note>
+          </inclusionTerm>
+        </diag>
+        <diag>
+          <name>E16.4</name>
+          <desc>Increased secretion of gastrin</desc>
+          <inclusionTerm>
+            <note>Hypergastrinemia</note>
+            <note>Hyperplasia of pancreatic endocrine cells with gastrin excess</note>
+            <note>Zollinger-Ellison syndrome</note>
+          </inclusionTerm>
+        </diag>
+        <diag>
+          <name>E16.8</name>
+          <desc>Other specified disorders of pancreatic internal secretion</desc>
+          <inclusionTerm>
+            <note>Increased secretion from endocrine pancreas of growth hormone-releasing hormone</note>
+            <note>Increased secretion from endocrine pancreas of pancreatic polypeptide</note>
+            <note>Increased secretion from endocrine pancreas of somatostatin</note>
+            <note>Increased secretion from endocrine pancreas of vasoactive-intestinal polypeptide</note>
+          </inclusionTerm>
+        </diag>
+        <diag>
+          <name>E16.9</name>
+          <desc>Disorder of pancreatic internal secretion, unspecified</desc>
+          <inclusionTerm>
+            <note>Islet-cell hyperplasia NOS</note>
+            <note>Pancreatic endocrine cell hyperplasia NOS</note>
+          </inclusionTerm>
+        </diag>
+        <diag>
+          <name>E16.A</name>
+          <desc>Hypoglycemia level</desc>
+          <diag>
+            <name>E16.A1</name>
+            <desc>Hypoglycemia level 1</desc>
+            <inclusionTerm>
+              <note>Decreased blood glucose level 1</note>
+            </inclusionTerm>
+          </diag>
+          <diag>
+            <name>E16.A2</name>
+            <desc>Hypoglycemia level 2</desc>
+            <inclusionTerm>
+              <note>Decreased blood glucose level 2</note>
+            </inclusionTerm>
+          </diag>
+          <diag>
+            <name>E16.A3</name>
+            <desc>Hypoglycemia level 3</desc>
+            <inclusionTerm>
+              <note>Decreased blood glucose level 3</note>
+            </inclusionTerm>
+          </diag>
+        </diag>
+      </diag>
+    </section>
+</ICD10CM.tabular>

@@ -72,6 +72,8 @@ def test_ingest_reports_parsed_rejected_and_loaded_counts_for_every_source():
     assert counts == {
         "cdc/icd10cm-tabular-2027-E08-E13.xml": ("icd10cm_tabular", 322, 0, 322),
         "cdc/icd10cm-tabular-2027-O24.xml": ("icd10cm_tabular", 57, 0, 57),
+        "cdc/icd10cm-tabular-2027-E15-E16.xml": ("icd10cm_tabular", 13, 0, 13),
+        "cdc/icd10cm-tabular-2027-R73.xml": ("icd10cm_tabular", 7, 0, 7),
         COVERED: ("article_x_icd10_covered", 461, 0, 461),
         "cms/lcd_x_hcpc_code-L33822-v70.csv": ("lcd_x_hcpc_code", 31, 0, 31),
         "cms/lcd-L33822-v70.csv": ("lcd", 1, 0, 1),

@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Verbatim excerpt from CDC NCHS ICD-10-CM FY2027 tabular XML: the chapter 18 header, the section R70-R79 header and category R73; see data/fixtures/MANIFEST.json. -->
+<ICD10CM.tabular>
+  <chapter>
+    <name>18</name>
+    <desc>Symptoms, signs and abnormal clinical and laboratory findings, not elsewhere classified (R00-R99)</desc>
+    <notes>
+      <note>This chapter includes symptoms, signs, abnormal results of clinical or other investigative procedures, and ill-defined conditions regarding which no diagnosis classifiable elsewhere is recorded.</note>
+      <note>Signs and symptoms that point rather definitely to a given diagnosis have been assigned to a category in other chapters of the classification. In general, categories in this chapter include the less well-defined conditions and symptoms that, without the necessary study of the case to establish a final diagnosis, point perhaps equally to two or more diseases or to two or more systems of the body. Practically all categories in the chapter could be designated 'not otherwise specified', 'unknown etiology' or 'transient'.  The Alphabetical Index should be consulted to determine which symptoms and signs are to be allocated here and which to other chapters.  The residual subcategories, numbered .8, are generally provided for other relevant symptoms that cannot be allocated elsewhere in the classification.</note>
+      <note>The conditions and signs or symptoms included in categories R00-R94 consist of:</note>
+      <note>(a) cases for which no more specific diagnosis can be made even after all the facts bearing on the case have been investigated;</note>
+      <note>(b) signs or symptoms existing at the time of initial encounter that proved to be transient and whose causes could not be determined;</note>
+      <note>(c) provisional diagnosis in a patient who failed to return for further investigation or care;</note>
+      <note>(d) cases referred elsewhere for investigation or treatment before the diagnosis was made;</note>
+      <note>(e) cases in which a more precise diagnosis was not available for any other reason;</note>
+      <note>(f) certain symptoms, for which supplementary information is provided, that represent important problems in medical care in their own right.</note>
+    </notes>
+    <excludes2>
+      <note>abnormal findings on antenatal screening of mother (O28.-)</note>
+      <note>certain conditions originating in the perinatal period (P04-P96)</note>
+      <note>signs and symptoms classified in the body system chapters</note>
+      <note>signs and symptoms of breast (N63, N64.5)</note>
+    </excludes2>
+    <section id="R70-R79">
+      <desc>Abnormal findings on examination of blood, without diagnosis (R70-R79)</desc>
+      <excludes2>
+        <note>abnormal findings on antenatal screening of mother (O28.-)</note>
+        <note>abnormalities of lipids (E78.-)</note>
+        <note>abnormalities of platelets and thrombocytes (D69.-)</note>
+        <note>abnormalities of white blood cells classified elsewhere (D70-D72)</note>
+        <note>coagulation hemorrhagic disorders (D65-D68)</note>
+        <note>diagnostic abnormal findings classified elsewhere - see Alphabetical Index</note>
+        <note>hemorrhagic and hematological disorders of newborn (P50-P61)</note>
+      </excludes2>
+      <diag>
+        <name>R73</name>
+        <desc>Elevated blood glucose level</desc>
+        <excludes1>
+          <note>diabetes mellitus (E08-E13)</note>
+          <note>diabetes mellitus in pregnancy, childbirth and the puerperium (O24.-)</note>
+          <note>neonatal disorders (P70.0-P70.2)</note>
+          <note>postsurgical hypoinsulinemia (E89.1)</note>
+        </excludes1>
+        <diag>
+          <name>R73.0</name>
+          <desc>Abnormal glucose</desc>
+          <excludes1>
+            <note>abnormal glucose in pregnancy (O99.81-)</note>
+            <note>diabetes mellitus (E08-E13)</note>
+            <note>dysmetabolic syndrome X (E88.81-)</note>
+            <note>gestational diabetes (O24.4-)</note>
+            <note>glycosuria (R81)</note>
+            <note>hypoglycemia (E16.2)</note>
+            <note>type 1 diabetes mellitus, presymptomatic (E10.A-)</note>
+          </excludes1>
+          <diag>
+            <name>R73.01</name>
+            <desc>Impaired fasting glucose</desc>
+            <inclusionTerm>
+              <note>Elevated fasting glucose</note>
+            </inclusionTerm>
+          </diag>
+          <diag>
+            <name>R73.02</name>
+            <desc>Impaired glucose tolerance (oral)</desc>
+            <inclusionTerm>
+              <note>Elevated glucose tolerance</note>
+            </inclusionTerm>
+          </diag>
+          <diag>
+            <name>R73.03</name>
+            <desc>Prediabetes</desc>
+            <inclusionTerm>
+              <note>Latent diabetes</note>
+            </inclusionTerm>
+          </diag>
+          <diag>
+            <name>R73.09</name>
+            <desc>Other abnormal glucose</desc>
+            <inclusionTerm>
+              <note>Abnormal glucose NOS</note>
+              <note>Abnormal non-fasting glucose tolerance</note>
+            </inclusionTerm>
+          </diag>
+        </diag>
+        <diag>
+          <name>R73.9</name>
+          <desc>Hyperglycemia, unspecified</desc>
+        </diag>
+      </diag>
+    </section>
+  </chapter>
+</ICD10CM.tabular>

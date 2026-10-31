@@ -31,6 +31,36 @@
       "sha256": "cf9d89eee7c8965331a8072d072860f487229b0d76bf677a04411af02ae84e8a"
     },
     {
+      "path": "cdc/icd10cm-tabular-2027-E15-E16.xml",
+      "table": "icd10cm_tabular",
+      "description": "Verbatim excerpt of tabular section E15-E16 (Other disorders of glucose regulation and pancreatic internal secretion), wrapped in the source root element",
+      "source_url": "https://ftp.cdc.gov/pub/Health_Statistics/NCHS/Publications/ICD10CM/2027/icd10cm-table-and-index-2027.zip",
+      "source_sha256": "99b5c2be16ff53eab861cc0be4b1dacba27f687b8ff4bc700679944355037ee0",
+      "source_member": "icd10cm-table-and-index-2027/icd10cm-tabular_-2027.xml",
+      "source_lines": "1-2, 25129-25244, plus closing tag",
+      "version": "ICD-10-CM FY2027 (effective 2026-10-01)",
+      "retrieved": "2026-10-31",
+      "license": "Public domain (CDC NCHS)",
+      "record_kind": "diag",
+      "record_count": 13,
+      "sha256": "84e9663ee2dea632c9e32fa2169257e3117cc58f33f3658645ee8a36014f1ded"
+    },
+    {
+      "path": "cdc/icd10cm-tabular-2027-R73.xml",
+      "table": "icd10cm_tabular",
+      "description": "Verbatim excerpt of the chapter 18 header (through its Excludes2 notes, without the section index), the section R70-R79 header (through its Excludes2 notes), and category R73 (Elevated blood glucose level), wrapped in the source root element",
+      "source_url": "https://ftp.cdc.gov/pub/Health_Statistics/NCHS/Publications/ICD10CM/2027/icd10cm-table-and-index-2027.zip",
+      "source_sha256": "99b5c2be16ff53eab861cc0be4b1dacba27f687b8ff4bc700679944355037ee0",
+      "source_member": "icd10cm-table-and-index-2027/icd10cm-tabular_-2027.xml",
+      "source_lines": "1-2, 145845-145864, 149783-149793, 149839-149894, plus closing tags",
+      "version": "ICD-10-CM FY2027 (effective 2026-10-01)",
+      "retrieved": "2026-10-31",
+      "license": "Public domain (CDC NCHS)",
+      "record_kind": "diag",
+      "record_count": 7,
+      "sha256": "ea0eb36087793641109679f2b4bbe5c8005a166784d4848d2cffb578da4f6715"
+    },
+    {
       "path": "cms/article_x_icd10_covered-A52464-v65.csv",
       "table": "article_x_icd10_covered",
       "description": "Header plus the verbatim rows for article 52464 version 65 (Glucose Monitor - Policy Article): ICD-10-CM codes that support medical necessity, covered group 1",

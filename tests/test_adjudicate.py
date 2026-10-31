@@ -342,8 +342,8 @@ def test_one_met_branch_satisfies_an_any_of_criterion_even_if_another_branch_is_
 
 
 def test_a_documented_covered_code_beside_an_uncovered_billed_code_is_a_hand_off_not_an_uphold():
-    case = _case()  # billed R73.03, but the note documents covered E11.65: recode, don't write off
-    claim = replace(case.claim, icd10=("R73.03",))
+    case = _case()  # billed I10, but the note documents covered E11.65: recode, don't write off
+    claim = replace(case.claim, icd10=("I10",))
 
     verdict = adjudicate(claim, case.evidence, build_graph(DATA))
 
@@ -472,9 +472,9 @@ def test_a_documented_failure_outranks_an_undocumented_criterion():
 
 
 def test_an_uncovered_billed_code_beside_a_documented_covered_code_is_a_recode_hand_off():
-    case = _case()  # billed R73.03, documented R73.03 and covered E11.65
-    claim = replace(case.claim, icd10=("R73.03",))
-    evidence = replace(case.evidence, diagnoses=case.evidence.diagnoses + (DocumentedCode("R73.03", NOTE_SPAN),))
+    case = _case()  # billed I10, documented I10 and covered E11.65
+    claim = replace(case.claim, icd10=("I10",))
+    evidence = replace(case.evidence, diagnoses=case.evidence.diagnoses + (DocumentedCode("I10", NOTE_SPAN),))
 
     assert _outcome_and_reasons(claim, evidence) == ("needs_human", ["covered_diagnosis_not_billed"])
 
@@ -499,9 +499,22 @@ def test_an_unknown_code_inside_a_loaded_category_is_a_hand_off_not_an_uphold():
 
 @pytest.mark.parametrize("documented_header", ["E11.64", "E11.37X", "O24.01"])
 def test_a_documented_header_with_covered_codes_under_it_blocks_an_uphold(documented_header):
-    case = _case()  # billed R73.9 (not covered); the note also documents a recodable diabetes header
-    claim = replace(case.claim, icd10=("R73.9",))
+    case = _case()  # billed I10 (not covered); the note also documents a recodable diabetes header
+    claim = replace(case.claim, icd10=("I10",))
     evidence = replace(case.evidence, diagnoses=(
-        DocumentedCode("R73.9", NOTE_SPAN), DocumentedCode(documented_header, NOTE_SPAN)))
+        DocumentedCode("I10", NOTE_SPAN), DocumentedCode(documented_header, NOTE_SPAN)))
 
     assert _outcome_and_reasons(claim, evidence) == ("needs_human", ["covered_diagnosis_not_billed"])
+
+
+# #9 loaded R73 (elevated blood glucose), whose Excludes1 names diabetes mellitus (E08-E13).
+def test_prediabetes_billed_beside_documented_diabetes_is_a_coding_conflict():
+    case = _case()  # billed R73.03; the note documents E11.65
+    claim = replace(case.claim, icd10=("R73.03",))
+
+    verdict = adjudicate(claim, case.evidence, build_graph(DATA))
+
+    assert _reasons(verdict) == ["coding_conflict"]
+    (finding,) = verdict.findings
+    assert set(finding.codes) == {"R73.03", "E11.65"}
+    assert finding.anchor == "diabetes mellitus (E08-E13)"
