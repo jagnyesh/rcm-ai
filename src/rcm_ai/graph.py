@@ -4,7 +4,9 @@ Every source row's triples live in a named graph whose IRI identifies that row, 
 SPARQL answer can return, for each fact it used, the file, version and line it came from.
 """
 
+import copy
 import csv
+import functools
 import html
 import io
 import json
@@ -113,15 +115,29 @@ class Criterion:
     any_of: tuple["Criterion", ...]
 
 
+def _memo(method):
+    """Cache a query per arguments. The dataset never changes after build_graph, and each rdflib
+    SPARQL query costs ~15 ms, so repeated lookups dominated adjudication. Callers get a copy."""
+    @functools.wraps(method)
+    def wrapper(self, *args):
+        key = (method.__name__, args)
+        if key not in self._memo:
+            self._memo[key] = method(self, *args)
+        return copy.copy(self._memo[key])
+    return wrapper
+
+
 class CoverageGraph:
     def __init__(self, dataset: Dataset, ingest: tuple[SourceLoad, ...] = ()):
         self._ds = dataset
+        self._memo: dict = {}
         self.ingest = ingest
 
     def _source(self, g) -> Source:
         meta = {p: o for p, o in self._ds.default_graph.predicate_objects(g)}
         return Source(str(meta[RCM.path]), str(meta[RCM.version]), int(meta[RCM.line]))
 
+    @_memo
     def title(self, code: str) -> str | None:
         rows = list(self._ds.query(
             "SELECT ?t WHERE { GRAPH ?g { ?c skos:prefLabel ?t } }",
@@ -129,6 +145,7 @@ class CoverageGraph:
         ))
         return str(rows[0].t) if rows else None
 
+    @_memo
     def ancestors(self, code: str) -> list[str]:
         """The code itself, then each broader concept: category, then section and chapter when loaded."""
         chain = [code]
@@ -141,6 +158,7 @@ class CoverageGraph:
                 return chain
             chain.append(_local(rows[0].p))
 
+    @_memo
     def excludes1_rules(self, code: str) -> list[Excludes1Rule]:
         """Excludes1 notes that apply to a code: its own and every ancestor's."""
         rules = []
@@ -160,6 +178,7 @@ class CoverageGraph:
             ]
         return rules
 
+    @_memo
     def lcds_listing(self, hcpcs: str) -> list[str]:
         rows = self._ds.query(
             "SELECT DISTINCT ?lcd WHERE { GRAPH ?g { ?lcd rcm:listsHcpcs ?hcpcs } }",
@@ -189,6 +208,7 @@ class CoverageGraph:
         )
         return sorted(_local(r.d) for r in rows)
 
+    @_memo
     def coverage_paths(self, hcpcs: str, dx: str) -> list[CoveragePath]:
         rows = self._ds.query(
             """
@@ -212,6 +232,7 @@ class CoverageGraph:
             for r in rows
         ]
 
+    @_memo
     def applicability(self, lcd: str, hcpcs: str) -> tuple[str, str, Source] | None:
         """(label, quote, source) of the curated criteria that apply to this item under this LCD."""
         rows = list(self._ds.query(
@@ -245,10 +266,12 @@ class CoverageGraph:
             tuple(self._criterion(s) for s in subs),
         )
 
+    @_memo
     def criterion_ids(self) -> set[str]:
         rows = self._ds.query("SELECT ?crit WHERE { GRAPH ?g { ?crit rcm:quote ?q } }", initNs={"rcm": RCM})
         return {_local(r.crit) for r in rows}
 
+    @_memo
     def criteria(self, lcd: str) -> list[Criterion]:
         crits = [r.crit for r in self._ds.query(
             "SELECT ?crit WHERE { GRAPH ?g { ?lcd rcm:requires ?crit } }",
