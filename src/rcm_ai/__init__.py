@@ -51,7 +51,7 @@ def _save_extraction(log_dir: Path, case_id: str, extraction) -> Path:
 
 def _triage(case_path: Path, data_dir: Path, extract: bool = False, draft: bool = False,
             log_dir: Path = Path("eval-results/extractions"), draft_dir: Path = Path("eval-results/drafts")) -> int:
-    appeal = draft_error = None
+    appeal = draft_error = log_error = None
     try:
         case = load_case(case_path)
         graph = build_graph(data_dir)
@@ -72,14 +72,17 @@ def _triage(case_path: Path, data_dir: Path, extract: bool = False, draft: bool 
         else:
             verdict, evidence = adjudicate(case.claim, case.evidence, graph), case.evidence
         if draft and verdict.outcome == "overturnable":
-            if client is None:
-                client = _client()
             try:
-                appeal = ap.draft(case.claim, verdict.path, ap.quotes(evidence), client)
+                if client is None:
+                    client = _client()
+                appeal = ap.draft(case.claim, verdict.path, ap.quotes(evidence), client, findings=verdict.findings)
             except Exception as e:  # the verdict needs no model, so it's still reported
                 draft_error = f"{type(e).__name__}: {e}"
             else:
-                draft_log = _save_extraction(draft_dir, case.id, appeal)
+                try:
+                    draft_log = _save_extraction(draft_dir, case.id, appeal)
+                except OSError as e:  # the letter is paid for, so it's still printed
+                    log_error = f"{type(e).__name__}: {e}"
     except SchemaError as e:
         print(f"rejected: {e}", file=sys.stderr)
         return 2
@@ -128,12 +131,15 @@ def _triage(case_path: Path, data_dir: Path, extract: bool = False, draft: bool 
             print("  appeal draft:")
             for line in letter.splitlines():
                 print(f"    {line}".rstrip())
-            check = ap.check_citations(letter, verdict.path)
+            check = ap.check_citations(letter, verdict.path, verdict.findings)
             cited = ", ".join(check.citations) or "nothing cited"
             if check.passed:
                 print(f"  citation check: passed ({cited})")
             else:
                 print(f"  citation check: FAILED, unsupported: {', '.join(check.unsupported)} (cited: {cited})")
+        if log_error:
+            print(f"appeal draft log not written: {log_error}", file=sys.stderr)
+            return 3
         print(f"  draft log: {draft_log}")
     return 0
 
@@ -233,6 +239,7 @@ def _eval(data_dir: Path, out_dir: Path, arm_names: list[str] = ("graph",), draf
     draft_dir = out_dir / f"eval-{stamp}-drafts"
     appeals = {arm: {} for arm in arm_names} if draft else {}  # arm -> case id -> Appeal
     drafts = []  # every drafting call's response
+    draft_calls = []  # the case of every drafting call made
     try:
         unknown = sorted(set(arm_names) - ARM_MODELS.keys())
         if unknown:
@@ -242,18 +249,27 @@ def _eval(data_dir: Path, out_dir: Path, arm_names: list[str] = ("graph",), draf
         _warn_rejected(graph)
         client = _client() if draft or set(arm_names) & LOG_SUFFIXES.keys() else None
         def appeal_for(arm, c, verdict, evidence):
+            reference = None
             try:
-                # What a letter for this claim may cite: the graph's path on the case's gold evidence,
-                # empty when the graph wouldn't overturn the claim. Every arm's letter is checked against it.
+                # What a letter for this claim may cite: what the graph's verdict on the case's gold
+                # evidence asserts, nothing when it wouldn't overturn the claim. Every arm's letter is
+                # checked against it, so it must agree with the gold label.
                 gold = adjudicate(c.case.claim, c.case.evidence, graph)
-                reference = gold.path if gold.outcome == "overturnable" else ()
-                response = ap.draft(c.case.claim, verdict.path, ap.quotes(evidence), client)
+                if gold.outcome != c.gold["verdict"]:
+                    raise EvalError(f"the graph's verdict on the gold evidence is {gold.outcome}, but the "
+                                    f"gold label is {c.gold['verdict']}: no reference to check against")
+                overturned = gold.outcome == "overturnable"
+                reference_path, reference_findings = (gold.path, gold.findings) if overturned else ((), ())
+                reference = ap.established(reference_path, reference_findings)
+                draft_calls.append(c.case.id)
+                response = ap.draft(c.case.claim, verdict.path, ap.quotes(evidence), client, findings=verdict.findings)
                 drafts.append(response)
                 _save_extraction(draft_dir, f"{arm}-{c.case.id}", response)
             except Exception as e:  # a failed draft is counted; it must not change the verdict's score
-                return ap.Appeal((), error=f"{type(e).__name__}: {e}")
+                return ap.Appeal(reference, error=f"{type(e).__name__}: {e}")
             letter = ap.letter_of(response)
-            return ap.Appeal(ap.established(reference), letter, ap.check_citations(letter, reference) if letter else None)
+            check = ap.check_citations(letter, reference_path, reference_findings) if letter else None
+            return ap.Appeal(reference, letter, check)
 
         def drafting(arm, decide):
             def run(c):
@@ -345,7 +361,7 @@ def _eval(data_dir: Path, out_dir: Path, arm_names: list[str] = ("graph",), draf
              "arms": {name: {"outcome": r.outcome, "correct": r.correct, "why": list(r.why)}
                       for name, r in d.arms.items()}}
             for d in report.disagreements],
-        **({"drafting": _sent_config(drafts, sum(a["drafted"] for a in tallies.values()))} if draft else {}),
+        **({"drafting": _sent_config(drafts, len(draft_calls))} if draft else {}),
     }
     out_dir.mkdir(parents=True, exist_ok=True)
     path = out_dir / f"eval-{stamp}.json"
@@ -362,7 +378,7 @@ def _eval(data_dir: Path, out_dir: Path, arm_names: list[str] = ("graph",), draf
                   file=sys.stderr)
     if draft:
         attempted = sum(a["drafted"] for a in tallies.values())
-        print(f"drafting: {attempted} model calls, {len(drafts)} responses")
+        print(f"drafting: {len(draft_calls)} model calls, {len(drafts)} responses")
         if drafts:
             print(f"  logs: {draft_dir}")
         no_letter = sum(a["without_letter"] for a in tallies.values())
@@ -381,7 +397,8 @@ def _eval(data_dir: Path, out_dir: Path, arm_names: list[str] = ("graph",), draf
 
 def _appeal_record(a) -> dict:
     return {"letter": a.letter, "citations": list(a.check.citations) if a.check else [],
-            "unsupported": list(a.check.unsupported) if a.check else [], "reference": list(a.reference),
+            "unsupported": list(a.check.unsupported) if a.check else [],
+            "reference": list(a.reference) if a.reference is not None else None,
             "error": a.error}
 
 

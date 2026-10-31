@@ -77,7 +77,7 @@ First runs, 2026-10-31, 20 cases (labels await review in #15):
 
 `uv run rcm-ai eval --arms graph,extracted,llm-only` adds the comparison arm. `claude-opus-5-5` reads the claim, the note and the curated criteria of the LCD that lists the billed item (the text the extractor gets), and returns the verdict itself. It gets nothing the graph decides: not the covered-diagnosis list, the linked article, the ICD-10-CM terminology or Excludes1 rules. Its prompt, `src/rcm_ai/prompts/llm_only_verdict.md`, defines the verdicts with the three label rules from `data/eval/README.md` word for word, scope included. Model, effort and `max_tokens` are the extractor's, and its output schema is the extractor's plus `verdict` and `reasons`. Every case gets a model call.
 - Its verdict is taken as given. Its reasons become the verdict's reasons, or, for overturnable, path hops with no source: the model's assertion, not a row in a source file.
-- Its evidence fields are logged but not checked or scored. Comparing how well each arm's claims are grounded is #11.
+- Its evidence fields are logged but not checked. With `--draft`, they are what its appeal drafter quotes (see below).
 - A refusal, a truncated response, or output that isn't a verdict with reasons hands the claim off (`no_verdict`), as a rejected extraction does in the extracted arm. Each model-calling arm's record counts stop reasons and the responses it couldn't use, and eval warns about the latter.
 - It keeps its own run record, and its logs go to `eval-<stamp>-llm-only/`.
 
@@ -96,11 +96,11 @@ Runs on 2026-10-31, each marked dirty only by the untracked `docs/diagrams/`:
   - the cases and gold labels were drafted by the same model family the baseline runs on;
   - the notes are short and test one issue each;
   - each arm ran once on 20 cases;
-  - the eval scores the verdict, not its grounding: the baseline's overturnable justifications cite nothing a reviewer can check.
+  - these runs score the verdict, not its grounding: the baseline's overturnable justifications cite nothing a reviewer can check. The citation check below scores grounding.
 
 ### Appeal drafting and citation checking
 
-`uv run rcm-ai triage <case> --draft` drafts an appeal for an overturnable verdict, prints it, and checks its citations against the verdict's path. `uv run rcm-ai eval --arms graph,extracted,llm-only --draft` does the same for every overturnable verdict of every arm. Drafting calls the model, so it's opt-in; without `--draft`, `triage` and `eval` make no drafting call.
+`uv run rcm-ai triage <case> --draft` drafts an appeal for an overturnable verdict, prints it, and checks its citations against the verdict's path. `uv run rcm-ai eval --arms graph,extracted,llm-only --draft` does the same for every overturnable verdict of every arm. Drafting calls the model, so it's opt-in; without `--draft`, `triage` and `eval` make no drafting call. When the drafting call fails, `triage` still prints the verdict, reports the failure on stderr and exits 3.
 - **Drafter:** `claude-opus-5-5` with the extractor's settings and `src/rcm_ai/prompts/draft_appeal.md`. It gets the claim, the path's statements and the note's quotes (diagnoses unlabeled by code, then each criterion met), and returns one `letter` field. Every arm uses the same drafter with its own verdict and evidence: the graph arm the case's evidence, the extracted arm its validated extraction, the baseline its own reasons and unchecked evidence fields. The steps carry no source file names, so every arm's input reads alike.
 - **Checker:** deterministic. It reads every ICD-10-CM code (with or without its dot), HCPCS code (with or without modifiers), LCD and article ID (as `L33822` or "LCD 33822"), NCD ID, and CPT code labeled "CPT" in the letter, and fails the letter on any its reference path doesn't establish. A path establishes what its hop statements name, not their source anchors or asides.
   - In `triage`, the reference is the verdict's own path.
