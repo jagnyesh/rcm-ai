@@ -433,7 +433,7 @@ def test_one_any_of_branch_not_met_with_the_other_unmentioned_is_not_documented(
 
 def test_a_conflict_outranks_a_documented_failure():
     case = _case()  # 4a both met and not met; visit not met
-    evidence = _with(case.evidence, not_met=["cgm-4a-insulin", "cgm-5-visit"])
+    evidence = _with(case.evidence, not_met=["cgm-4a-insulin", "cgm-5-visit"], drop={"cgm-5-visit"})
 
     assert _outcome_and_reasons(case.claim, evidence) == ("needs_human", ["criterion_conflicting"])
 
