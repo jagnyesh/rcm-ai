@@ -53,7 +53,6 @@
         "cgm-4-glycemic-control": "cgm-4a-insulin",
         "cgm-5-visit": "documented"
       }
-    },
-    "known_system_gap": "O24 codes are not in the ICD-10-CM slice yet, so the system returns needs_human (#6)."
+    }
   }
 }

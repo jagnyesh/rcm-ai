@@ -17,6 +17,7 @@ from rdflib.namespace import SKOS
 
 from xml.sax.saxutils import escape
 
+from rcm_ai.codes import is_hcpcs_level2, is_icd10cm
 from rcm_ai.icd10cm import CodeRef, parse_tabular
 from rcm_ai.provenance import verify_fixtures
 from rcm_ai.schemas import Source
@@ -29,12 +30,36 @@ ARTICLE = Namespace("urn:article:")
 CRITERION = Namespace("urn:criterion:")
 EXCLUDES1 = Namespace("urn:excludes1:")
 
-TABULAR = "cdc/icd10cm-tabular-2027-E08-E13.xml"
-LCD_HCPCS = "cms/lcd_x_hcpc_code-L33822-v70.csv"
-LCD_RELATED = "cms/lcd_related_documents-L33822-v70.csv"
-LCD_TEXT = "cms/lcd-L33822-v70.csv"
-ARTICLE_COVERED = "cms/article_x_icd10_covered-A52464-v65.csv"
-CRITERIA = "L33822-cgm-criteria.json"
+TABULAR = "icd10cm_tabular"
+# Each MCD export table a fixture can hold, with the columns that key one of its rows.
+CSV_KEYS = {
+    "lcd": ("lcd_id", "lcd_version"),
+    "lcd_x_hcpc_code": ("lcd_id", "lcd_version", "hcpc_code_id", "hcpc_code_group"),
+    "lcd_related_documents": ("lcd_id", "lcd_version", "related_num"),
+    "article_x_icd10_covered": ("article_id", "article_version", "icd10_code_id", "icd10_covered_group"),
+}
+
+
+class IngestError(Exception):
+    pass
+
+
+@dataclass(frozen=True)
+class Rejected:
+    line: int
+    reason: str
+
+
+@dataclass(frozen=True)
+class SourceLoad:
+    """One fixture's ingest: records read, rows rejected (with why), rows loaded, and loaded
+    records found in the graph afterwards, which must equal loaded."""
+    path: str
+    table: str
+    parsed: int
+    rejected: tuple[Rejected, ...]
+    loaded: int
+    in_graph: int
 
 
 def normalize_lcd_text(raw: str) -> str:
@@ -89,8 +114,9 @@ class Criterion:
 
 
 class CoverageGraph:
-    def __init__(self, dataset: Dataset):
+    def __init__(self, dataset: Dataset, ingest: tuple[SourceLoad, ...] = ()):
         self._ds = dataset
+        self.ingest = ingest
 
     def _source(self, g) -> Source:
         meta = {p: o for p, o in self._ds.default_graph.predicate_objects(g)}
@@ -104,7 +130,7 @@ class CoverageGraph:
         return str(rows[0].t) if rows else None
 
     def ancestors(self, code: str) -> list[str]:
-        """The code itself, then each broader concept up to its category."""
+        """The code itself, then each broader concept: category, then section and chapter when loaded."""
         chain = [code]
         while True:
             rows = list(self._ds.query(
@@ -140,6 +166,11 @@ class CoverageGraph:
             initNs={"rcm": RCM}, initBindings={"hcpcs": HCPCS[hcpcs]},
         )
         return sorted(_local(r.lcd) for r in rows)
+
+    def covered_list_incomplete(self) -> bool:
+        """Whether any covered-diagnosis row was rejected at ingest, so a code missing from the
+        covered list may only be missing from what loaded."""
+        return any(s.rejected for s in self.ingest if s.table == "article_x_icd10_covered")
 
     def on_covered_list(self, dx: str) -> bool:
         """Whether any loaded article lists the code, whether or not the code is in the terminology slice."""
@@ -181,16 +212,18 @@ class CoverageGraph:
             for r in rows
         ]
 
-    def applicability(self, lcd: str, hcpcs: str) -> tuple[str, Source] | None:
+    def applicability(self, lcd: str, hcpcs: str) -> tuple[str, str, Source] | None:
+        """(label, quote, source) of the curated criteria that apply to this item under this LCD."""
         rows = list(self._ds.query(
             """
-            SELECT ?quote ?g WHERE {
-              GRAPH ?g { ?lcd rcm:criteriaApplyTo ?hcpcs . ?lcd rcm:applicabilityQuote ?quote }
+            SELECT ?label ?quote ?g WHERE {
+              GRAPH ?g { ?lcd rcm:criteriaApplyTo ?hcpcs . ?lcd rcm:applicabilityQuote ?quote ;
+                         rcm:applicabilityLabel ?label }
             }""",
             initNs={"rcm": RCM},
             initBindings={"lcd": LCD[lcd], "hcpcs": HCPCS[hcpcs]},
         ))
-        return (str(rows[0].quote), self._source(rows[0].g)) if rows else None
+        return (str(rows[0].label), str(rows[0].quote), self._source(rows[0].g)) if rows else None
 
     def _criterion(self, crit) -> Criterion:
         rows = list(self._ds.query(
@@ -224,10 +257,46 @@ class CoverageGraph:
         return sorted((self._criterion(c) for c in crits), key=lambda c: c.id)
 
 
+def _reject_reason(table: str, row: dict) -> str | None:
+    missing = [k for k in CSV_KEYS[table] if not row.get(k)]
+    if missing:
+        return f"missing {', '.join(missing)}"
+    if table == "article_x_icd10_covered" and not is_icd10cm(row["icd10_code_id"]):
+        return f"icd10_code_id {row['icd10_code_id']!r} is not an ICD-10-CM code"
+    if table == "lcd_x_hcpc_code" and not is_hcpcs_level2(row["hcpc_code_id"]):
+        return f"hcpc_code_id {row['hcpc_code_id']!r} is not a HCPCS Level II code"
+    if table == "lcd_related_documents" and not row["r_article_id"]:
+        return "links no article (an LCD or NCD link, which the graph does not model)"
+    return None
+
+
+def _tabular_lines(text_lines: list[str]) -> dict[str, int]:
+    """Line of each diag code, section ("section-E08-E13") and chapter ("chapter-15") in a tabular file."""
+    lines = {}
+    for n, text in enumerate(text_lines, start=1):
+        if m := re.search(r'<section id="([^"]+)">', text):
+            lines[f"section-{m.group(1)}"] = n
+        elif m := re.search(r"<name>([^<]+)</name>", text):
+            chapter = n > 1 and text_lines[n - 2].strip() == "<chapter>"
+            lines[f"chapter-{m.group(1)}" if chapter else m.group(1)] = n
+    return lines
+
+
 def build_graph(data_dir: Path) -> CoverageGraph:
+    """Load every manifest fixture by its table, then every curated criteria file.
+
+    Adding an LCD means adding its fixture rows and a curated criteria file; no code changes.
+    Before load: manifest hashes and record counts, and key uniqueness per table. After load:
+    every loaded record has its facts in the graph.
+    """
     fixtures = Path(data_dir) / "fixtures"
-    versions = {r.path: r.version for r in verify_fixtures(fixtures)}
+    sources = verify_fixtures(fixtures)
+    versions = {r.path: r.version for r in sources}
+    unknown = sorted({r.table for r in sources} - {TABULAR, *CSV_KEYS})
+    if unknown:
+        raise IngestError(f"manifest names tables the graph cannot load: {', '.join(unknown)}")
     ds = Dataset()
+    loads: list[tuple[str, str, int, tuple[Rejected, ...]]] = []
 
     def graph_for(path: str, line: int):
         iri = URIRef(f"urn:src:{path}#L{line}")
@@ -236,71 +305,157 @@ def build_graph(data_dir: Path) -> CoverageGraph:
         ds.default_graph.add((iri, RCM.line, Literal(line)))
         return ds.graph(iri)
 
-    tabular = fixtures / TABULAR
-    text_lines = tabular.read_text(encoding="utf-8").splitlines()
-    lines = {}
-    for n, text in enumerate(text_lines, start=1):
-        m = re.search(r"<name>([^<]+)</name>", text)
-        if m:
-            lines[m.group(1)] = n
+    defined_in: dict[str, str] = {}
+    for src in (s for s in sources if s.table == TABULAR):
+        text_lines = (fixtures / src.path).read_text(encoding="utf-8").splitlines()
+        lines = _tabular_lines(text_lines)
 
-    def line_after(code: str, needle: str) -> int:
-        """First line at or below a code's <name> line that contains needle."""
-        start = lines[code]
-        return next(n for n in range(start, len(text_lines) + 1) if needle in text_lines[n - 1])
+        def line_after(code: str, *needles: str) -> int:
+            """The line of the last needle, searching each from where the one before it was found,
+            starting at the code's own line."""
+            n = lines[code]
+            for needle in needles:
+                n = next(i for i in range(n, len(text_lines) + 1) if needle in text_lines[i - 1])
+            return n
 
-    tab = parse_tabular(tabular)
-    for concept in tab.concepts.values():
-        if concept.kind == "seventh":
-            # Source the expanded code to the sevenChrDef extension that defines its 7th character;
-            # the code itself never appears in the file, so the anchor is that extension.
-            anchor = f'<extension char="{concept.code[-1]}">'
-            line = line_after(concept.seventh_defined_at, anchor)
+        try:
+            tab = parse_tabular(fixtures / src.path)
+        except ValueError as e:
+            raise IngestError(f"{src.path}: {e}") from e
+        for code in tab.concepts:
+            if code in defined_in:
+                raise IngestError(f"{src.path}: {code} is already defined in {defined_in[code]}")
+            defined_in[code] = src.path
+        for concept in tab.concepts.values():
+            if concept.kind == "seventh":
+                # Source the expanded code to the sevenChrDef extension that defines its 7th character;
+                # the code itself never appears in the file, so the anchor is that extension.
+                anchor = f'<extension char="{concept.code[-1]}">'
+                line = line_after(concept.seventh_defined_at, anchor)
+            else:
+                anchor, line = concept.code, lines[concept.code]
+            g = graph_for(src.path, line)
+            g.add((ICD[concept.code], SKOS.prefLabel, Literal(concept.title)))
+            g.add((ICD[concept.code], RCM.kind, Literal(concept.kind)))
+            g.add((ICD[concept.code], RCM.sourceAnchor, Literal(anchor)))
+            if concept.seventh_defined_at:
+                g.add((ICD[concept.code], RCM.seventhFrom, ICD[concept.seventh_defined_at]))
+            if concept.parent:
+                g.add((ICD[concept.code], SKOS.broader, ICD[concept.parent]))
+        for i, rule in enumerate(tab.excludes1):
+            # Anchor on the owner's <excludes1> first, so an identical Excludes2 note can't claim it.
+            g = graph_for(src.path, line_after(rule.code, "<excludes1>", f"<note>{escape(rule.note)}</note>"))
+            node = EXCLUDES1[f"{rule.code}-{i}"]
+            g.add((ICD[rule.code], RCM.excludes1, node))
+            g.add((node, RCM.refKind, Literal(rule.target.kind)))
+            g.add((node, RCM.refStart, Literal(rule.target.start)))
+            if rule.target.end:
+                g.add((node, RCM.refEnd, Literal(rule.target.end)))
+            g.add((node, RCM.note, Literal(rule.note)))
+        loads.append((src.path, TABULAR, sum(1 for c in tab.concepts.values() if c.kind == "diag"), ()))
+
+    lcd_records: dict[str, tuple[str, int, dict]] = {}
+    # The graph names LCDs and articles without their version, so one version of each may load.
+    doc_versions: dict[str, set[str]] = {}
+    covered_groups: dict[str, set[str]] = {}
+    for table in CSV_KEYS:  # lcd rows first, so curated criteria can find their record
+        seen: dict[tuple, str] = {}
+        for src in (s for s in sources if s.table == table):
+            parsed, rejected = 0, []
+            for line, row in _csv_records(fixtures / src.path):
+                parsed += 1
+                key = tuple(row.get(k) for k in CSV_KEYS[table])
+                if all(key):
+                    if key in seen:
+                        named = ", ".join(f"{k}={v}" for k, v in zip(CSV_KEYS[table], key))
+                        raise IngestError(f"{src.path}:{line}: duplicate key {named} (first at {seen[key]})")
+                    seen[key] = f"{src.path}:{line}"
+                if table == "article_x_icd10_covered" and row.get("icd10_covered_group"):
+                    # Counted before rejection, so a group whose rows all fail still shows up.
+                    covered_groups.setdefault(f"A{row['article_id']}", set()).add(row["icd10_covered_group"])
+                if reason := _reject_reason(table, row):
+                    rejected.append(Rejected(line, reason))
+                    continue
+                doc = f"A{row['article_id']}" if table == "article_x_icd10_covered" else f"L{row['lcd_id']}"
+                doc_versions.setdefault(doc, set()).add(row["article_version" if doc[0] == "A" else "lcd_version"])
+                g = graph_for(src.path, line)
+                if table == "lcd":
+                    lcd = LCD["L" + row["lcd_id"]]
+                    g.add((lcd, RCM.title, Literal(row.get("title", ""))))
+                    lcd_records[f"L{row['lcd_id']}"] = (src.path, line, row)
+                elif table == "lcd_x_hcpc_code":
+                    g.add((LCD["L" + row["lcd_id"]], RCM.listsHcpcs, HCPCS[row["hcpc_code_id"]]))
+                elif table == "lcd_related_documents":
+                    article = ARTICLE["A" + row["r_article_id"]]
+                    g.add((LCD["L" + row["lcd_id"]], RCM.relatedArticle, article))
+                    # The link names the article version it was made against, which can lag the
+                    # article version whose covered codes we load; keep it so the path can show it.
+                    g.add((article, RCM.citedVersion, Literal(row["r_article_version"])))
+                else:
+                    g.add((ARTICLE["A" + row["article_id"]], RCM.coversDiagnosis, ICD[row["icd10_code_id"]]))
+            if parsed and len(rejected) == parsed:
+                raise IngestError(f"{src.path}: 0 of {parsed} rows loaded; first rejection: "
+                                  f"line {rejected[0].line}: {rejected[0].reason}")
+            loads.append((src.path, table, parsed, tuple(rejected)))
+    for doc, found in sorted(doc_versions.items()):
+        if len(found) > 1:
+            raise IngestError(f"{doc}: versions {', '.join(sorted(found))} loaded together; load one version")
+    for doc, groups in sorted(covered_groups.items()):
+        # Groups can mean "one code from group 1 plus one from group 2"; a flat covered list
+        # would then overturn a claim that has only half the pair.
+        if len(groups) > 1:
+            raise IngestError(f"{doc}: covered codes in groups {', '.join(sorted(groups))}; "
+                              "multi-group articles are not modeled")
+
+    criterion_files: dict[str, str] = {}
+    for path in sorted((Path(data_dir) / "curated").glob("*.json")):
+        _add_curated(path, lcd_records, criterion_files, graph_for)
+
+    report = []
+    for path, table, parsed, rejected in loads:
+        graphs = list(ds.default_graph.subjects(RCM.path, Literal(path)))
+        if table == TABULAR:
+            in_graph = len({s for g in graphs for s in ds.graph(g).subjects(RCM.kind, Literal("diag"))})
         else:
-            anchor, line = concept.code, lines[concept.code]
-        g = graph_for(TABULAR, line)
-        g.add((ICD[concept.code], SKOS.prefLabel, Literal(concept.title)))
-        g.add((ICD[concept.code], RCM.sourceAnchor, Literal(anchor)))
-        if concept.seventh_defined_at:
-            g.add((ICD[concept.code], RCM.seventhFrom, ICD[concept.seventh_defined_at]))
-        if concept.parent:
-            g.add((ICD[concept.code], SKOS.broader, ICD[concept.parent]))
-    for i, rule in enumerate(tab.excludes1):
-        g = graph_for(TABULAR, line_after(rule.code, f"<note>{escape(rule.note)}</note>"))
-        node = EXCLUDES1[f"{rule.code}-{i}"]
-        g.add((ICD[rule.code], RCM.excludes1, node))
-        g.add((node, RCM.refKind, Literal(rule.target.kind)))
-        g.add((node, RCM.refStart, Literal(rule.target.start)))
-        if rule.target.end:
-            g.add((node, RCM.refEnd, Literal(rule.target.end)))
-        g.add((node, RCM.note, Literal(rule.note)))
+            in_graph = sum(1 for g in graphs if len(ds.graph(g)))
+        s = SourceLoad(path, table, parsed, rejected, parsed - len(rejected), in_graph)
+        if s.in_graph != s.loaded:
+            raise IngestError(f"{path}: {s.loaded} records loaded but {s.in_graph} found in the graph")
+        report.append(s)
+    return CoverageGraph(ds, tuple(report))
 
-    for line, row in _csv_records(fixtures / LCD_HCPCS):
-        graph_for(LCD_HCPCS, line).add(
-            (LCD["L" + row["lcd_id"]], RCM.listsHcpcs, HCPCS[row["hcpc_code_id"]])
-        )
-    for line, row in _csv_records(fixtures / LCD_RELATED):
-        if row["r_article_id"]:
-            g = graph_for(LCD_RELATED, line)
-            article = ARTICLE["A" + row["r_article_id"]]
-            g.add((LCD["L" + row["lcd_id"]], RCM.relatedArticle, article))
-            # The link names the article version it was made against, which can lag the
-            # article version whose covered codes we load; keep it so the path can show it.
-            g.add((article, RCM.citedVersion, Literal(row["r_article_version"])))
-    for line, row in _csv_records(fixtures / ARTICLE_COVERED):
-        graph_for(ARTICLE_COVERED, line).add(
-            (ARTICLE["A" + row["article_id"]], RCM.coversDiagnosis, ICD[row["icd10_code_id"]])
-        )
 
-    curated = json.loads((Path(data_dir) / "curated" / CRITERIA).read_text())
-    (lcd_line, _), = _csv_records(fixtures / curated["source"])
-    g = graph_for(curated["source"], lcd_line)
+def _add_curated(path: Path, lcd_records: dict, criterion_files: dict[str, str], graph_for) -> None:
+    curated = json.loads(path.read_text())
+    if curated["lcd"] not in lcd_records:
+        raise IngestError(f"{path.name}: no loaded LCD record for {curated['lcd']}")
+    source, line, row = lcd_records[curated["lcd"]]
+    if source != curated["source"]:
+        raise IngestError(f"{path.name}: {curated['lcd']} is loaded from {source}, not {curated['source']}")
+    text = normalize_lcd_text(row[curated["column"]])
+
+    def quotes(c):
+        yield c["quote"]
+        for sub in c.get("any_of", []):
+            yield from quotes(sub)
+
+    missing = [q for q in [curated["applies_to"]["quote"], *(q for c in curated["criteria"] for q in quotes(c))]
+               if q not in text]
+    if missing:
+        raise IngestError(f"{path.name}: quotes not in the {curated['column']} text of {source}: {missing}")
+
+    g = graph_for(source, line)
     lcd = LCD[curated["lcd"]]
+    g.add((lcd, RCM.applicabilityLabel, Literal(curated["applies_to"]["label"])))
     g.add((lcd, RCM.applicabilityQuote, Literal(curated["applies_to"]["quote"])))
     for code in curated["applies_to"]["hcpcs"]:
         g.add((lcd, RCM.criteriaApplyTo, HCPCS[code]))
 
     def add_criterion(c: dict):
+        # Criterion IRIs carry no LCD, so a reused id would merge two LCDs' criteria.
+        if c["id"] in criterion_files:
+            raise IngestError(f"{path.name}: criterion id {c['id']} is already defined in {criterion_files[c['id']]}")
+        criterion_files[c["id"]] = path.name
         node = CRITERION[c["id"]]
         g.add((node, RCM.quote, Literal(c["quote"])))
         if "satisfied_by" in c:
@@ -312,4 +467,3 @@ def build_graph(data_dir: Path) -> CoverageGraph:
 
     for c in curated["criteria"]:
         g.add((lcd, RCM.requires, add_criterion(c)))
-    return CoverageGraph(ds)

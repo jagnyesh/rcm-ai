@@ -8,17 +8,23 @@ from pathlib import Path
 
 from rcm_ai.adjudicate import adjudicate
 from rcm_ai.evaluate import EvalError, load_eval_set, run_eval
-from rcm_ai.graph import build_graph
+from rcm_ai.graph import IngestError, build_graph
+from rcm_ai.provenance import ProvenanceError
 from rcm_ai.schemas import SchemaError, load_case
 
 
 def _triage(case_path: Path, data_dir: Path) -> int:
     try:
         case = load_case(case_path)
-        verdict = adjudicate(case.claim, case.evidence, build_graph(data_dir))
+        graph = build_graph(data_dir)
+        verdict = adjudicate(case.claim, case.evidence, graph)
     except SchemaError as e:
         print(f"rejected: {e}", file=sys.stderr)
         return 2
+    except (IngestError, ProvenanceError) as e:
+        print(f"ingest failed: {e}", file=sys.stderr)
+        return 2
+    _warn_rejected(graph)
     print(f"{case.id}: {verdict.outcome}")
     for r in verdict.reasons:
         print(f"  reason ({r.kind}): {r.statement}")
@@ -34,6 +40,27 @@ def _triage(case_path: Path, data_dir: Path) -> int:
         if f.source:
             print(f"     {data_dir / 'fixtures' / f.source.path}:{f.source.line}  [{f.source.version}]")
             print(f"     look for: {f.anchor}")
+    return 0
+
+
+def _warn_rejected(graph) -> None:
+    rejected = sum(len(s.rejected) for s in graph.ingest)
+    if rejected:
+        print(f"warning: ingest rejected {rejected} source row{'s' if rejected > 1 else ''}; "
+              "run `rcm-ai ingest` to see them", file=sys.stderr)
+
+
+def _ingest(data_dir: Path) -> int:
+    try:
+        graph = build_graph(data_dir)
+    except (IngestError, ProvenanceError) as e:
+        print(f"ingest failed: {e}", file=sys.stderr)
+        return 2
+    for s in graph.ingest:
+        print(f"{s.path}  [{s.table}]  parsed {s.parsed}  rejected {len(s.rejected)}  "
+              f"loaded {s.loaded}  in graph {s.in_graph}")
+        for r in s.rejected:
+            print(f"    line {r.line}: {r.reason}")
     return 0
 
 
@@ -61,9 +88,10 @@ def _eval(data_dir: Path, out_dir: Path) -> int:
     try:
         eval_set = load_eval_set(data_dir / "eval")
         graph = build_graph(data_dir)
+        _warn_rejected(graph)
         arms = {"graph": lambda c: adjudicate(c.case.claim, c.case.evidence, graph)}
         report = run_eval(eval_set.cases, arms)
-    except EvalError as e:
+    except (EvalError, IngestError, ProvenanceError) as e:
         print(f"eval failed: {e}", file=sys.stderr)
         return 2
     print(f"eval: {len(eval_set.cases)} cases ran (expected {eval_set.expected})")
@@ -113,7 +141,11 @@ def main(argv: list[str] | None = None) -> int:
     ev = sub.add_parser("eval", help="score the arms against the locked eval set")
     ev.add_argument("--data", type=Path, default=Path("data"))
     ev.add_argument("--out", type=Path, default=Path("eval-results"))
+    ing = sub.add_parser("ingest", help="load the sources and report per-source record counts")
+    ing.add_argument("--data", type=Path, default=Path("data"))
     args = parser.parse_args(argv)
+    if args.command == "ingest":
+        return _ingest(args.data)
     if args.command == "eval":
         return _eval(args.data, args.out)
     return _triage(args.case, args.data)

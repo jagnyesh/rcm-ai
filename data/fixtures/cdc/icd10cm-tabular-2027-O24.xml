@@ -1,0 +1,310 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Verbatim excerpt from CDC NCHS ICD-10-CM FY2027 tabular XML: the chapter 15 header, the section O20-O29 header and category O24; see data/fixtures/MANIFEST.json. -->
+<ICD10CM.tabular>
+  <chapter>
+    <name>15</name>
+    <desc>Pregnancy, childbirth and the puerperium (O00-O9A)</desc>
+    <notes>
+      <note>CODES FROM THIS CHAPTER ARE FOR USE ONLY ON MATERNAL RECORDS, NEVER ON NEWBORN RECORDS</note>
+      <note>Codes from this chapter are for use for conditions related to or aggravated by the pregnancy, childbirth, or by the puerperium (maternal causes or obstetric causes)</note>
+      <note>Trimesters are counted from the first day of the last menstrual period.  They are defined as follows:</note>
+      <note>1st trimester- less than 14 weeks 0 days</note>
+      <note>2nd trimester- 14 weeks 0 days to less than 28 weeks 0 days</note>
+      <note>3rd trimester- 28 weeks 0 days until delivery</note>
+    </notes>
+    <useAdditionalCode>
+      <note>code, if applicable, from category Z3A, Weeks of gestation, to identify the specific week of the pregnancy, if known.</note>
+    </useAdditionalCode>
+    <excludes1>
+      <note>supervision of normal pregnancy (Z34.-)</note>
+    </excludes1>
+    <excludes2>
+      <note>mental and behavioral disorders associated with the puerperium (F53.-)</note>
+      <note>obstetrical tetanus (A34)</note>
+      <note>postpartum necrosis of pituitary gland (E23.0)</note>
+      <note>puerperal osteomalacia (M83.0)</note>
+    </excludes2>
+    <section id="O20-O29">
+      <desc>Other maternal disorders predominantly related to pregnancy (O20-O29)</desc>
+      <excludes2>
+        <note>maternal care related to the fetus and amniotic cavity and possible delivery problems (O30-O48)</note>
+        <note>maternal diseases classifiable elsewhere but complicating pregnancy, labor and delivery, and the puerperium (O98-O99)</note>
+      </excludes2>
+      <diag>
+        <name>O24</name>
+        <desc>Diabetes mellitus in pregnancy, childbirth, and the puerperium</desc>
+        <diag>
+          <name>O24.0</name>
+          <desc>Pre-existing type 1 diabetes mellitus, in pregnancy, childbirth and the puerperium</desc>
+          <inclusionTerm>
+            <note>Juvenile onset diabetes mellitus, in pregnancy, childbirth and the puerperium</note>
+            <note>Ketosis-prone diabetes mellitus in pregnancy, childbirth and the puerperium</note>
+          </inclusionTerm>
+          <useAdditionalCode>
+            <note>code from category E10 to further identify any manifestations</note>
+          </useAdditionalCode>
+          <diag>
+            <name>O24.01</name>
+            <desc>Pre-existing type 1 diabetes mellitus, in pregnancy</desc>
+            <diag>
+              <name>O24.011</name>
+              <desc>Pre-existing type 1 diabetes mellitus, in pregnancy, first trimester</desc>
+            </diag>
+            <diag>
+              <name>O24.012</name>
+              <desc>Pre-existing type 1 diabetes mellitus, in pregnancy, second trimester</desc>
+            </diag>
+            <diag>
+              <name>O24.013</name>
+              <desc>Pre-existing type 1 diabetes mellitus, in pregnancy, third trimester</desc>
+            </diag>
+            <diag>
+              <name>O24.019</name>
+              <desc>Pre-existing type 1 diabetes mellitus, in pregnancy, unspecified trimester</desc>
+            </diag>
+          </diag>
+          <diag>
+            <name>O24.02</name>
+            <desc>Pre-existing type 1 diabetes mellitus, in childbirth</desc>
+          </diag>
+          <diag>
+            <name>O24.03</name>
+            <desc>Pre-existing type 1 diabetes mellitus, in the puerperium</desc>
+          </diag>
+        </diag>
+        <diag>
+          <name>O24.1</name>
+          <desc>Pre-existing type 2 diabetes mellitus, in pregnancy, childbirth and the puerperium</desc>
+          <inclusionTerm>
+            <note>Insulin-resistant diabetes mellitus in pregnancy, childbirth and the puerperium</note>
+          </inclusionTerm>
+          <useAdditionalCode>
+            <note>code (for):</note>
+            <note>from category E11 to further identify any manifestations</note>
+            <note>injectable non-insulin antidiabetic drugs (Z79.85)</note>
+            <note>long-term (current) use of insulin (Z79.4)</note>
+          </useAdditionalCode>
+          <diag>
+            <name>O24.11</name>
+            <desc>Pre-existing type 2 diabetes mellitus, in pregnancy</desc>
+            <diag>
+              <name>O24.111</name>
+              <desc>Pre-existing type 2 diabetes mellitus, in pregnancy, first trimester</desc>
+            </diag>
+            <diag>
+              <name>O24.112</name>
+              <desc>Pre-existing type 2 diabetes mellitus, in pregnancy, second trimester</desc>
+            </diag>
+            <diag>
+              <name>O24.113</name>
+              <desc>Pre-existing type 2 diabetes mellitus, in pregnancy, third trimester</desc>
+            </diag>
+            <diag>
+              <name>O24.119</name>
+              <desc>Pre-existing type 2 diabetes mellitus, in pregnancy, unspecified trimester</desc>
+            </diag>
+          </diag>
+          <diag>
+            <name>O24.12</name>
+            <desc>Pre-existing type 2 diabetes mellitus, in childbirth</desc>
+          </diag>
+          <diag>
+            <name>O24.13</name>
+            <desc>Pre-existing type 2 diabetes mellitus, in the puerperium</desc>
+          </diag>
+        </diag>
+        <diag>
+          <name>O24.3</name>
+          <desc>Unspecified pre-existing diabetes mellitus in pregnancy, childbirth and the puerperium</desc>
+          <useAdditionalCode>
+            <note>code (for):</note>
+            <note>from category E11 to further identify any manifestation</note>
+            <note>injectable non-insulin antidiabetic drugs (Z79.85)</note>
+            <note>long-term (current) use of insulin (Z79.4)</note>
+          </useAdditionalCode>
+          <diag>
+            <name>O24.31</name>
+            <desc>Unspecified pre-existing diabetes mellitus in pregnancy</desc>
+            <diag>
+              <name>O24.311</name>
+              <desc>Unspecified pre-existing diabetes mellitus in pregnancy, first trimester</desc>
+            </diag>
+            <diag>
+              <name>O24.312</name>
+              <desc>Unspecified pre-existing diabetes mellitus in pregnancy, second trimester</desc>
+            </diag>
+            <diag>
+              <name>O24.313</name>
+              <desc>Unspecified pre-existing diabetes mellitus in pregnancy, third trimester</desc>
+            </diag>
+            <diag>
+              <name>O24.319</name>
+              <desc>Unspecified pre-existing diabetes mellitus in pregnancy, unspecified trimester</desc>
+            </diag>
+          </diag>
+          <diag>
+            <name>O24.32</name>
+            <desc>Unspecified pre-existing diabetes mellitus in childbirth</desc>
+          </diag>
+          <diag>
+            <name>O24.33</name>
+            <desc>Unspecified pre-existing diabetes mellitus in the puerperium</desc>
+          </diag>
+        </diag>
+        <diag>
+          <name>O24.4</name>
+          <desc>Gestational diabetes mellitus</desc>
+          <inclusionTerm>
+            <note>Diabetes mellitus arising in pregnancy</note>
+            <note>Gestational diabetes mellitus NOS</note>
+          </inclusionTerm>
+          <diag>
+            <name>O24.41</name>
+            <desc>Gestational diabetes mellitus in pregnancy</desc>
+            <diag>
+              <name>O24.410</name>
+              <desc>Gestational diabetes mellitus in pregnancy, diet controlled</desc>
+            </diag>
+            <diag>
+              <name>O24.414</name>
+              <desc>Gestational diabetes mellitus in pregnancy, insulin controlled</desc>
+            </diag>
+            <diag>
+              <name>O24.415</name>
+              <desc>Gestational diabetes mellitus in pregnancy, controlled by oral hypoglycemic drugs</desc>
+              <inclusionTerm>
+                <note>Gestational diabetes mellitus in pregnancy, controlled by oral antidiabetic drugs</note>
+              </inclusionTerm>
+            </diag>
+            <diag>
+              <name>O24.419</name>
+              <desc>Gestational diabetes mellitus in pregnancy, unspecified control</desc>
+            </diag>
+          </diag>
+          <diag>
+            <name>O24.42</name>
+            <desc>Gestational diabetes mellitus in childbirth</desc>
+            <diag>
+              <name>O24.420</name>
+              <desc>Gestational diabetes mellitus in childbirth, diet controlled</desc>
+            </diag>
+            <diag>
+              <name>O24.424</name>
+              <desc>Gestational diabetes mellitus in childbirth, insulin controlled</desc>
+            </diag>
+            <diag>
+              <name>O24.425</name>
+              <desc>Gestational diabetes mellitus in childbirth, controlled by oral hypoglycemic drugs</desc>
+              <inclusionTerm>
+                <note>Gestational diabetes mellitus in childbirth, controlled by oral antidiabetic drugs</note>
+              </inclusionTerm>
+            </diag>
+            <diag>
+              <name>O24.429</name>
+              <desc>Gestational diabetes mellitus in childbirth, unspecified control</desc>
+            </diag>
+          </diag>
+          <diag>
+            <name>O24.43</name>
+            <desc>Gestational diabetes mellitus in the puerperium</desc>
+            <diag>
+              <name>O24.430</name>
+              <desc>Gestational diabetes mellitus in the puerperium, diet controlled</desc>
+            </diag>
+            <diag>
+              <name>O24.434</name>
+              <desc>Gestational diabetes mellitus in the puerperium, insulin controlled</desc>
+            </diag>
+            <diag>
+              <name>O24.435</name>
+              <desc>Gestational diabetes mellitus in puerperium, controlled by oral hypoglycemic drugs</desc>
+              <inclusionTerm>
+                <note>Gestational diabetes mellitus in puerperium, controlled by oral antidiabetic drugs</note>
+              </inclusionTerm>
+            </diag>
+            <diag>
+              <name>O24.439</name>
+              <desc>Gestational diabetes mellitus in the puerperium, unspecified control</desc>
+            </diag>
+          </diag>
+        </diag>
+        <diag>
+          <name>O24.8</name>
+          <desc>Other pre-existing diabetes mellitus in pregnancy, childbirth, and the puerperium</desc>
+          <useAdditionalCode>
+            <note>code (for):</note>
+            <note>from categories E08, E09 and E13 to further identify any manifestation</note>
+            <note>injectable non-insulin antidiabetic drugs (Z79.85)</note>
+            <note>long-term (current) use of insulin (Z79.4)</note>
+          </useAdditionalCode>
+          <diag>
+            <name>O24.81</name>
+            <desc>Other pre-existing diabetes mellitus in pregnancy</desc>
+            <diag>
+              <name>O24.811</name>
+              <desc>Other pre-existing diabetes mellitus in pregnancy, first trimester</desc>
+            </diag>
+            <diag>
+              <name>O24.812</name>
+              <desc>Other pre-existing diabetes mellitus in pregnancy, second trimester</desc>
+            </diag>
+            <diag>
+              <name>O24.813</name>
+              <desc>Other pre-existing diabetes mellitus in pregnancy, third trimester</desc>
+            </diag>
+            <diag>
+              <name>O24.819</name>
+              <desc>Other pre-existing diabetes mellitus in pregnancy, unspecified trimester</desc>
+            </diag>
+          </diag>
+          <diag>
+            <name>O24.82</name>
+            <desc>Other pre-existing diabetes mellitus in childbirth</desc>
+          </diag>
+          <diag>
+            <name>O24.83</name>
+            <desc>Other pre-existing diabetes mellitus in the puerperium</desc>
+          </diag>
+        </diag>
+        <diag>
+          <name>O24.9</name>
+          <desc>Unspecified diabetes mellitus in pregnancy, childbirth and the puerperium</desc>
+          <useAdditionalCode>
+            <note>code (for):</note>
+            <note>from categories E08, E09 and E13 to further identify any manifestation</note>
+            <note>injectable non-insulin antidiabetic drugs (Z79.85)</note>
+            <note>long-term (current) use of insulin (Z79.4)</note>
+          </useAdditionalCode>
+          <diag>
+            <name>O24.91</name>
+            <desc>Unspecified diabetes mellitus in pregnancy</desc>
+            <diag>
+              <name>O24.911</name>
+              <desc>Unspecified diabetes mellitus in pregnancy, first trimester</desc>
+            </diag>
+            <diag>
+              <name>O24.912</name>
+              <desc>Unspecified diabetes mellitus in pregnancy, second trimester</desc>
+            </diag>
+            <diag>
+              <name>O24.913</name>
+              <desc>Unspecified diabetes mellitus in pregnancy, third trimester</desc>
+            </diag>
+            <diag>
+              <name>O24.919</name>
+              <desc>Unspecified diabetes mellitus in pregnancy, unspecified trimester</desc>
+            </diag>
+          </diag>
+          <diag>
+            <name>O24.92</name>
+            <desc>Unspecified diabetes mellitus in childbirth</desc>
+          </diag>
+          <diag>
+            <name>O24.93</name>
+            <desc>Unspecified diabetes mellitus in the puerperium</desc>
+          </diag>
+        </diag>
+      </diag>
+    </section>
+  </chapter>
+</ICD10CM.tabular>

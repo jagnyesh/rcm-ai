@@ -14,6 +14,7 @@ def test_every_committed_fixture_matches_its_manifest_entry():
 
     assert [r.path for r in records] == [
         "cdc/icd10cm-tabular-2027-E08-E13.xml",
+        "cdc/icd10cm-tabular-2027-O24.xml",
         "cms/article_x_icd10_covered-A52464-v65.csv",
         "cms/lcd_x_hcpc_code-L33822-v70.csv",
         "cms/lcd-L33822-v70.csv",
@@ -48,7 +49,7 @@ def test_macos_finder_metadata_in_the_fixtures_dir_is_ignored(tmp_path):
     fixtures = _copy_fixtures(tmp_path)
     (fixtures / "cdc" / ".DS_Store").write_bytes(b"\x00")
 
-    assert len(verify_fixtures(fixtures)) == 5
+    assert len(verify_fixtures(fixtures)) == 6
 
 
 # Regression: ISSUE-002 — manifest record_count was never checked
