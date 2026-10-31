@@ -33,7 +33,7 @@ def _path(case_id):
 EV01 = _path("ev-01")  # E2103, LCD L33822, article A52464, E11.65
 
 
-# The checker: deterministic, a pure function of the letter and the reference path.
+# The checker: deterministic, a pure function of the letter and the reference verdict's path and findings.
 
 def test_a_letter_citing_only_codes_and_ids_in_the_path_passes():
     letter = ("We appeal the denial of E2103 under LCD L33822 and its policy article A52464. "
@@ -117,11 +117,31 @@ def test_a_made_up_code_sharing_a_path_codes_characters_fails(cited):
     assert ap.check_citations(f"Diagnosis {cited} applies.", EV01).unsupported == (cited,)
 
 
+@pytest.mark.parametrize("cited", ["E2103.0", "E11.65.1", "L33822.1", "A52464.12"])
+def test_a_path_code_with_a_dotted_suffix_is_another_code(cited):
+    assert ap.check_citations(f"Per {cited}, coverage applies.", EV01).unsupported == (cited,)
+
+
 def test_a_code_written_two_ways_is_counted_once():
     check = ap.check_citations("Insulin use Z79.4 (Z794). Item E2103, billed as E2103-KX.", EV01)
 
     assert check.citations == ("Z79.4", "E2103")
     assert check.unsupported == ("Z79.4",)
+
+
+@pytest.mark.parametrize("letter", ["Item E2103, E21.03 and E2103-KX.", "Item E2103-KX, E21.03 and E2103."])
+def test_one_code_in_several_forms_counts_once_in_any_order_and_names_its_unsupported_form(letter):
+    check = ap.check_citations(letter, EV01)
+
+    assert check.citations == check.unsupported == ("E21.03",)
+
+
+def test_two_codes_written_without_their_dots_stay_two():
+    # E113213 is E11.3213, not HCPCS E1132 with a modifier, so it isn't the category E11.32.
+    check = ap.check_citations("Diagnosis E113213, from category E1132.", _path("ev-07"))
+
+    assert check.citations == ("E113213", "E1132")
+    assert check.unsupported == ("E1132",)
 
 
 def test_a_long_whitespace_run_after_a_label_is_read_quickly():
@@ -215,7 +235,7 @@ def test_the_drafter_sees_no_citable_code_the_path_doesnt_establish(case_id):
     assert set(ap.citations(content)) <= set(ap.established(path))
 
 
-def test_a_sourced_and_an_unsourced_step_read_the_same_to_the_drafter():
+def test_a_step_without_an_aside_reads_the_same_sourced_or_not():
     case = load_case(EVAL / "ev-01.json")
     sourced, unsourced = EV01[0], Hop(EV01[0].statement)
 
@@ -497,6 +517,27 @@ def test_eval_draft_gives_each_arm_its_own_evidence(tmp_path, monkeypatch):
     assert len(seen) == 29  # the refused extractions overturn nothing
 
 
+def test_eval_draft_gives_the_drafter_the_verdicts_findings(tmp_path, monkeypatch):
+    code, record = _eval(tmp_path, monkeypatch, _drafting(), arms="graph")
+
+    (log,) = tmp_path.glob("eval-*-drafts/graph-ev-08-*.json")
+    sent = json.loads(json.loads(log.read_text())["http_request_body"])
+    assert code == 0
+    assert "Findings:\n- Billed E11.9 is covered" in sent["messages"][0]["content"]
+
+
+@pytest.mark.parametrize("case_id", [f"ev-{n:02d}" for n in range(1, 10)])
+def test_the_eval_reference_names_what_the_gold_label_does(case_id):
+    # Every arm's letter is checked against the graph's verdict on the gold evidence, so that
+    # verdict must agree with the label on its codes and findings, not just its outcome.
+    gold, verdict = json.loads((EVAL / f"{case_id}.json").read_text())["gold"], _verdict(case_id)
+
+    assert verdict.outcome == gold["verdict"] == "overturnable"
+    assert [(f.type, f.codes) for f in verdict.findings] == [
+        (f["type"], (f["billed"], f["documented"])) for f in gold["findings"]]
+    assert {gold["path"][k] for k in ("hcpcs", "lcd", "article", "dx")} <= set(ap.established(verdict.path))
+
+
 def test_eval_draft_gives_the_extracted_arm_its_own_validated_evidence(tmp_path, monkeypatch):
     seen = []
     monkeypatch.setattr(ex, "extract", _extracting)
@@ -526,17 +567,17 @@ def _eval_edited(tmp_path, monkeypatch, case_id, edit):
     return code, json.loads(record.read_text())
 
 
-def test_a_case_whose_graph_verdict_differs_from_its_gold_label_has_no_reference(tmp_path, monkeypatch):
+def test_a_case_whose_graph_verdict_differs_from_its_gold_label_gets_no_appeal(tmp_path, monkeypatch, capsys):
     def relabel(raw):
         raw["gold"]["verdict"] = "needs_human"
 
     code, record = _eval_edited(tmp_path, monkeypatch, "ev-02", relabel)
 
-    ev02 = next(r for r in record["results"] if r["case"] == "ev-02")["appeal"]
-    assert code == 3
-    assert ev02["error"].startswith("EvalError") and "gold label" in ev02["error"]
-    assert ev02["reference"] is None
-    assert record["drafting"]["calls"] == 19  # ev-02 never reached the drafter
+    ev02 = next(r for r in record["results"] if r["case"] == "ev-02")
+    assert code == 0
+    assert "appeal" not in ev02
+    assert record["drafting"]["calls"] == 19 and record["drafting"]["no_reference"] == ["ev-02"]
+    assert "no appeal drafted for ev-02" in capsys.readouterr().err
 
 
 def test_a_case_whose_reference_path_cannot_be_built_is_a_draft_error(tmp_path, monkeypatch):
