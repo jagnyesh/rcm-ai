@@ -1,6 +1,6 @@
 from rcm_ai.graph import CoverageGraph, Criterion
 from rcm_ai.icd10cm import ref_covers
-from rcm_ai.schemas import Claim, Evidence, Finding, Hop, SchemaError, Verdict
+from rcm_ai.schemas import Claim, Evidence, Finding, Hop, Reason, SchemaError, Verdict
 
 # Only medical-necessity denials can be overturned by showing coverage criteria are met;
 # timely filing (29), duplicates (18) or missing information (16) need other remedies.
@@ -14,14 +14,58 @@ def _met_leaf(c: Criterion, met: set[str]) -> Criterion | None:
     return c if c.id in met else None
 
 
-def _criterion_hop(c: Criterion, dx: str, met: set[str]) -> Hop | None:
+def _not_met_spans(c: Criterion, not_met: dict[str, str]) -> list[str]:
+    """Note spans showing c fails: its own, or (any-of) every branch's, only when every branch fails."""
+    if c.id in not_met:
+        return [not_met[c.id]]
+    if c.any_of:
+        spans = [_not_met_spans(s, not_met) for s in c.any_of]
+        if all(spans):
+            return [x for branch in spans for x in branch]
+    return []
+
+
+def _conflicting(c: Criterion, met: set[str], not_met: dict[str, str]) -> bool:
+    if c.id in met and c.id in not_met:
+        return True
+    if c.any_of:
+        if any(_conflicting(s, met, not_met) for s in c.any_of):
+            return True
+        return c.id in not_met and _met_leaf(c, met) is not None
+    return False
+
+
+def _assess(c: Criterion, dx: str, met: set[str], not_met: dict[str, str]) -> tuple[str, Hop | Reason]:
+    """("met", Hop) or ("conflicting" | "not_met" | "missing", Reason) for one required criterion."""
     if c.satisfied_by == "covered_diagnosis":
-        return Hop(f"Criterion {c.id} met by covered diagnosis {dx}", c.quote, c.source)
+        return "met", Hop(f"Criterion {c.id} met by covered diagnosis {dx}", c.quote, c.source)
+    if _conflicting(c, met, not_met):
+        return "conflicting", Reason(
+            "criterion_conflicting", f"Criterion {c.id} is documented both as met and as not met",
+            c.quote, c.source)
     leaf = _met_leaf(c, met)
-    if leaf is None:
-        return None
-    how = "documented evidence" if leaf is c else leaf.id
-    return Hop(f"Criterion {c.id} met by {how}", leaf.quote, leaf.source)
+    if leaf is not None:
+        how = "documented evidence" if leaf is c else leaf.id
+        return "met", Hop(f"Criterion {c.id} met by {how}", leaf.quote, leaf.source)
+    spans = _not_met_spans(c, not_met)
+    if spans:
+        said = "; ".join(f'"{x}"' for x in spans)
+        return "not_met", Reason(
+            "criterion_not_met", f"Criterion {c.id} is not met: the note says {said}", c.quote, c.source, spans[0])
+    return "missing", Reason(
+        "criterion_not_documented", f"Criterion {c.id} is not documented either way: request records",
+        c.quote, c.source)
+
+
+def _hand_off(*reasons: Reason) -> Verdict:
+    return Verdict("needs_human", (), reasons=reasons)
+
+
+def _combine(outcomes: list[Verdict]) -> Verdict:
+    """Uphold only when every billed diagnosis leads to an uphold; otherwise hand off."""
+    if outcomes and all(v.outcome == "uphold" for v in outcomes):
+        return Verdict("uphold", (), reasons=tuple(dict.fromkeys(r for v in outcomes for r in v.reasons)))
+    return _hand_off(*dict.fromkeys(r for v in outcomes if v.outcome == "needs_human" for r in v.reasons))
 
 
 def _excludes1_conflicts(codes: tuple[str, ...], graph: CoverageGraph) -> list[Finding]:
@@ -73,30 +117,56 @@ def _support(dx: str, documented: set[str], hcpcs: str, graph: CoverageGraph) ->
 
 def adjudicate(claim: Claim, evidence: Evidence, graph: CoverageGraph) -> Verdict:
     met = {c.criterion for c in evidence.criteria}
-    unknown = sorted(met - graph.criterion_ids())
+    not_met = {c.criterion: c.span for c in evidence.criteria_not_met}
+    unknown = sorted((met | not_met.keys()) - graph.criterion_ids())
     if unknown:
         raise SchemaError(f"evidence names unknown criteria: {', '.join(unknown)}")
-    if claim.carc not in MEDICAL_NECESSITY_CARCS or claim.coverage != "initial":
-        return Verdict("needs_human", ())
+    if claim.carc not in MEDICAL_NECESSITY_CARCS:
+        return _hand_off(Reason("denial_out_of_scope",
+                                f"CARC {claim.carc} is not a medical-necessity denial; coverage documentation cannot overturn it"))
+    if claim.coverage != "initial":
+        return _hand_off(Reason("coverage_out_of_scope",
+                                "Continued coverage needs dates of service and the six-month adherence visit, which are not modeled"))
+    lcds = graph.lcds_listing(claim.hcpcs)
+    if not lcds:
+        return _hand_off(Reason("no_lcd_for_item", f"No LCD in the graph lists {claim.hcpcs}"))
+    applicable = [lcd for lcd in lcds if graph.applicability(lcd, claim.hcpcs)]
+    if not applicable:
+        return _hand_off(Reason("item_not_in_criteria",
+                                f"{claim.hcpcs} is listed in {', '.join(lcds)}, but none of the modeled coverage criteria apply to it"))
     documented = {d.code for d in evidence.diagnoses}
     # Conflicts among documented codes count too: a note that documents type 1 and type 2
     # together cannot support either one.
     codes = tuple(dict.fromkeys((*claim.icd10, *sorted(documented))))
     conflicts = _excludes1_conflicts(codes, graph)
     if conflicts:
-        return Verdict("needs_human", (), tuple(conflicts))
+        return Verdict("needs_human", (), tuple(conflicts), (Reason(
+            "coding_conflict", "Diagnoses on the claim or in the note conflict under Excludes1; fix coding first"),))
+
+    outcomes = []
     for dx in claim.icd10:
         supported, finding = _support(dx, documented, claim.hcpcs, graph)
         if not supported:
+            outcomes.append(_hand_off(Reason(
+                "diagnosis_not_documented", f"Billed {dx} is not supported by a diagnosis documented in the note")))
             continue
-        for p in graph.coverage_paths(claim.hcpcs, dx):
-            applies = graph.applicability(p.lcd, claim.hcpcs)
-            if applies is None:
-                continue
-            criteria = [_criterion_hop(c, dx, met) for c in graph.criteria(p.lcd)]
-            if None in criteria:
-                continue
-            quote, source = applies
+        paths = [p for p in graph.coverage_paths(claim.hcpcs, dx) if p.lcd in applicable]
+        if not paths:
+            if graph.on_covered_list(dx):
+                outcomes.append(_hand_off(Reason(
+                    "diagnosis_not_in_terminology", f"{dx} is on the covered list but not in the loaded ICD-10-CM slice")))
+            elif any(graph.on_covered_list(d) for d in documented):
+                outcomes.append(_hand_off(Reason(
+                    "covered_diagnosis_not_billed", f"Billed {dx} is not covered, but the note documents a covered diagnosis: recode")))
+            else:
+                outcomes.append(Verdict("uphold", (), reasons=(Reason(
+                    "diagnosis_not_covered", f"{dx} is not on the covered diagnosis list for {claim.hcpcs}; criterion cgm-1-diabetes fails"),)))
+            continue
+        p = paths[0]
+        assessed = [_assess(c, dx, met, not_met) for c in graph.criteria(p.lcd)]
+        states = {state for state, _ in assessed}
+        if states == {"met"}:
+            quote, source = graph.applicability(p.lcd, claim.hcpcs)
             return Verdict("overturnable", (
                 Hop(f"{claim.hcpcs} is listed in LCD {p.lcd}", claim.hcpcs, p.listing),
                 Hop(f"LCD {p.lcd} initial CGM criteria (1)-(5) apply to {claim.hcpcs}", quote, source),
@@ -110,6 +180,11 @@ def adjudicate(claim: Claim, evidence: Evidence, graph: CoverageGraph) -> Verdic
                     p.concept_anchor, p.concept,
                 ),
                 Hop(f"Article {p.article} covers {dx}", dx, p.covered),
-                *criteria,
+                *(hop for _, hop in assessed),
             ), (finding,) if finding else ())
-    return Verdict("needs_human", ())
+        # A documented failure decides the claim; a contradiction or a gap needs a person.
+        for state, outcome in (("conflicting", "needs_human"), ("not_met", "uphold"), ("missing", "needs_human")):
+            if state in states:
+                outcomes.append(Verdict(outcome, (), reasons=tuple(r for s, r in assessed if s == state)))
+                break
+    return _combine(outcomes)

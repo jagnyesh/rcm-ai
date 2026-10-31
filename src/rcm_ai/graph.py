@@ -134,6 +134,20 @@ class CoverageGraph:
             ]
         return rules
 
+    def lcds_listing(self, hcpcs: str) -> list[str]:
+        rows = self._ds.query(
+            "SELECT DISTINCT ?lcd WHERE { GRAPH ?g { ?lcd rcm:listsHcpcs ?hcpcs } }",
+            initNs={"rcm": RCM}, initBindings={"hcpcs": HCPCS[hcpcs]},
+        )
+        return sorted(_local(r.lcd) for r in rows)
+
+    def on_covered_list(self, dx: str) -> bool:
+        """Whether any loaded article lists the code, whether or not the code is in the terminology slice."""
+        return bool(self._ds.query(
+            "ASK { GRAPH ?g { ?article rcm:coversDiagnosis ?dx } }",
+            initNs={"rcm": RCM}, initBindings={"dx": ICD[dx]},
+        ).askAnswer)
+
     def coverage_paths(self, hcpcs: str, dx: str) -> list[CoveragePath]:
         rows = self._ds.query(
             """

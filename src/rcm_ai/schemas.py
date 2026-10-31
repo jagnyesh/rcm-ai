@@ -55,6 +55,7 @@ class CriterionEvidence:
 class Evidence:
     diagnoses: tuple[DocumentedCode, ...]
     criteria: tuple[CriterionEvidence, ...]
+    criteria_not_met: tuple[CriterionEvidence, ...] = ()  # spans showing a criterion affirmatively fails
 
 
 @dataclass(frozen=True)
@@ -81,10 +82,21 @@ class Finding:
 
 
 @dataclass(frozen=True)
+class Reason:
+    """Why a verdict is uphold or needs_human."""
+    kind: str
+    statement: str
+    anchor: str | None = None  # text to look for at source
+    source: Source | None = None
+    span: str | None = None  # the note text the reason rests on
+
+
+@dataclass(frozen=True)
 class Verdict:
     outcome: str  # one of OUTCOMES
     path: tuple[Hop, ...]
     findings: tuple[Finding, ...] = ()
+    reasons: tuple[Reason, ...] = ()
 
     def __post_init__(self):
         if self.outcome not in OUTCOMES:
@@ -141,6 +153,10 @@ def load_case(path: Path) -> Case:
                 tuple(
                     CriterionEvidence(x["criterion"], _span(x, note, x["criterion"], path))
                     for x in e["criteria"]
+                ),
+                tuple(
+                    CriterionEvidence(x["criterion"], _span(x, note, x["criterion"], path))
+                    for x in e.get("criteria_not_met", [])
                 ),
             ),
             note=note,
