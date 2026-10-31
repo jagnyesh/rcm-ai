@@ -187,6 +187,35 @@ def test_an_uncovered_diagnosis_is_upheld_on_extracted_evidence_only_when_the_no
     assert [r.kind for r in ruled_out.reasons] == ["diagnosis_not_covered"]
 
 
+def test_a_criterion_decided_from_the_diagnosis_code_cannot_be_extracted_as_met():
+    case = load_case(EVAL / "ev-13.json")
+    raw, note = _gold_raw("ev-13")
+    # Listed met and ruled out at once: the rule-out must not be trusted to uphold.
+    raw["criteria_met"].append({"criterion": "cgm-1-diabetes", "span": "Telehealth visit today to review diabetes control."})
+    raw["criteria_not_met"].append({"criterion": "cgm-1-diabetes", "span": "no diabetes diagnosis"})
+
+    verdict, _ = triage_note(case.claim, note, GRAPH, _stub(raw))
+
+    assert verdict.outcome == "needs_human"
+    assert [r.kind for r in verdict.reasons] == ["extraction_rejected"]
+    assert "cgm-1-diabetes" in verdict.reasons[0].statement and "diagnosis code" in verdict.reasons[0].statement
+
+
+@pytest.mark.parametrize("case_id", ["ev-19", "ev-20"])
+def test_a_claim_whose_billed_codes_conflict_is_handed_off_without_calling_the_model(case_id):
+    case = load_case(EVAL / f"{case_id}.json")
+
+    def must_not_call(note, criteria):
+        raise AssertionError("the model was called for a claim its billed codes already decide")
+
+    verdict, extraction = triage_note(case.claim, case.note, GRAPH, must_not_call)
+
+    assert extraction is None
+    assert verdict.outcome == "needs_human"
+    assert [r.kind for r in verdict.reasons] == ["coding_conflict"]
+    assert verdict.findings
+
+
 def test_a_span_that_shows_several_alternatives_fail_is_quoted_once():
     case = load_case(EVAL / "ev-10.json")
     raw, note = _gold_raw("ev-10")
@@ -270,7 +299,7 @@ def _sha(text: str) -> str:
 
 def test_the_run_record_describes_the_requests_sent_not_the_files_on_disk(tmp_path, monkeypatch):
     def edited(req):
-        return {**req, "model": "claude-other", "system": "an edited prompt",
+        return {**req, "model": "claude-other", "system": "an edited prompt", "max_tokens": 1234,
                 "output_config": {**req["output_config"], "effort": "low"}}
 
     code, record = _eval_extracted(tmp_path, monkeypatch, _sending(edited))
@@ -278,9 +307,12 @@ def test_the_run_record_describes_the_requests_sent_not_the_files_on_disk(tmp_pa
     arm = record["arms"]["extracted"]
     assert code == 0
     assert arm["prompt_sha256"] == _sha("an edited prompt")
-    assert arm["schema_sha256"] == _sha(json.dumps(json.loads(SCHEMA.read_text()), sort_keys=True, separators=(",", ":")))
-    assert (arm["model"], arm["effort"], arm["temperature"]) == ("claude-other", "low", None)
-    assert arm["requests"] == 17  # ev-15, ev-16 and ev-17 are out of scope: no model call
+    # Named apart from the file-bytes schema_sha256 of earlier records, which isn't comparable.
+    assert arm["schema_canonical_sha256"] == _sha(
+        json.dumps(json.loads(SCHEMA.read_text()), sort_keys=True, separators=(",", ":")))
+    assert (arm["model"], arm["effort"], arm["max_tokens"], arm["temperature"]) == ("claude-other", "low", 1234, None)
+    # ev-15, ev-16 and ev-17 are out of scope and ev-19, ev-20 bill conflicting codes: no model call.
+    assert (arm["calls"], arm["responses"]) == (15, 15)
 
 
 def test_a_prompt_that_changes_mid_run_is_recorded_as_every_hash_sent(tmp_path, monkeypatch):
@@ -294,17 +326,73 @@ def test_a_prompt_that_changes_mid_run_is_recorded_as_every_hash_sent(tmp_path, 
     assert sorted(record["arms"]["extracted"]["prompt_sha256"]) == sorted([_sha("an edited prompt"), _sha(PROMPT.read_text())])
 
 
-def test_every_model_call_is_logged_even_when_its_case_then_fails(tmp_path, monkeypatch):
-    def fails(*args):
-        raise RuntimeError("failed after the model call")
-    monkeypatch.setattr(ex, "parse_extraction", fails)
+def test_each_model_call_is_logged_as_soon_as_it_returns(tmp_path, monkeypatch):
+    def dies(*args):
+        raise KeyboardInterrupt  # the whole run dies right after the first call returns
+    monkeypatch.setattr(ex, "parse_extraction", dies)
 
-    code, _ = _eval_extracted(tmp_path, monkeypatch, _sending(raw={}, stop_reason="end_turn"))
+    with pytest.raises(KeyboardInterrupt):
+        _eval_extracted(tmp_path, monkeypatch, _sending(raw={}, stop_reason="end_turn"))
 
-    logs = list(tmp_path.glob("eval-*-extractions/*.json"))
+    (log,) = tmp_path.glob("eval-*-extractions/*.json")
+    assert json.loads(log.read_text())["request_id"] == "req_stand_in"
+
+
+def test_a_failed_call_is_counted_and_its_case_marked_as_calling_the_model(tmp_path, monkeypatch):
+    def overloaded(note, criteria, client):
+        raise RuntimeError("529 overloaded")
+
+    code, record = _eval_extracted(tmp_path, monkeypatch, overloaded)
+
+    arm = record["arms"]["extracted"]
+    called = {r["case"] for r in record["results"] if r["arm"] == "extracted" and r["model_called"]}
     assert code == 3
-    assert len(logs) == 17
-    assert all(json.loads(p.read_text())["request_id"] == "req_stand_in" for p in logs)
+    assert (arm["calls"], arm["responses"]) == (15, 0)
+    assert {f"ev-{n:02d}" for n in range(1, 21)} - called == {"ev-15", "ev-16", "ev-17", "ev-19", "ev-20"}
+
+
+def test_the_run_record_survives_a_request_without_effort_or_with_a_block_prompt(tmp_path, monkeypatch):
+    blocks = [{"type": "text", "text": "a block prompt"}]
+
+    def unusual(req):
+        return {**{k: v for k, v in req.items() if k != "output_config"}, "system": blocks}
+
+    code, record = _eval_extracted(tmp_path, monkeypatch, _sending(unusual))
+
+    arm = record["arms"]["extracted"]
+    assert code == 0
+    assert arm["effort"] is None and arm["schema_canonical_sha256"] is None
+    assert arm["prompt_sha256"] == _sha(json.dumps(blocks, sort_keys=True, separators=(",", ":")))
+
+
+def test_triage_extract_prints_the_verdict_and_the_log_of_the_call(tmp_path, monkeypatch, capsys):
+    raw, _ = _gold_raw("ev-01")
+    monkeypatch.chdir(tmp_path)  # the log goes under the working directory
+    monkeypatch.setattr(rcm_ai, "_client", lambda: None)
+    monkeypatch.setattr(ex, "extract", _sending(raw=raw, stop_reason="end_turn"))
+
+    code = rcm_ai.main(["triage", str(EVAL / "ev-01.json"), "--extract", "--data", str(DATA)])
+
+    out = capsys.readouterr().out
+    (log,) = tmp_path.glob("eval-results/extractions/ev-01-*.json")
+    assert code == 0
+    assert out.startswith("ev-01: overturnable")
+    assert f"extraction log: {log.relative_to(tmp_path)}" in out
+    assert json.loads(log.read_text())["request_id"] == "req_stand_in"
+
+
+def test_triage_extract_keeps_the_log_when_triage_then_dies(tmp_path, monkeypatch):
+    def dies(*args):
+        raise KeyboardInterrupt
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(rcm_ai, "_client", lambda: None)
+    monkeypatch.setattr(ex, "extract", _sending(raw={}, stop_reason="end_turn"))
+    monkeypatch.setattr(ex, "parse_extraction", dies)
+
+    with pytest.raises(KeyboardInterrupt):
+        rcm_ai.main(["triage", str(EVAL / "ev-01.json"), "--extract", "--data", str(DATA)])
+
+    assert len(list(tmp_path.glob("eval-results/extractions/ev-01-*.json"))) == 1
 
 
 def test_triage_extract_of_an_out_of_scope_claim_makes_no_model_call(monkeypatch, capsys):
