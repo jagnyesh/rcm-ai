@@ -240,6 +240,7 @@ def _eval(data_dir: Path, out_dir: Path, arm_names: list[str] = ("graph",), draf
     appeals = {arm: {} for arm in arm_names} if draft else {}  # arm -> case id -> Appeal
     drafts = []  # every drafting call's response
     draft_calls = []  # the case of every drafting call made
+    no_reference = set()  # cases whose gold reference disagrees with their gold label
     try:
         unknown = sorted(set(arm_names) - ARM_MODELS.keys())
         if unknown:
@@ -253,11 +254,11 @@ def _eval(data_dir: Path, out_dir: Path, arm_names: list[str] = ("graph",), draf
             try:
                 # What a letter for this claim may cite: what the graph's verdict on the case's gold
                 # evidence asserts, nothing when it wouldn't overturn the claim. Every arm's letter is
-                # checked against it, so it must agree with the gold label.
+                # checked against it, so a case where it disagrees with the gold label gets no letter.
                 gold = adjudicate(c.case.claim, c.case.evidence, graph)
                 if gold.outcome != c.gold["verdict"]:
-                    raise EvalError(f"the graph's verdict on the gold evidence is {gold.outcome}, but the "
-                                    f"gold label is {c.gold['verdict']}: no reference to check against")
+                    no_reference.add(c.case.id)
+                    return None
                 overturned = gold.outcome == "overturnable"
                 reference_path, reference_findings = (gold.path, gold.findings) if overturned else ((), ())
                 reference = ap.established(reference_path, reference_findings)
@@ -275,7 +276,8 @@ def _eval(data_dir: Path, out_dir: Path, arm_names: list[str] = ("graph",), draf
             def run(c):
                 verdict, evidence = decide(c)
                 if draft and verdict.outcome == "overturnable":
-                    appeals[arm][c.case.id] = appeal_for(arm, c, verdict, evidence)
+                    if (appeal := appeal_for(arm, c, verdict, evidence)) is not None:
+                        appeals[arm][c.case.id] = appeal
                 return verdict
             return run
 
@@ -361,7 +363,8 @@ def _eval(data_dir: Path, out_dir: Path, arm_names: list[str] = ("graph",), draf
              "arms": {name: {"outcome": r.outcome, "correct": r.correct, "why": list(r.why)}
                       for name, r in d.arms.items()}}
             for d in report.disagreements],
-        **({"drafting": _sent_config(drafts, len(draft_calls))} if draft else {}),
+        **({"drafting": {**_sent_config(drafts, len(draft_calls)), "no_reference": sorted(no_reference)}}
+           if draft else {}),
     }
     out_dir.mkdir(parents=True, exist_ok=True)
     path = out_dir / f"eval-{stamp}.json"
@@ -377,13 +380,16 @@ def _eval(data_dir: Path, out_dir: Path, arm_names: list[str] = ("graph",), draf
             print(f"warning: {arm}: {s['without_output']} of {s['responses']} responses had no usable output",
                   file=sys.stderr)
     if draft:
-        attempted = sum(a["drafted"] for a in tallies.values())
         print(f"drafting: {len(draft_calls)} model calls, {len(drafts)} responses")
         if drafts:
             print(f"  logs: {draft_dir}")
         no_letter = sum(a["without_letter"] for a in tallies.values())
         if no_letter:
-            print(f"warning: {no_letter} of {attempted} appeal drafts had no letter", file=sys.stderr)
+            print(f"warning: {no_letter} of {len(draft_calls)} appeal drafts had no letter", file=sys.stderr)
+        if no_reference:
+            print(f"warning: no appeal drafted for {', '.join(sorted(no_reference))}: the graph's verdict on "
+                  "the gold evidence disagrees with the gold label, so there's no reference to check against",
+                  file=sys.stderr)
     errors = sum(m.errors for m in report.arms.values())
     draft_errors = sum(a["errors"] for a in tallies.values())
     if errors:

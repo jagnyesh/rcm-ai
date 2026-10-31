@@ -1,8 +1,9 @@
 """Appeal drafting and citation checking.
 
-The drafter (an LLM) writes a letter from a verdict's justification path and the note's quotes.
-The checker (deterministic) pulls every code and policy ID from the letter and fails it if any
-is not in the reference path, so a letter never cites what the path didn't establish.
+The drafter (an LLM) writes a letter from a verdict's justification path, its findings and the
+note's quotes. The checker (deterministic) pulls every code and policy ID from the letter and fails
+it if any is not in a reference verdict's path or findings, so a letter never cites what that
+verdict didn't establish.
 """
 
 import re
@@ -25,10 +26,12 @@ SCHEMA = {
 # categories with a letter third, so "A1C", "T2D" and "G6PD" aren't codes. That shape also covers
 # HCPCS Level II codes, with any modifier, and LCD and article IDs (L33822, A52464). A bare number
 # is only a CPT code or a policy ID when labeled as one, since letters carry ZIP codes, form
-# numbers, minutes and money. Each optional part of a label carries its own leading whitespace:
-# adjacent \s* backtrack cubically on a whitespace run in the letter.
+# numbers, minutes and money. A code is read through any further dotted part, so "E2103.0" isn't
+# read as E2103. Each optional part of a label carries its own leading whitespace: adjacent \s*
+# backtrack cubically on a whitespace run in the letter.
 _CITATIONS = (
-    (re.compile(r"\b(?:[A-Z]\d\d|C4A|C7A|C7B|D3A|M1A|Z3A)(?:\.[0-9A-Z]{1,4}|[0-9A-Z]{1,5})?(?:-[A-Z0-9]{2})*\b"),
+    (re.compile(r"\b(?:[A-Z]\d\d|C4A|C7A|C7B|D3A|M1A|Z3A)(?:\.[0-9A-Z]{1,4}|[0-9A-Z]{1,5})?(?:\.[0-9A-Z]+)*"
+                r"(?:-[A-Z0-9]{2})*\b"),
      lambda m: m.group()),
     (re.compile(r"\bDL\d{5}\b"), lambda m: m.group()),
     (re.compile(r"\bLCD(?:\s*ID)?(?:\s*#)?\s*L?(\d{5})\b", re.IGNORECASE), lambda m: f"L{m.group(1)}"),
@@ -60,8 +63,9 @@ def citations(text: str) -> tuple[str, ...]:
 
 
 def _forms(citation: str) -> set[tuple[str, str]]:
-    """The codes a letter's citation can be, by kind. Only an ICD-10-CM code is written with a dot;
-    written without one, a code may be either kind, and a HCPCS code may carry modifiers."""
+    """The codes a letter's citation can be, by kind. A dot marks an ICD-10-CM code (an NCD ID's
+    dot reads the same way on both sides); written without one, a code may be either kind, and a
+    HCPCS code may carry modifiers."""
     if "." in citation:
         return {("icd", citation.replace(".", ""))}
     forms = {("icd", citation), ("other", citation)}
@@ -91,20 +95,22 @@ def established(path: tuple[Hop, ...], findings: tuple[Finding, ...] = ()) -> tu
 
 def check_citations(letter: str, path: tuple[Hop, ...], findings: tuple[Finding, ...] = ()) -> CitationCheck:
     allowed = {_form(c) for c in established(path, findings)}
-    codes = []  # the written forms of each code the letter cites, first one first
+    # One code's written forms differ only by its dot or a hyphenated modifier. A code counts once,
+    # named by the first of its forms the reference doesn't establish, if any.
+    codes = {}
     for c in citations(letter):
-        same = next((forms for forms in codes if _forms(forms[0]) & _forms(c)), None)
-        if same is None:
-            codes.append([c])
-        else:
-            same.append(c)
-    unsupported = (next((c for c in forms if not _forms(c) & allowed), None) for forms in codes)
-    return CitationCheck(tuple(forms[0] for forms in codes), tuple(c for c in unsupported if c))
+        codes.setdefault(c.replace(".", "").split("-")[0], []).append(c)
+    cited, unsupported = [], []
+    for forms in codes.values():
+        bad = [c for c in forms if not _forms(c) & allowed]
+        cited.append((bad or forms)[0])
+        unsupported += bad[:1]
+    return CitationCheck(tuple(cited), tuple(unsupported))
 
 
 def quotes(evidence: Evidence | None) -> list[tuple[str, str]]:
     """The note's quotes behind a verdict, diagnoses first. Diagnoses are labeled without their
-    codes, so the letter has no code to cite but the path's."""
+    codes, so the letter has no code to cite but the verdict's."""
     if evidence is None:
         return []
     return [("diagnosis", d.span) for d in evidence.diagnoses] + [(c.criterion, c.span) for c in evidence.criteria]
@@ -145,10 +151,10 @@ def letter_of(response: Extraction) -> str | None:
 @dataclass(frozen=True)
 class Appeal:
     """What drafting gave for one overturnable verdict in the eval."""
-    reference: tuple[str, ...] | None  # what the reference path lets the letter cite; None if it wasn't built
+    reference: tuple[str, ...] | None  # what the reference verdict lets the letter cite; None if it wasn't built
     letter: str | None = None
     check: CitationCheck | None = None  # None without a letter
-    error: str | None = None  # the drafting call raised
+    error: str | None = None  # building the reference or the drafting call raised
 
 
 def tally(appeals: list[Appeal]) -> dict:
