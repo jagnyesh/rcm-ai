@@ -42,7 +42,6 @@
     "verdict": "uphold",
     "reason": "Criterion 5 fails: no qualifying visit within six months before the order.",
     "findings": [],
-    "label_status": "claude-labeled",
-    "known_system_gap": "uphold arrives in #5; visit timing is not modeled."
+    "label_status": "claude-labeled"
   }
 }

@@ -36,7 +36,6 @@
     "verdict": "uphold",
     "reason": "Criterion 1 fails: no diabetes diagnosis; E16.2 is not on the covered list.",
     "findings": [],
-    "label_status": "claude-labeled",
-    "known_system_gap": "uphold arrives in #5."
+    "label_status": "claude-labeled"
   }
 }

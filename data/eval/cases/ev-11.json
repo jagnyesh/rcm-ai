@@ -50,7 +50,6 @@
     "verdict": "uphold",
     "reason": "One level 2 event is not 'recurrent', and there was no level 3 event; criterion 4 fails.",
     "findings": [],
-    "label_status": "claude-labeled",
-    "known_system_gap": "uphold arrives in #5."
+    "label_status": "claude-labeled"
   }
 }

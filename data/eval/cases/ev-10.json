@@ -46,7 +46,6 @@
     "verdict": "uphold",
     "reason": "Criterion 4 fails: not insulin-treated and no problematic hypoglycemia.",
     "findings": [],
-    "label_status": "claude-labeled",
-    "known_system_gap": "The uphold verdict arrives in #5; today the system returns needs_human."
+    "label_status": "claude-labeled"
   }
 }
