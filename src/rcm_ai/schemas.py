@@ -67,8 +67,9 @@ class Source:
 @dataclass(frozen=True)
 class Hop:
     statement: str
-    anchor: str  # text a reviewer will find in the source record
-    source: Source
+    # Both None only for the LLM-only baseline, whose justification is the model's own assertion.
+    anchor: str | None = None  # text a reviewer will find in the source record
+    source: Source | None = None
 
 
 @dataclass(frozen=True)

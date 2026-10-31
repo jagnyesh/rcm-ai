@@ -30,10 +30,18 @@ class CaseResult:
     case: str
     gold: str
     outcome: str  # a verdict outcome, or "error: <type>: <message>"
+    why: tuple[str, ...] = ()  # the verdict's reasons ("kind: statement"), or its path when it has none
 
     @property
     def correct(self) -> bool:
         return self.outcome == self.gold
+
+
+@dataclass(frozen=True)
+class Disagreement:
+    case: str
+    gold: str
+    arms: dict[str, CaseResult]
 
 
 @dataclass
@@ -71,6 +79,15 @@ class EvalSet:
 class EvalReport:
     results: list[CaseResult]
     arms: dict[str, ArmMetrics]
+
+    @property
+    def disagreements(self) -> list[Disagreement]:
+        """Cases where the arms' outcomes differ, in case order. An error differs from any verdict."""
+        by_case = {}
+        for r in self.results:
+            by_case.setdefault(r.case, {})[r.arm] = r
+        return [Disagreement(case, next(iter(arms.values())).gold, arms)
+                for case, arms in by_case.items() if len({r.outcome for r in arms.values()}) > 1]
 
 
 Arm = Callable[[EvalCase], Verdict]
@@ -119,11 +136,13 @@ def run_eval(cases: list[EvalCase], arms: dict[str, Arm]) -> EvalReport:
         m = metrics[name] = ArmMetrics()
         for c in cases:
             try:
-                outcome = arm(c).outcome
+                verdict = arm(c)
+                outcome = verdict.outcome
+                why = tuple(f"{x.kind}: {x.statement}" for x in verdict.reasons) or tuple(h.statement for h in verdict.path)
             except Exception as e:  # a crashing arm is a scored error, not a crashed eval
-                outcome = f"error: {type(e).__name__}: {e}"
+                outcome, why = f"error: {type(e).__name__}: {e}", ()
                 m.errors += 1
-            r = CaseResult(name, c.case.id, c.gold["verdict"], outcome)
+            r = CaseResult(name, c.case.id, c.gold["verdict"], outcome, why)
             results.append(r)
             m.n += 1
             m.correct += r.correct

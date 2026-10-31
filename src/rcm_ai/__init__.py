@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from rcm_ai.adjudicate import adjudicate
+from rcm_ai import baseline as bl
 from rcm_ai.evaluate import EvalError, load_eval_set, run_eval
 from rcm_ai import extract as ex
 from rcm_ai.graph import IngestError, build_graph
@@ -89,8 +90,9 @@ def _triage(case_path: Path, data_dir: Path, extract: bool = False, log_dir: Pat
             print(f"     look for: {r.anchor}")
     for n, hop in enumerate(verdict.path, start=1):
         print(f"  {n}. {hop.statement}")
-        print(f"     {data_dir / 'fixtures' / hop.source.path}:{hop.source.line}  [{hop.source.version}]")
-        print(f"     look for: {hop.anchor}")
+        if hop.source:
+            print(f"     {data_dir / 'fixtures' / hop.source.path}:{hop.source.line}  [{hop.source.version}]")
+            print(f"     look for: {hop.anchor}")
     for f in verdict.findings:
         print(f"  finding ({f.type}): {f.statement}")
         if f.source:
@@ -121,7 +123,9 @@ def _ingest(data_dir: Path) -> int:
 
 
 # Model id per arm, recorded with every run; the graph arm calls no model.
-ARM_MODELS = {"graph": None, "extracted": ex.MODEL}
+ARM_MODELS = {"graph": None, "extracted": ex.MODEL, "llm-only": ex.MODEL}
+# Each model-calling arm logs its calls to eval-<stamp>-<suffix>/ in the output directory.
+LOG_SUFFIXES = {"extracted": "extractions", "llm-only": "llm-only"}
 
 
 def _served(extraction) -> dict:
@@ -179,8 +183,9 @@ def _pct(x: float | None) -> str:
 def _eval(data_dir: Path, out_dir: Path, arm_names: list[str] = ("graph",)) -> int:
     started = datetime.now(timezone.utc)
     stamp = started.strftime('%Y%m%dT%H%M%SZ')
-    log_dir = out_dir / f"eval-{stamp}-extractions"
-    extractions, called = {}, set()
+    log_dirs = {arm: out_dir / f"eval-{stamp}-{suffix}" for arm, suffix in LOG_SUFFIXES.items()}
+    responses = {arm: {} for arm in LOG_SUFFIXES}  # arm -> case id -> the call's Extraction
+    called = {arm: set() for arm in LOG_SUFFIXES}
     try:
         unknown = sorted(set(arm_names) - ARM_MODELS.keys())
         if unknown:
@@ -188,21 +193,27 @@ def _eval(data_dir: Path, out_dir: Path, arm_names: list[str] = ("graph",)) -> i
         eval_set = load_eval_set(data_dir / "eval")
         graph = build_graph(data_dir)
         _warn_rejected(graph)
-        available = {"graph": lambda c: adjudicate(c.case.claim, c.case.evidence, graph)}
-        if "extracted" in arm_names:
-            client = _client()
+        client = _client() if set(arm_names) & LOG_SUFFIXES.keys() else None
 
-            def extracted(c):
-                def call(note, criteria):
-                    called.add(c.case.id)
-                    extraction = extractions[c.case.id] = ex.extract(note, criteria, client)
-                    _save_extraction(log_dir, c.case.id, extraction)  # before the case can fail
-                    return extraction
+        def calling(arm, c, call):
+            called[arm].add(c.case.id)
+            response = responses[arm][c.case.id] = call()
+            _save_extraction(log_dirs[arm], c.case.id, response)  # before the case can fail
+            return response
 
-                verdict, _ = ex.triage_note(c.case.claim, c.case.note, graph, call)
-                return verdict
+        def extracted(c):
+            verdict, _ = ex.triage_note(c.case.claim, c.case.note, graph, lambda note, criteria: calling(
+                "extracted", c, lambda: ex.extract(note, criteria, client)))
+            return verdict
 
-            available["extracted"] = extracted
+        def llm_only(c):
+            # The criteria of each LCD whose HCPCS table lists the item: the policy the denial
+            # falls under, as an analyst would look it up. Nothing else comes from the graph.
+            policy = {lcd: graph.criteria(lcd) for lcd in graph.lcds_listing(c.case.claim.hcpcs)}
+            return bl.verdict_from(calling("llm-only", c, lambda: bl.ask(c.case.claim, c.case.note, policy, client)))
+
+        available = {"graph": lambda c: adjudicate(c.case.claim, c.case.evidence, graph),
+                     "extracted": extracted, "llm-only": llm_only}
         report = run_eval(eval_set.cases, {name: available[name] for name in arm_names})
     except (EvalError, IngestError, ProvenanceError, CredentialError) as e:
         print(f"eval failed: {e}", file=sys.stderr)
@@ -219,6 +230,14 @@ def _eval(data_dir: Path, out_dir: Path, arm_names: list[str] = ("graph",)) -> i
         if not r.correct:
             note = "known gap" if gaps[r.case] else "UNEXPLAINED"
             print(f"    {r.arm} {r.case}: gold {r.gold}, got {r.outcome}  [{note}]")
+    if len(report.arms) > 1:
+        print(f"  arms disagree on {len(report.disagreements)} of {len(eval_set.cases)} cases")
+        for d in report.disagreements:
+            print(f"    {d.case} gold {d.gold}: " + ", ".join(f"{name} {r.outcome}" for name, r in d.arms.items()))
+            for name, r in d.arms.items():
+                if not r.correct:
+                    for line in r.why:
+                        print(f"      {name}: {line}")
     record = {
         "date": started.isoformat(timespec="seconds"),
         "git_sha": _git_sha(),
@@ -226,22 +245,28 @@ def _eval(data_dir: Path, out_dir: Path, arm_names: list[str] = ("graph",)) -> i
                      "sha256": eval_set.sha256},
         "arms": {
             name: {"model": ARM_MODELS[name],
-                   **(_sent_config(list(extractions.values()), len(called)) if name == "extracted" else {}),
+                   **(_sent_config(list(responses[name].values()), len(called[name])) if name in LOG_SUFFIXES else {}),
                    **asdict(m), "accuracy": m.accuracy,
                    "abstention_rate": m.abstention_rate, "abstention_precision": m.abstention_precision}
             for name, m in report.arms.items()
         },
         "results": [{**asdict(r), "correct": r.correct, "known_system_gap": gaps[r.case],
-                     **({"model_called": r.case in called, **_served(extractions.get(r.case))}
-                        if r.arm == "extracted" else {})}
+                     **({"model_called": r.case in called[r.arm], **_served(responses[r.arm].get(r.case))}
+                        if r.arm in LOG_SUFFIXES else {})}
                     for r in report.results],
+        "disagreements": [
+            {"case": d.case, "gold": d.gold,
+             "arms": {name: {"outcome": r.outcome, "correct": r.correct, "why": list(r.why)}
+                      for name, r in d.arms.items()}}
+            for d in report.disagreements],
     }
     out_dir.mkdir(parents=True, exist_ok=True)
     path = out_dir / f"eval-{stamp}.json"
     path.write_text(json.dumps(record, indent=2) + "\n")
     print(f"results: {path}")
-    if extractions:
-        print(f"extraction logs: {log_dir}")
+    for arm, logged in responses.items():
+        if logged:
+            print(f"{arm} logs: {log_dirs[arm]}")
     errors = sum(m.errors for m in report.arms.values())
     if errors:
         print(f"eval incomplete: {errors} arm error{'s' if errors > 1 else ''}; metrics are not comparable",
@@ -262,7 +287,8 @@ def main(argv: list[str] | None = None) -> int:
     ev.add_argument("--data", type=Path, default=Path("data"))
     ev.add_argument("--out", type=Path, default=Path("eval-results"))
     ev.add_argument("--arms", default="graph",
-                    help="comma-separated arms: graph (gold evidence), extracted (LLM evidence; calls the model)")
+                    help="comma-separated arms: graph (gold evidence), extracted (LLM evidence; calls the model), "
+                         "llm-only (the model decides with no graph; calls the model)")
     ing = sub.add_parser("ingest", help="load the sources and report per-source record counts")
     ing.add_argument("--data", type=Path, default=Path("data"))
     args = parser.parse_args(argv)
