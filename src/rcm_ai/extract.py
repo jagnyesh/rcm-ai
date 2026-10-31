@@ -10,7 +10,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from rcm_ai.adjudicate import adjudicate, applicable_lcds, out_of_scope
+from rcm_ai.adjudicate import adjudicate, applicable_lcds, billed_coding_conflict, out_of_scope
 from rcm_ai.codes import is_icd10cm
 from rcm_ai.graph import CoverageGraph, Criterion
 from rcm_ai.schemas import Claim, CriterionEvidence, DocumentedCode, Evidence, Reason, Verdict
@@ -141,6 +141,8 @@ def parse_extraction(raw: dict, note: str, graph: CoverageGraph, criteria: list[
                     problems.append(problem)
             elif key not in offered:
                 problems.append(f"criterion {key!r} was not offered for this claim")
+            elif name == "criteria_met" and offered[key].satisfied_by == "covered_diagnosis":
+                problems.append(f"criterion {key!r} is decided from the diagnosis code, so it can't be listed as met")
             elif name == "criteria_not_met" and offered[key].any_of:
                 # One span can rule out one alternative only; naming each keeps the model from
                 # failing the parent while the note documents another alternative.
@@ -169,9 +171,10 @@ def triage_note(
     claim: Claim, note: str, graph: CoverageGraph, extractor: Extractor,
 ) -> tuple[Verdict, Extraction | None]:
     """Extract evidence from the note, validate it, then adjudicate as with supplied evidence.
-    A claim that is out of scope is handed off without calling the model (no Extraction)."""
-    if (hand_off := out_of_scope(claim, graph)) is not None:
-        return hand_off, None
+    A claim the claim alone decides is handed off without calling the model (no Extraction)."""
+    for decided_by_claim in (out_of_scope, billed_coding_conflict):
+        if (hand_off := decided_by_claim(claim, graph)) is not None:
+            return hand_off, None
     criteria = [c for lcd in applicable_lcds(claim, graph) for c in graph.criteria(lcd)]
     extraction = extractor(note, criteria)
     if extraction.raw is None:
@@ -183,7 +186,7 @@ def triage_note(
     # Supplied evidence is asserted complete; an extraction may have missed a covered diagnosis
     # the note documents, so "no documented diagnosis is covered" needs the note to rule it out.
     condition = sorted(c.id for c in _walk(criteria) if c.satisfied_by == "covered_diagnosis")
-    ruled_out = set(condition) & {c.criterion for c in parsed.evidence.criteria_not_met}
+    ruled_out = bool(condition) and set(condition) <= {c.criterion for c in parsed.evidence.criteria_not_met}
     if verdict.outcome == "uphold" and not ruled_out and any(r.kind == "diagnosis_not_covered" for r in verdict.reasons):
         return Verdict("needs_human", (), reasons=(Reason(
             "covered_diagnosis_not_ruled_out",

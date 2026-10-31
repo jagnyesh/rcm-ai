@@ -5,6 +5,9 @@ from rcm_ai.schemas import Claim, Evidence, Finding, Hop, Reason, SchemaError, V
 # Only medical-necessity denials can be overturned by showing coverage criteria are met;
 # timely filing (29), duplicates (18) or missing information (16) need other remedies.
 MEDICAL_NECESSITY_CARCS = {"50"}
+# One wording whether the billed codes alone conflict (decided before any extraction) or a
+# documented code does, so a claim gets the same verdict on supplied or extracted evidence.
+CODING_CONFLICT = "Diagnoses on the claim or in the note conflict under Excludes1; fix coding first"
 
 
 def _met_leaf(c: Criterion, met: set[str]) -> Criterion | None:
@@ -147,6 +150,15 @@ def out_of_scope(claim: Claim, graph: CoverageGraph) -> Verdict | None:
     return None
 
 
+def billed_coding_conflict(claim: Claim, graph: CoverageGraph) -> Verdict | None:
+    """The hand-off when the billed codes conflict under Excludes1 among themselves, or None."""
+    conflicts = _excludes1_conflicts(claim.icd10, graph)
+    if conflicts:
+        return Verdict("needs_human", (), tuple(conflicts), (Reason(
+            "coding_conflict", CODING_CONFLICT),))
+    return None
+
+
 def adjudicate(claim: Claim, evidence: Evidence, graph: CoverageGraph) -> Verdict:
     met = {c.criterion for c in evidence.criteria}
     not_met = {c.criterion: c.span for c in evidence.criteria_not_met}
@@ -163,7 +175,7 @@ def adjudicate(claim: Claim, evidence: Evidence, graph: CoverageGraph) -> Verdic
     conflicts = _excludes1_conflicts(codes, graph)
     if conflicts:
         return Verdict("needs_human", (), tuple(conflicts), (Reason(
-            "coding_conflict", "Diagnoses on the claim or in the note conflict under Excludes1; fix coding first"),))
+            "coding_conflict", CODING_CONFLICT),))
 
     outcomes = []
     for dx in claim.icd10:

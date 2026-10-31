@@ -131,25 +131,33 @@ def _served(extraction) -> dict:
             "request_id": extraction.record.get("request_id"), "stop_reason": extraction.stop_reason}
 
 
-def _sent_config(extractions: list) -> dict:
+def _canonical_sha256(value) -> str | None:
+    if value is None:
+        return None
+    text = value if isinstance(value, str) else json.dumps(value, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(text.encode()).hexdigest()
+
+
+def _sent_config(extractions: list, calls: int) -> dict:
     """The configuration read from the request bodies sent, not from constants or files that
-    could change mid-run; a setting that varied is recorded as every value sent."""
+    could change mid-run; a setting that varied is recorded as every value sent. Only calls
+    that returned have a body to read, so calls and responses are counted apart."""
     # Opus 5.5 rejects temperature, so runs are not deterministic; effort and the exact
     # prompt and schema are what pin the configuration. The schema is hashed as canonical
     # JSON because the request carries it re-serialized.
     seen = {}
     for extraction in extractions:
         body = json.loads(extraction.record["http_request_body"])
-        schema = json.dumps(body["output_config"]["format"]["schema"], sort_keys=True, separators=(",", ":"))
+        output = body.get("output_config") or {}
         for key, value in {
-            "model": body["model"], "effort": body["output_config"].get("effort"),
-            "max_tokens": body["max_tokens"], "temperature": body.get("temperature"),
-            "prompt_sha256": hashlib.sha256(body["system"].encode()).hexdigest(),
-            "schema_sha256": hashlib.sha256(schema.encode()).hexdigest(),
+            "model": body.get("model"), "effort": output.get("effort"),
+            "max_tokens": body.get("max_tokens"), "temperature": body.get("temperature"),
+            "prompt_sha256": _canonical_sha256(body.get("system")),
+            "schema_canonical_sha256": _canonical_sha256((output.get("format") or {}).get("schema")),
         }.items():
             seen.setdefault(key, set()).add(value)
     config = {key: next(iter(v)) if len(v) == 1 else sorted(v, key=str) for key, v in seen.items()}
-    return {**config, "requests": len(extractions)}
+    return {**config, "calls": calls, "responses": len(extractions)}
 
 
 def _git(*args: str) -> str | None:
@@ -172,7 +180,7 @@ def _eval(data_dir: Path, out_dir: Path, arm_names: list[str] = ("graph",)) -> i
     started = datetime.now(timezone.utc)
     stamp = started.strftime('%Y%m%dT%H%M%SZ')
     log_dir = out_dir / f"eval-{stamp}-extractions"
-    extractions = {}
+    extractions, called = {}, set()
     try:
         unknown = sorted(set(arm_names) - ARM_MODELS.keys())
         if unknown:
@@ -186,6 +194,7 @@ def _eval(data_dir: Path, out_dir: Path, arm_names: list[str] = ("graph",)) -> i
 
             def extracted(c):
                 def call(note, criteria):
+                    called.add(c.case.id)
                     extraction = extractions[c.case.id] = ex.extract(note, criteria, client)
                     _save_extraction(log_dir, c.case.id, extraction)  # before the case can fail
                     return extraction
@@ -217,13 +226,14 @@ def _eval(data_dir: Path, out_dir: Path, arm_names: list[str] = ("graph",)) -> i
                      "sha256": eval_set.sha256},
         "arms": {
             name: {"model": ARM_MODELS[name],
-                   **(_sent_config(list(extractions.values())) if name == "extracted" else {}),
+                   **(_sent_config(list(extractions.values()), len(called)) if name == "extracted" else {}),
                    **asdict(m), "accuracy": m.accuracy,
                    "abstention_rate": m.abstention_rate, "abstention_precision": m.abstention_precision}
             for name, m in report.arms.items()
         },
         "results": [{**asdict(r), "correct": r.correct, "known_system_gap": gaps[r.case],
-                     **(_served(extractions.get(r.case)) if r.arm == "extracted" else {})}
+                     **({"model_called": r.case in called, **_served(extractions.get(r.case))}
+                        if r.arm == "extracted" else {})}
                     for r in report.results],
     }
     out_dir.mkdir(parents=True, exist_ok=True)
