@@ -150,8 +150,7 @@ def _canonical_sha256(value) -> str | None:
 def _sent_config(extractions: list, calls: int) -> dict:
     """The configuration read from the request bodies sent, not from constants or files that
     could change mid-run; a setting that varied is recorded as every value sent. Only calls
-    that returned have a body to read, so calls and responses are counted apart, and responses
-    without output (refused, truncated, not JSON) are counted so a failing run isn't silent."""
+    that returned have a body to read, so calls and responses are counted apart."""
     # Opus 5.5 rejects temperature, so runs are not deterministic; effort and the exact
     # prompt and schema are what pin the configuration. The schema is hashed as canonical
     # JSON because the request carries it re-serialized.
@@ -167,9 +166,9 @@ def _sent_config(extractions: list, calls: int) -> dict:
         }.items():
             seen.setdefault(key, set()).add(value)
     config = {key: next(iter(v)) if len(v) == 1 else sorted(v, key=str) for key, v in seen.items()}
+    stops = Counter(e.stop_reason for e in extractions)
     return {**config, "calls": calls, "responses": len(extractions),
-            "stop_reasons": dict(sorted(Counter(e.stop_reason for e in extractions).items())),
-            "without_output": sum(e.raw is None for e in extractions)}
+            "stop_reasons": dict(sorted(stops.items(), key=lambda item: str(item[0])))}
 
 
 def _git(*args: str) -> str | None:
@@ -194,6 +193,9 @@ def _eval(data_dir: Path, out_dir: Path, arm_names: list[str] = ("graph",)) -> i
     log_dirs = {arm: out_dir / f"eval-{stamp}-{suffix}" for arm, suffix in LOG_SUFFIXES.items()}
     responses = {arm: {} for arm in LOG_SUFFIXES}  # arm -> case id -> the call's Extraction
     called = {arm: set() for arm in LOG_SUFFIXES}
+    # Cases whose response the arm couldn't use (refused, truncated, not JSON, or for the
+    # baseline not a verdict). They score as hand-offs, so they're counted and warned about.
+    unusable = {arm: set() for arm in LOG_SUFFIXES}
     try:
         unknown = sorted(set(arm_names) - ARM_MODELS.keys())
         if unknown:
@@ -207,6 +209,8 @@ def _eval(data_dir: Path, out_dir: Path, arm_names: list[str] = ("graph",)) -> i
             called[arm].add(c.case.id)
             response = responses[arm][c.case.id] = call()
             _save_extraction(log_dirs[arm], c.case.id, response)  # before the case can fail
+            if response.raw is None:
+                unusable[arm].add(c.case.id)
             return response
 
         def extracted(c):
@@ -218,7 +222,10 @@ def _eval(data_dir: Path, out_dir: Path, arm_names: list[str] = ("graph",)) -> i
             # The criteria of each LCD whose HCPCS table lists the item: the policy the denial
             # falls under, as an analyst would look it up. Nothing else comes from the graph.
             policy = {lcd: graph.criteria(lcd) for lcd in graph.lcds_listing(c.case.claim.hcpcs)}
-            return bl.verdict_from(calling("llm-only", c, lambda: bl.ask(c.case.claim, c.case.note, policy, client)))
+            verdict = bl.verdict_from(calling("llm-only", c, lambda: bl.ask(c.case.claim, c.case.note, policy, client)))
+            if any(r.kind == "no_verdict" for r in verdict.reasons):
+                unusable["llm-only"].add(c.case.id)
+            return verdict
 
         available = {"graph": lambda c: adjudicate(c.case.claim, c.case.evidence, graph),
                      "extracted": extracted, "llm-only": llm_only}
@@ -246,7 +253,8 @@ def _eval(data_dir: Path, out_dir: Path, arm_names: list[str] = ("graph",)) -> i
                 if not r.correct:
                     for line in r.why:
                         print(f"      {name}: {line}")
-    sent = {name: _sent_config(list(responses[name].values()), len(called[name]))
+    sent = {name: {**_sent_config(list(responses[name].values()), len(called[name])),
+                   "without_output": len(unusable[name])}
             for name in report.arms if name in LOG_SUFFIXES}
     record = {
         "date": started.isoformat(timespec="seconds"),
