@@ -207,3 +207,88 @@ def test_a_covered_code_whose_tabular_slice_is_not_loaded_is_handed_off(tmp_path
 
     assert verdict.outcome == "needs_human"
     assert [r.kind for r in verdict.reasons] == ["diagnosis_not_in_terminology"]
+
+
+# Fresh-context review of #6 (2026-10-30).
+def test_the_same_code_in_two_hcpcs_groups_of_one_lcd_loads(tmp_path):
+    data = _copy_data(tmp_path)  # real MCD data lists codes in more than one group (L33794 J7799)
+    _append_row(data, "cms/lcd_x_hcpc_code-L33822-v70.csv", hcpc_code_group="9")
+
+    s = _source(build_graph(data), "cms/lcd_x_hcpc_code-L33822-v70.csv")
+
+    assert (s.parsed, s.loaded) == (32, 32)
+
+
+def test_an_article_with_more_than_one_covered_group_fails_ingest(tmp_path):
+    # Groups can mean "a code from group 1 plus one from group 2"; flattening them into one
+    # covered list could overturn a claim that has only half the pair.
+    data = _copy_data(tmp_path)
+    _append_row(data, COVERED, icd10_covered_group="2")
+
+    with pytest.raises(IngestError, match="group"):
+        build_graph(data)
+
+
+def test_a_criterion_id_reused_by_a_second_lcd_fails_ingest(tmp_path):
+    data = _copy_data(tmp_path)
+    _write_csv(data, "cms/lcd-L99999-v1.csv", "cms/lcd-L33822-v70.csv", [{
+        "lcd_id": "99999", "lcd_version": "1", "indication": "<p>Synthetic test policy. (1) A test condition.</p>",
+    }])
+    (data / "curated" / "L99999-test-criteria.json").write_text(json.dumps({
+        "lcd": "L99999", "source": "cms/lcd-L99999-v1.csv", "column": "indication",
+        "applies_to": {"hcpcs": ["K9999"], "label": "test criteria", "quote": "Synthetic test policy."},
+        "criteria": [{"id": "cgm-1-diabetes", "quote": "(1) A test condition."}],
+    }))
+
+    with pytest.raises(IngestError, match="cgm-1-diabetes"):
+        build_graph(data)
+
+
+def test_two_versions_of_one_lcd_fail_ingest(tmp_path):
+    # The graph names an LCD without its version, so a second version would merge into the first.
+    data = _copy_data(tmp_path)
+    _write_csv(data, "cms/lcd_x_hcpc_code-L33822-v71.csv", "cms/lcd_x_hcpc_code-L33822-v70.csv", [
+        {"lcd_id": "33822", "lcd_version": "71", "hcpc_code_id": "E2102"},
+    ])
+
+    with pytest.raises(IngestError, match="L33822.*70.*71|L33822.*71.*70"):
+        build_graph(data)
+
+
+def test_a_code_defined_twice_in_one_tabular_file_fails_ingest(tmp_path):
+    data = _copy_data(tmp_path)
+    path = data / "fixtures" / "cdc" / "icd10cm-tabular-2027-O24.xml"
+    text = path.read_text(encoding="utf-8")
+    dup = "      <diag>\n        <name>O24.02</name>\n        <desc>Bogus duplicate</desc>\n      </diag>\n"
+    path.write_text(text.replace("    </section>", dup + "    </section>"), encoding="utf-8")
+    manifest = json.loads((data / "fixtures" / "MANIFEST.json").read_text())
+    entry = next(e for e in manifest["fixtures"] if e["path"] == "cdc/icd10cm-tabular-2027-O24.xml")
+    entry["record_count"] = 58
+    entry["sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
+    (data / "fixtures" / "MANIFEST.json").write_text(json.dumps(manifest))
+
+    with pytest.raises(IngestError, match="O24.02"):
+        build_graph(data)
+
+
+def test_a_section_excludes1_note_is_sourced_to_its_excludes1_line_not_an_identical_excludes2_note(tmp_path):
+    data = _copy_data(tmp_path)
+    path = data / "fixtures" / "cdc" / "icd10cm-tabular-2027-O24.xml"
+    text = path.read_text(encoding="utf-8")
+    note = "maternal care related to the fetus and amniotic cavity and possible delivery problems (O30-O48)"
+    # The real section has this note under excludes2; give it an excludes1 copy after that.
+    marker = "      </excludes2>\n      <diag>"
+    assert marker in text
+    path.write_text(text.replace(
+        marker, f"      </excludes2>\n      <excludes1>\n        <note>{note}</note>\n      </excludes1>\n      <diag>", 1),
+        encoding="utf-8")
+    manifest = json.loads((data / "fixtures" / "MANIFEST.json").read_text())
+    entry = next(e for e in manifest["fixtures"] if e["path"] == "cdc/icd10cm-tabular-2027-O24.xml")
+    entry["sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
+    (data / "fixtures" / "MANIFEST.json").write_text(json.dumps(manifest))
+
+    (rule,) = [r for r in build_graph(data).excludes1_rules("O24.111") if r.owner == "O20-O29"]
+
+    lines = path.read_text(encoding="utf-8").splitlines()
+    assert note in lines[rule.source.line - 1]
+    assert lines[rule.source.line - 2].strip() == "<excludes1>"
