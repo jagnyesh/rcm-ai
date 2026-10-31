@@ -11,7 +11,8 @@ class Concept:
     code: str
     title: str
     parent: str | None
-    kind: str = "diag"  # "diag" (a tabular entry) | "seventh" (expanded from a sevenChrDef)
+    # "diag" (a tabular entry) | "seventh" (expanded from a sevenChrDef) | "section" | "chapter"
+    kind: str = "diag"
     seventh_defined_at: str | None = None  # the code whose sevenChrDef supplied the character
 
 
@@ -24,7 +25,7 @@ class CodeRef:
 
 @dataclass(frozen=True)
 class Excludes1:
-    code: str
+    code: str  # the owning diag code, section id ("E08-E13") or chapter ("chapter-15")
     target: CodeRef
     note: str
 
@@ -36,24 +37,29 @@ class Tabular:
     excludes1: list[Excludes1]
 
 
-_TRAILING_REF = re.compile(r"\(([A-Z0-9.\-]+)\)\s*$")
+_TRAILING_REFS = re.compile(r"\(([A-Z0-9.\-, ]+)\)\s*$")
 # "-" or ".-" after a code means "and everything under it"; a range end may carry one too
 # ("I63.3-I63.5-"), and a range already spans its ends' subtrees, so it is dropped there.
 _REF = re.compile(rf"(?P<start>{ICD10CM_CODE})(?P<wild>\.?-)?(?:-(?P<end>{ICD10CM_CODE})(?:\.?-)?)?")
 
 
-def parse_code_ref(note: str) -> CodeRef:
-    m = _TRAILING_REF.search(note)
-    if m is None:
-        raise ValueError(f"no code reference in note: {note!r}")
-    ref = _REF.fullmatch(m.group(1))
+def _parse_ref(text: str, note: str) -> CodeRef:
+    ref = _REF.fullmatch(text)
     if ref is None:
-        raise ValueError(f"unrecognized code reference {m.group(1)!r} in note: {note!r}")
+        raise ValueError(f"unrecognized code reference {text!r} in note: {note!r}")
     if ref["end"]:
         return CodeRef("range", ref["start"], ref["end"])
     if ref["wild"]:
         return CodeRef("subtree", ref["start"])
     return CodeRef("exact", ref["start"])
+
+
+def parse_code_refs(note: str) -> tuple[CodeRef, ...]:
+    """The code references in a note's trailing parentheses: "(J09.X3, J10.2, J11.2)" names three."""
+    m = _TRAILING_REFS.search(note)
+    if m is None:
+        raise ValueError(f"no code reference in note: {note!r}")
+    return tuple(_parse_ref(part.strip(), note) for part in m.group(1).split(","))
 
 
 def _plain(code: str) -> str:
@@ -85,11 +91,14 @@ def parse_tabular(path: Path) -> Tabular:
     concepts: dict[str, Concept] = {}
     excludes1: list[Excludes1] = []
 
+    def add(el: ET.Element, code: str, parent: str | None, kind: str) -> None:
+        concepts[code] = Concept(code, el.findtext("desc"), parent, kind)
+        for note in el.findall("excludes1/note"):
+            excludes1.extend(Excludes1(code, ref, note.text) for ref in parse_code_refs(note.text))
+
     def walk(diag: ET.Element, parent: str | None, seventh: tuple[str, list] | None) -> None:
         code, title = diag.findtext("name"), diag.findtext("desc")
-        concepts[code] = Concept(code, title, parent)
-        for note in diag.findall("excludes1/note"):
-            excludes1.append(Excludes1(code, parse_code_ref(note.text), note.text))
+        add(diag, code, parent, "diag")
         definition = diag.findall("sevenChrDef/extension")
         if definition:
             seventh = (code, [(e.get("char"), e.text) for e in definition])
@@ -102,7 +111,18 @@ def parse_tabular(path: Path) -> Tabular:
                 full = _with_seventh(code, char)
                 concepts[full] = Concept(full, f"{title}, {meaning}", code, "seventh", defined_at)
 
-    for section in root.iter("section"):
+    def walk_section(section: ET.Element, chapter: str | None) -> None:
+        add(section, section.get("id"), chapter, "section")
         for diag in section.findall("diag"):
-            walk(diag, None, None)
+            walk(diag, section.get("id"), None)
+
+    # Sections and chapters become ancestors of their categories, so their Excludes1 notes
+    # reach every code below them. A slice may hold a bare section without its chapter.
+    for chapter in root.findall("chapter"):
+        code = f"chapter-{chapter.findtext('name')}"
+        add(chapter, code, None, "chapter")
+        for section in chapter.findall("section"):
+            walk_section(section, code)
+    for section in root.findall("section"):
+        walk_section(section, None)
     return Tabular(root.findtext("version"), concepts, excludes1)

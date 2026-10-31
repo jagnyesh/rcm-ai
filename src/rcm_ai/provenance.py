@@ -15,6 +15,7 @@ class ProvenanceError(Exception):
 @dataclass(frozen=True)
 class FixtureSource:
     path: str
+    table: str  # the source table the fixture's records come from, which decides how they load
     source_url: str
     version: str
     retrieved: str

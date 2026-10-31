@@ -186,10 +186,10 @@ def adjudicate(claim: Claim, evidence: Evidence, graph: CoverageGraph) -> Verdic
         assessed = [_assess(c, dx, met, not_met) for c in graph.criteria(p.lcd)]
         states = {state for state, _ in assessed}
         if states == {"met"}:
-            quote, source = graph.applicability(p.lcd, claim.hcpcs)
+            label, quote, source = graph.applicability(p.lcd, claim.hcpcs)
             return Verdict("overturnable", (
                 Hop(f"{claim.hcpcs} is listed in LCD {p.lcd}", claim.hcpcs, p.listing),
-                Hop(f"LCD {p.lcd} initial CGM criteria (1)-(5) apply to {claim.hcpcs}", quote, source),
+                Hop(f"LCD {p.lcd} {label} apply to {claim.hcpcs}", quote, source),
                 Hop(
                     f"LCD {p.lcd} is related to article {p.article} (link cites v{p.cited_article_version})",
                     p.article[1:], p.relation,
