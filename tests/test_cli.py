@@ -76,7 +76,7 @@ def test_eval_runs_the_locked_set_and_writes_dated_per_case_results(tmp_path):
     assert len(record["results"]) == 20
     assert {r["case"] for r in record["results"]} == {f"ev-{i:02d}" for i in range(1, 21)}
     ev06 = next(r for r in record["results"] if r["case"] == "ev-06")
-    assert "O24" in ev06["known_system_gap"]
+    assert ev06["outcome"] == ev06["gold"] == "overturnable"
 
 
 def test_eval_fails_with_exit_code_2_on_a_partial_case_set(tmp_path):
@@ -116,3 +116,29 @@ def test_eval_prints_false_uphold(tmp_path):
     result = _run("eval", "--out", str(tmp_path))
 
     assert "false uphold: 0 []" in result.stdout
+
+
+def test_ingest_prints_counts_per_source_and_exits_0():
+    result = _run("ingest")
+
+    assert result.returncode == 0, result.stderr
+    assert "cms/article_x_icd10_covered-A52464-v65.csv" in result.stdout
+    line = next(l for l in result.stdout.splitlines() if "article_x_icd10_covered-A52464" in l)
+    assert "parsed 461" in line and "rejected 0" in line and "loaded 461" in line and "in graph 461" in line
+
+
+def test_ingest_fails_with_exit_code_2_on_a_duplicate_key(tmp_path):
+    data = _small_data(tmp_path)
+    path = data / "fixtures" / "cms" / "lcd_x_hcpc_code-L33822-v70.csv"
+    lines = path.read_text(encoding="utf-8").splitlines(keepends=True)
+    path.write_text("".join(lines + [lines[1]]), encoding="utf-8")
+    manifest = json.loads((data / "fixtures" / "MANIFEST.json").read_text())
+    entry = next(e for e in manifest["fixtures"] if e["path"] == "cms/lcd_x_hcpc_code-L33822-v70.csv")
+    entry["record_count"] += 1
+    entry["sha256"] = __import__("hashlib").sha256(path.read_bytes()).hexdigest()
+    (data / "fixtures" / "MANIFEST.json").write_text(json.dumps(manifest))
+
+    result = _run("ingest", "--data", str(data))
+
+    assert result.returncode == 2
+    assert "duplicate" in result.stderr

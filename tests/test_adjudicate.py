@@ -375,11 +375,37 @@ def test_a_billed_diagnosis_without_documentation_is_handed_off():
     assert _reasons(verdict) == ["diagnosis_not_documented"]
 
 
-def test_a_covered_diagnosis_missing_from_the_terminology_slice_is_handed_off():
-    verdict = _eval_case("ev-06")  # O24.111 is on the covered list; O24 isn't in the slice yet
+def test_a_covered_o24_diagnosis_is_overturnable_with_its_concept_hop_sourced_to_the_o24_slice():
+    verdict = _eval_case("ev-06")  # O24.111, pre-existing type 2 diabetes in pregnancy
 
-    assert verdict.outcome == "needs_human"
-    assert _reasons(verdict) == ["diagnosis_not_in_terminology"]
+    assert verdict.outcome == "overturnable"
+    concept = verdict.path[3]
+    assert concept.source.path == "cdc/icd10cm-tabular-2027-O24.xml"
+    for hop in verdict.path:
+        assert hop.anchor in _record_text_at(FIXTURES / hop.source.path, hop.source.line), hop
+
+
+# #4 re-review: specificity recodes only within the billed code's own category.
+def test_a_documented_covered_code_from_another_category_does_not_support_a_billed_without_complications_code():
+    case = _case()  # O24.111 is real and covered, but it is not a more specific E11.9
+    claim = replace(case.claim, icd10=("E11.9",))
+    evidence = replace(case.evidence, diagnoses=(DocumentedCode("O24.111", NOTE_SPAN),))
+
+    assert _outcome_and_reasons(claim, evidence) == ("needs_human", ["diagnosis_not_documented"])
+
+
+def test_a_chapter_level_excludes1_note_makes_a_coding_conflict():
+    case = _case()  # chapter 15 excludes supervision of normal pregnancy (Z34.-)
+    claim = replace(case.claim, icd10=("O24.111",))
+    evidence = replace(case.evidence, diagnoses=(
+        DocumentedCode("O24.111", NOTE_SPAN), DocumentedCode("Z34.01", NOTE_SPAN)))
+
+    verdict = adjudicate(claim, evidence, build_graph(DATA))
+
+    assert _reasons(verdict) == ["coding_conflict"]
+    (finding,) = verdict.findings
+    assert finding.codes == ("O24.111", "Z34.01")
+    assert finding.anchor == "supervision of normal pregnancy (Z34.-)"
 
 
 def test_an_excludes1_conflict_gives_a_coding_conflict_reason():
@@ -453,7 +479,7 @@ def test_an_uncovered_billed_code_beside_a_documented_covered_code_is_a_recode_h
     assert _outcome_and_reasons(claim, evidence) == ("needs_human", ["covered_diagnosis_not_billed"])
 
 
-# E11.37X's covered children (E11.37X1-9) skip it in the parent chain; O24.01's are outside the slice.
+# E11.37X's covered children (E11.37X1-9) skip it in the parent chain.
 @pytest.mark.parametrize("header", ["E11.64", "E11.3", "E11.37X", "O24.01"])
 def test_a_non_billable_header_with_covered_children_is_a_recode_hand_off_not_an_uphold(header):
     case = _case()
