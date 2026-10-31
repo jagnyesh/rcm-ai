@@ -20,18 +20,25 @@ SCHEMA = {
     "additionalProperties": False,
 }
 
-# Every code or policy ID a letter can cite. An undotted three-character ICD-10-CM token counts
-# only with a digit third, or as one of the six categories with a letter third, so the
-# abbreviations "A1C" and "T2D" aren't read as codes. Alternatives are tried in order.
-_CITATION = re.compile(
-    r"\b(?:"
-    r"[LA]\d{5}"  # LCD or policy article ID
-    r"|[A-V]\d{4}"  # HCPCS Level II
-    r"|\d{5}|\d{4}[FTU]"  # CPT
-    r"|[A-Z]\d[0-9A-Z]\.[0-9A-Z]{1,4}"  # ICD-10-CM code
-    r"|[A-Z]\d\d|C4A|C7A|C7B|D3A|M1A|Z3A"  # ICD-10-CM category
-    r")\b"
+# Every code or policy ID a letter can cite, each pattern giving (match, how to write it).
+# Codes start like an ICD-10-CM category: a letter, a digit and a digit third, or one of the six
+# categories with a letter third, so "A1C", "T2D" and "G6PD" aren't codes. That shape also covers
+# HCPCS Level II codes, with any modifier. A bare number is only a CPT code or a policy ID when
+# labeled as one, since letters carry ZIP codes, form numbers, minutes and money.
+_CITATIONS = (
+    (re.compile(r"\b(?:[A-Z]\d\d|C4A|C7A|C7B|D3A|M1A|Z3A)(?:\.[0-9A-Z]{1,4}|[0-9A-Z]{1,5})?(?:-[A-Z0-9]{2})*\b"),
+     lambda m: m.group()),
+    (re.compile(r"\bD?L\d{5}\b|\bA\d{5}\b"), lambda m: m.group()),
+    (re.compile(r"\bLCD\s*(?:ID\s*)?#?\s*L?(\d{5})\b", re.IGNORECASE), lambda m: f"L{m.group(1)}"),
+    (re.compile(r"\barticle\s*(?:ID\s*)?#?\s*A?(\d{5})\b", re.IGNORECASE), lambda m: f"A{m.group(1)}"),
+    (re.compile(r"\bNCD\s*#?\s*(\d{1,3}(?:\.\d{1,2})?)\b", re.IGNORECASE), lambda m: f"NCD {m.group(1)}"),
+    (re.compile(r"\bCPT\s*®?\s*(?:code\s*)?#?\s*(\d{4}[0-9FTU])\b", re.IGNORECASE), lambda m: m.group(1)),
 )
+# A HCPCS code with its modifiers, which cite the code itself.
+_MODIFIED = re.compile(r"([A-V]\d{4})(?:-?[A-Z0-9]{2})+")
+# An aside in parentheses that names a code, such as ev-07's "(7th character from E11.32
+# sevenChrDef)", qualifies a statement; it doesn't establish that code.
+_ASIDE = re.compile(r"\s*\([^)]*\)")
 
 
 @dataclass(frozen=True)
@@ -45,19 +52,34 @@ class CitationCheck:
 
 
 def citations(text: str) -> tuple[str, ...]:
-    return tuple(dict.fromkeys(_CITATION.findall(text)))
+    """Each code or policy ID in the text, once, in order of first appearance."""
+    found = sorted((m.start(), write(m)) for pattern, write in _CITATIONS for m in pattern.finditer(text))
+    return tuple(dict.fromkeys(c for _, c in found))
+
+
+def _readings(citation: str) -> set[str]:
+    """The forms one code takes: dotted or not, and a HCPCS code with or without modifiers."""
+    forms = {citation.replace(".", "")}
+    if m := _MODIFIED.fullmatch(citation):
+        forms.add(m.group(1))
+    return forms
+
+
+def asserted(statement: str) -> str:
+    """A hop statement without its asides that name a code."""
+    return _ASIDE.sub(lambda m: "" if citations(m.group()) else m.group(), statement)
 
 
 def established(path: tuple[Hop, ...]) -> tuple[str, ...]:
     """What a path lets a letter cite. A hop's statement is what it establishes; its anchor is
     only text to find at the source (the article hop's anchor is "52464"), so it doesn't count."""
-    return citations(" ".join(h.statement for h in path))
+    return citations(" ".join(asserted(h.statement) for h in path))
 
 
 def check_citations(letter: str, path: tuple[Hop, ...]) -> CitationCheck:
-    allowed = set(established(path))
+    allowed = set().union(*(_readings(c) for c in established(path)))
     cited = citations(letter)
-    return CitationCheck(cited, tuple(c for c in cited if c not in allowed))
+    return CitationCheck(cited, tuple(c for c in cited if not _readings(c) & allowed))
 
 
 def quotes(evidence: Evidence | None) -> list[tuple[str, str]]:
@@ -68,16 +90,13 @@ def quotes(evidence: Evidence | None) -> list[tuple[str, str]]:
     return [("diagnosis", d.span) for d in evidence.diagnoses] + [(c.criterion, c.span) for c in evidence.criteria]
 
 
-def _step(n: int, hop: Hop) -> str:
-    where = f"source: {hop.source.path}, line {hop.source.line}, {hop.source.version}" if hop.source else "no source"
-    return f"{n}. {hop.statement} ({where})"
-
-
 def build_request(claim: Claim, path: tuple[Hop, ...], note_quotes: list[tuple[str, str]]) -> dict:
-    """Keyword arguments for messages.create."""
+    """Keyword arguments for messages.create. The steps are what the checker reads, with no
+    sources: file names like icd10cm-tabular-2027-E08-E13.xml would put codes the checker rejects
+    in front of a drafter of sourced paths only, and every arm's steps should read alike."""
     content = (
         ex.describe_claim(claim)
-        + "\n\nJustification:\n" + "\n".join(_step(n, h) for n, h in enumerate(path, start=1))
+        + "\n\nJustification:\n" + "\n".join(f"{n}. {asserted(h.statement)}" for n, h in enumerate(path, start=1))
         + "\n\nNote quotes:\n" + ("\n".join(f'- {label}: "{span}"' for label, span in note_quotes) or "none")
     )
     return {

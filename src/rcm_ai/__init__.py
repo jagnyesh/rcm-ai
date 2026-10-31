@@ -51,7 +51,7 @@ def _save_extraction(log_dir: Path, case_id: str, extraction) -> Path:
 
 def _triage(case_path: Path, data_dir: Path, extract: bool = False, draft: bool = False,
             log_dir: Path = Path("eval-results/extractions"), draft_dir: Path = Path("eval-results/drafts")) -> int:
-    appeal = None
+    appeal = draft_error = None
     try:
         case = load_case(case_path)
         graph = build_graph(data_dir)
@@ -72,8 +72,14 @@ def _triage(case_path: Path, data_dir: Path, extract: bool = False, draft: bool 
         else:
             verdict, evidence = adjudicate(case.claim, case.evidence, graph), case.evidence
         if draft and verdict.outcome == "overturnable":
-            appeal = ap.draft(case.claim, verdict.path, ap.quotes(evidence), client or _client())
-            draft_log = _save_extraction(draft_dir, case.id, appeal)
+            if client is None:
+                client = _client()
+            try:
+                appeal = ap.draft(case.claim, verdict.path, ap.quotes(evidence), client)
+            except Exception as e:  # the verdict needs no model, so it's still reported
+                draft_error = f"{type(e).__name__}: {e}"
+            else:
+                draft_log = _save_extraction(draft_dir, case.id, appeal)
     except SchemaError as e:
         print(f"rejected: {e}", file=sys.stderr)
         return 2
@@ -109,6 +115,9 @@ def _triage(case_path: Path, data_dir: Path, extract: bool = False, draft: bool 
         if f.source:
             print(f"     {data_dir / 'fixtures' / f.source.path}:{f.source.line}  [{f.source.version}]")
             print(f"     look for: {f.anchor}")
+    if draft_error:
+        print(f"appeal draft failed: {draft_error}", file=sys.stderr)
+        return 3
     if draft and appeal is None:
         print("  no appeal drafted: the verdict is not overturnable")
     elif draft:
@@ -232,21 +241,17 @@ def _eval(data_dir: Path, out_dir: Path, arm_names: list[str] = ("graph",), draf
         graph = build_graph(data_dir)
         _warn_rejected(graph)
         client = _client() if draft or set(arm_names) & LOG_SUFFIXES.keys() else None
-        # What a letter for each claim may cite: the graph's path on the case's gold evidence,
-        # empty when the graph wouldn't overturn the claim. Every arm's letters are checked against it.
-        references = {}
-        for c in eval_set.cases if draft else []:
-            v = adjudicate(c.case.claim, c.case.evidence, graph)
-            references[c.case.id] = v.path if v.outcome == "overturnable" else ()
-
         def appeal_for(arm, c, verdict, evidence):
-            reference = references[c.case.id]
             try:
+                # What a letter for this claim may cite: the graph's path on the case's gold evidence,
+                # empty when the graph wouldn't overturn the claim. Every arm's letter is checked against it.
+                gold = adjudicate(c.case.claim, c.case.evidence, graph)
+                reference = gold.path if gold.outcome == "overturnable" else ()
                 response = ap.draft(c.case.claim, verdict.path, ap.quotes(evidence), client)
                 drafts.append(response)
                 _save_extraction(draft_dir, f"{arm}-{c.case.id}", response)
             except Exception as e:  # a failed draft is counted; it must not change the verdict's score
-                return ap.Appeal(ap.established(reference), error=f"{type(e).__name__}: {e}")
+                return ap.Appeal((), error=f"{type(e).__name__}: {e}")
             letter = ap.letter_of(response)
             return ap.Appeal(ap.established(reference), letter, ap.check_citations(letter, reference) if letter else None)
 

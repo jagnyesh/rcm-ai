@@ -229,7 +229,7 @@ def _drafting(letter=None, seen=None):
         if seen is not None:
             seen.append((claim, path, quotes))
         sent = ap.build_request(claim, path, quotes)
-        text = letter if letter is not None else " ".join(h.statement for h in path)
+        text = letter if letter is not None else " ".join(ap.asserted(h.statement) for h in path)
         return Extraction({"letter": text}, "end_turn", {
             "request_id": "req_draft", "http_request_body": json.dumps(sent), "response": {"model": sent["model"]}})
     return stand_in
