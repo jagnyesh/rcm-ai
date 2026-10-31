@@ -91,8 +91,13 @@ def parse_tabular(path: Path) -> Tabular:
     concepts: dict[str, Concept] = {}
     excludes1: list[Excludes1] = []
 
+    def define(concept: Concept) -> None:
+        if concept.code in concepts:
+            raise ValueError(f"{concept.code} is defined more than once")
+        concepts[concept.code] = concept
+
     def add(el: ET.Element, code: str, parent: str | None, kind: str) -> None:
-        concepts[code] = Concept(code, el.findtext("desc"), parent, kind)
+        define(Concept(code, el.findtext("desc"), parent, kind))
         for note in el.findall("excludes1/note"):
             excludes1.extend(Excludes1(code, ref, note.text) for ref in parse_code_refs(note.text))
 
@@ -109,7 +114,7 @@ def parse_tabular(path: Path) -> Tabular:
             defined_at, extensions = seventh
             for char, meaning in extensions:
                 full = _with_seventh(code, char)
-                concepts[full] = Concept(full, f"{title}, {meaning}", code, "seventh", defined_at)
+                define(Concept(full, f"{title}, {meaning}", code, "seventh", defined_at))
 
     def walk_section(section: ET.Element, chapter: str | None) -> None:
         add(section, section.get("id"), chapter, "section")

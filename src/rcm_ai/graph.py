@@ -34,9 +34,9 @@ TABULAR = "icd10cm_tabular"
 # Each MCD export table a fixture can hold, with the columns that key one of its rows.
 CSV_KEYS = {
     "lcd": ("lcd_id", "lcd_version"),
-    "lcd_x_hcpc_code": ("lcd_id", "lcd_version", "hcpc_code_id"),
+    "lcd_x_hcpc_code": ("lcd_id", "lcd_version", "hcpc_code_id", "hcpc_code_group"),
     "lcd_related_documents": ("lcd_id", "lcd_version", "related_num"),
-    "article_x_icd10_covered": ("article_id", "article_version", "icd10_code_id"),
+    "article_x_icd10_covered": ("article_id", "article_version", "icd10_code_id", "icd10_covered_group"),
 }
 
 
@@ -130,7 +130,7 @@ class CoverageGraph:
         return str(rows[0].t) if rows else None
 
     def ancestors(self, code: str) -> list[str]:
-        """The code itself, then each broader concept up to its category."""
+        """The code itself, then each broader concept: category, then section and chapter when loaded."""
         chain = [code]
         while True:
             rows = list(self._ds.query(
@@ -305,9 +305,13 @@ def build_graph(data_dir: Path) -> CoverageGraph:
         text_lines = (fixtures / src.path).read_text(encoding="utf-8").splitlines()
         lines = _tabular_lines(text_lines)
 
-        def line_after(code: str, needle: str) -> int:
-            """First line at or below a code's own line that contains needle."""
-            return next(n for n in range(lines[code], len(text_lines) + 1) if needle in text_lines[n - 1])
+        def line_after(code: str, *needles: str) -> int:
+            """The line of the last needle, searching each from where the one before it was found,
+            starting at the code's own line."""
+            n = lines[code]
+            for needle in needles:
+                n = next(i for i in range(n, len(text_lines) + 1) if needle in text_lines[i - 1])
+            return n
 
         try:
             tab = parse_tabular(fixtures / src.path)
@@ -334,7 +338,8 @@ def build_graph(data_dir: Path) -> CoverageGraph:
             if concept.parent:
                 g.add((ICD[concept.code], SKOS.broader, ICD[concept.parent]))
         for i, rule in enumerate(tab.excludes1):
-            g = graph_for(src.path, line_after(rule.code, f"<note>{escape(rule.note)}</note>"))
+            # Anchor on the owner's <excludes1> first, so an identical Excludes2 note can't claim it.
+            g = graph_for(src.path, line_after(rule.code, "<excludes1>", f"<note>{escape(rule.note)}</note>"))
             node = EXCLUDES1[f"{rule.code}-{i}"]
             g.add((ICD[rule.code], RCM.excludes1, node))
             g.add((node, RCM.refKind, Literal(rule.target.kind)))
@@ -342,10 +347,12 @@ def build_graph(data_dir: Path) -> CoverageGraph:
             if rule.target.end:
                 g.add((node, RCM.refEnd, Literal(rule.target.end)))
             g.add((node, RCM.note, Literal(rule.note)))
-        diags = sum(1 for c in tab.concepts.values() if c.kind == "diag")
-        loads.append((src.path, TABULAR, diags, ()))
+        loads.append((src.path, TABULAR, src.record_count, ()))
 
     lcd_records: dict[str, tuple[str, int, dict]] = {}
+    # The graph names LCDs and articles without their version, so one version of each may load.
+    doc_versions: dict[str, set[str]] = {}
+    covered_groups: dict[str, set[str]] = {}
     for table in CSV_KEYS:  # lcd rows first, so curated criteria can find their record
         seen: dict[tuple, str] = {}
         for src in (s for s in sources if s.table == table):
@@ -361,6 +368,8 @@ def build_graph(data_dir: Path) -> CoverageGraph:
                 if reason := _reject_reason(table, row):
                     rejected.append(Rejected(line, reason))
                     continue
+                doc = f"A{row['article_id']}" if table == "article_x_icd10_covered" else f"L{row['lcd_id']}"
+                doc_versions.setdefault(doc, set()).add(row["article_version" if doc[0] == "A" else "lcd_version"])
                 g = graph_for(src.path, line)
                 if table == "lcd":
                     lcd = LCD["L" + row["lcd_id"]]
@@ -375,11 +384,24 @@ def build_graph(data_dir: Path) -> CoverageGraph:
                     # article version whose covered codes we load; keep it so the path can show it.
                     g.add((article, RCM.citedVersion, Literal(row["r_article_version"])))
                 else:
+                    covered_groups.setdefault(doc, set()).add(row["icd10_covered_group"])
                     g.add((ARTICLE["A" + row["article_id"]], RCM.coversDiagnosis, ICD[row["icd10_code_id"]]))
+            if parsed != src.record_count:
+                raise IngestError(f"{src.path}: read {parsed} records, manifest says {src.record_count}")
             loads.append((src.path, table, parsed, tuple(rejected)))
+    for doc, found in sorted(doc_versions.items()):
+        if len(found) > 1:
+            raise IngestError(f"{doc}: versions {', '.join(sorted(found))} loaded together; load one version")
+    for doc, groups in sorted(covered_groups.items()):
+        # Groups can mean "one code from group 1 plus one from group 2"; a flat covered list
+        # would then overturn a claim that has only half the pair.
+        if len(groups) > 1:
+            raise IngestError(f"{doc}: covered codes in groups {', '.join(sorted(groups))}; "
+                              "multi-group articles are not modeled")
 
+    criterion_files: dict[str, str] = {}
     for path in sorted((Path(data_dir) / "curated").glob("*.json")):
-        _add_curated(path, lcd_records, graph_for)
+        _add_curated(path, lcd_records, criterion_files, graph_for)
 
     report = []
     for path, table, parsed, rejected in loads:
@@ -395,7 +417,7 @@ def build_graph(data_dir: Path) -> CoverageGraph:
     return CoverageGraph(ds, tuple(report))
 
 
-def _add_curated(path: Path, lcd_records: dict, graph_for) -> None:
+def _add_curated(path: Path, lcd_records: dict, criterion_files: dict[str, str], graph_for) -> None:
     curated = json.loads(path.read_text())
     if curated["lcd"] not in lcd_records:
         raise IngestError(f"{path.name}: no loaded LCD record for {curated['lcd']}")
@@ -422,6 +444,10 @@ def _add_curated(path: Path, lcd_records: dict, graph_for) -> None:
         g.add((lcd, RCM.criteriaApplyTo, HCPCS[code]))
 
     def add_criterion(c: dict):
+        # Criterion IRIs carry no LCD, so a reused id would merge two LCDs' criteria.
+        if c["id"] in criterion_files:
+            raise IngestError(f"{path.name}: criterion id {c['id']} is already defined in {criterion_files[c['id']]}")
+        criterion_files[c["id"]] = path.name
         node = CRITERION[c["id"]]
         g.add((node, RCM.quote, Literal(c["quote"])))
         if "satisfied_by" in c:

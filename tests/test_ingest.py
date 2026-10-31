@@ -151,13 +151,13 @@ def test_a_second_lcd_loads_from_data_files_alone(tmp_path):
         "indication": "<p>Synthetic test policy.</p><p>(1) The beneficiary has a documented test condition.</p>",
     }])
     _write_csv(data, "cms/lcd_x_hcpc_code-L99999-v1.csv", "cms/lcd_x_hcpc_code-L33822-v70.csv", [
-        {"lcd_id": "99999", "lcd_version": "1", "hcpc_code_id": "K9999"},
+        {"lcd_id": "99999", "lcd_version": "1", "hcpc_code_id": "K9999", "hcpc_code_group": "1"},
     ])
     _write_csv(data, "cms/lcd_related_documents-L99999-v1.csv", "cms/lcd_related_documents-L33822-v70.csv", [
         {"lcd_id": "99999", "lcd_version": "1", "related_num": "1", "r_article_id": "99999", "r_article_version": "1"},
     ])
     _write_csv(data, "cms/article_x_icd10_covered-A99999-v1.csv", COVERED, [
-        {"article_id": "99999", "article_version": "1", "icd10_code_id": "E11.9"},
+        {"article_id": "99999", "article_version": "1", "icd10_code_id": "E11.9", "icd10_covered_group": "1"},
     ])
     (data / "curated" / "L99999-test-criteria.json").write_text(json.dumps({
         "lcd": "L99999", "source": "cms/lcd-L99999-v1.csv", "column": "indication",
@@ -248,7 +248,7 @@ def test_two_versions_of_one_lcd_fail_ingest(tmp_path):
     # The graph names an LCD without its version, so a second version would merge into the first.
     data = _copy_data(tmp_path)
     _write_csv(data, "cms/lcd_x_hcpc_code-L33822-v71.csv", "cms/lcd_x_hcpc_code-L33822-v70.csv", [
-        {"lcd_id": "33822", "lcd_version": "71", "hcpc_code_id": "E2102"},
+        {"lcd_id": "33822", "lcd_version": "71", "hcpc_code_id": "E2102", "hcpc_code_group": "1"},
     ])
 
     with pytest.raises(IngestError, match="L33822.*70.*71|L33822.*71.*70"):
