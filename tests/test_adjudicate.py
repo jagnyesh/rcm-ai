@@ -453,10 +453,29 @@ def test_an_uncovered_billed_code_beside_a_documented_covered_code_is_a_recode_h
     assert _outcome_and_reasons(claim, evidence) == ("needs_human", ["covered_diagnosis_not_billed"])
 
 
-@pytest.mark.parametrize("header", ["E11.64", "E11.3"])
+# E11.37X's covered children (E11.37X1-9) skip it in the parent chain; O24.01's are outside the slice.
+@pytest.mark.parametrize("header", ["E11.64", "E11.3", "E11.37X", "O24.01"])
 def test_a_non_billable_header_with_covered_children_is_a_recode_hand_off_not_an_uphold(header):
     case = _case()
     claim = replace(case.claim, icd10=(header,))
     evidence = replace(case.evidence, diagnoses=(DocumentedCode(header, NOTE_SPAN),))
 
     assert _outcome_and_reasons(claim, evidence) == ("needs_human", ["diagnosis_not_billable"])
+
+
+def test_an_unknown_code_inside_a_loaded_category_is_a_hand_off_not_an_uphold():
+    case = _case()  # E11.99 is not an ICD-10-CM code, though E11 is loaded
+    claim = replace(case.claim, icd10=("E11.99",))
+    evidence = replace(case.evidence, diagnoses=(DocumentedCode("E11.99", NOTE_SPAN),))
+
+    assert _outcome_and_reasons(claim, evidence) == ("needs_human", ["diagnosis_not_in_terminology"])
+
+
+@pytest.mark.parametrize("documented_header", ["E11.64", "E11.37X", "O24.01"])
+def test_a_documented_header_with_covered_codes_under_it_blocks_an_uphold(documented_header):
+    case = _case()  # billed R73.9 (not covered); the note also documents a recodable diabetes header
+    claim = replace(case.claim, icd10=("R73.9",))
+    evidence = replace(case.evidence, diagnoses=(
+        DocumentedCode("R73.9", NOTE_SPAN), DocumentedCode(documented_header, NOTE_SPAN)))
+
+    assert _outcome_and_reasons(claim, evidence) == ("needs_human", ["covered_diagnosis_not_billed"])
