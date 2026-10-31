@@ -119,9 +119,12 @@ def test_the_extractor_is_offered_every_curated_criterion_with_its_lcd_quote():
 
     triage_note(case.claim, case.note, GRAPH, spy)
 
-    ids = {c.id for c in seen["criteria"]}
-    assert ids == GRAPH.criterion_ids()
+    def ids(criteria):
+        return {x for c in criteria for x in (c.id, *ids(c.any_of))}
+
     assert all(c.quote for c in seen["criteria"])
+    ids = ids(seen["criteria"])
+    assert ids == GRAPH.criterion_ids()
 
 
 def test_the_request_pins_the_model_effort_prompt_file_and_schema_file():
@@ -149,7 +152,9 @@ def test_a_case_without_evidence_loads_for_extraction(tmp_path):
 
 
 # Live: these call the model. They need credentials and are skipped, visibly, without them.
-live = pytest.mark.skipif(not os.environ.get("ANTHROPIC_API_KEY"), reason="needs ANTHROPIC_API_KEY (live model call)")
+_has_credentials = bool(os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN")
+                        or (Path.home() / ".config" / "anthropic").exists())
+live = pytest.mark.skipif(not _has_credentials, reason="needs Anthropic credentials (live model call)")
 
 
 @live
