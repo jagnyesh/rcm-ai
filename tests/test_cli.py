@@ -142,3 +142,15 @@ def test_ingest_fails_with_exit_code_2_on_a_duplicate_key(tmp_path):
 
     assert result.returncode == 2
     assert "duplicate" in result.stderr
+
+
+def test_triage_of_a_case_without_evidence_needs_extract_and_exits_2(tmp_path):
+    raw = json.loads((REPO / CASE).read_text())
+    del raw["evidence"]
+    bare = tmp_path / "bare.json"
+    bare.write_text(json.dumps(raw))
+
+    result = _run("triage", str(bare))
+
+    assert result.returncode == 2
+    assert "--extract" in result.stderr
