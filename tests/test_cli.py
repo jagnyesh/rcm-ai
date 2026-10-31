@@ -142,3 +142,46 @@ def test_ingest_fails_with_exit_code_2_on_a_duplicate_key(tmp_path):
 
     assert result.returncode == 2
     assert "duplicate" in result.stderr
+
+
+def test_triage_of_a_case_without_evidence_needs_extract_and_exits_2(tmp_path):
+    raw = json.loads((REPO / CASE).read_text())
+    del raw["evidence"]
+    bare = tmp_path / "bare.json"
+    bare.write_text(json.dumps(raw))
+
+    result = _run("triage", str(bare))
+
+    assert result.returncode == 2
+    assert "--extract" in result.stderr
+
+
+def _run_without_credentials(*args, tmp_path):
+    import os
+
+    env = {k: v for k, v in os.environ.items() if not k.startswith("ANTHROPIC_")}
+    env["HOME"] = str(tmp_path)  # no `ant auth login` profile either
+    return subprocess.run([str(CLI), *args], cwd=REPO, capture_output=True, text=True, timeout=60, env=env)
+
+
+def test_triage_extract_without_credentials_exits_2_with_a_clear_message(tmp_path):
+    result = _run_without_credentials("triage", "data/eval/cases/ev-01.json", "--extract", tmp_path=tmp_path)
+
+    assert result.returncode == 2
+    assert "no Anthropic credentials" in result.stderr
+    assert "Traceback" not in result.stderr
+
+
+def test_eval_with_the_extracted_arm_and_no_credentials_fails_before_running_cases(tmp_path):
+    result = _run_without_credentials("eval", "--arms", "graph,extracted", "--out", str(tmp_path), tmp_path=tmp_path)
+
+    assert result.returncode == 2
+    assert "no Anthropic credentials" in result.stderr
+    assert list(tmp_path.glob("eval-*.json")) == []
+
+
+def test_eval_rejects_an_unknown_arm(tmp_path):
+    result = _run("eval", "--arms", "graph,bogus", "--out", str(tmp_path))
+
+    assert result.returncode == 2
+    assert "unknown arm bogus" in result.stderr

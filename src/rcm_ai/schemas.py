@@ -108,7 +108,7 @@ class Verdict:
 class Case:
     id: str
     claim: Claim
-    evidence: Evidence
+    evidence: Evidence | None  # None when the evidence is to be extracted from the note
     note: str
 
 
@@ -138,13 +138,13 @@ def load_case(path: Path) -> Case:
     if raw.get("synthetic") is not True:
         raise SchemaError(f"{path}: case is not marked synthetic; only synthetic cases are accepted")
     try:
-        c, e, note = raw["claim"], raw["evidence"], raw["note"]
+        c, e, note = raw["claim"], raw.get("evidence"), raw["note"]
         if not isinstance(c["icd10"], list):
             raise SchemaError(f"{path}: claim icd10 must be a list of codes")
         return Case(
             id=raw["id"],
             claim=Claim(c["hcpcs"], tuple(c["icd10"]), c["carc"], c["coverage"]),
-            evidence=Evidence(
+            evidence=None if e is None else Evidence(
                 tuple(
                     DocumentedCode(_documented_code(d, path), _span(d, note, d["code"], path))
                     for d in e["diagnoses"]

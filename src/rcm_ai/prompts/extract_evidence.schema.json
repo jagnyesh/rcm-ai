@@ -1,0 +1,34 @@
+{
+  "type": "object",
+  "properties": {
+    "diagnoses": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {"code": {"type": "string"}, "span": {"type": "string"}},
+        "required": ["code", "span"],
+        "additionalProperties": false
+      }
+    },
+    "criteria_met": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {"criterion": {"type": "string"}, "span": {"type": "string"}},
+        "required": ["criterion", "span"],
+        "additionalProperties": false
+      }
+    },
+    "criteria_not_met": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {"criterion": {"type": "string"}, "span": {"type": "string"}},
+        "required": ["criterion", "span"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["diagnoses", "criteria_met", "criteria_not_met"],
+  "additionalProperties": false
+}
