@@ -11,6 +11,7 @@ criteria_not_met: each coverage criterion the note affirmatively shows is not me
 Rules for criteria:
 - Use only the criterion ids listed in the request.
 - When a criterion has alternatives, record the specific alternative the note documents, not the parent. If the note states the parent in general terms without any qualifying alternative, do not record it as met.
+- In criteria_not_met, likewise record each alternative the note shows is not met, never the parent. One span may show that several alternatives fail; give it for each of them.
 - A criterion marked "decided from the diagnosis code" is met by the diagnosis itself; never list it under criteria_met. List it under criteria_not_met only if the note says the patient does not have the condition.
 
 Rules for spans:

@@ -10,7 +10,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from rcm_ai.adjudicate import adjudicate
+from rcm_ai.adjudicate import adjudicate, applicable_lcds, out_of_scope
 from rcm_ai.codes import is_icd10cm
 from rcm_ai.graph import CoverageGraph, Criterion
 from rcm_ai.schemas import Claim, CriterionEvidence, DocumentedCode, Evidence, Reason, Verdict
@@ -107,7 +107,23 @@ def _items(raw: dict, name: str, key: str) -> list[tuple[str, str]] | None:
     return [(i[key], i["span"]) for i in items]
 
 
-def parse_extraction(raw: dict, note: str, graph: CoverageGraph) -> Parsed:
+def _walk(criteria) -> list[Criterion]:
+    return [x for c in criteria for x in (c, *_walk(c.any_of))]
+
+
+def _code_problem(code: str, graph: CoverageGraph) -> str | None:
+    if not is_icd10cm(code):
+        return f"diagnosis {code!r} is not an ICD-10-CM code"
+    if graph.title(code) is not None:
+        return None
+    # Slices load whole categories, so a code missing from a loaded category doesn't exist.
+    if graph.title(code[:3]) is not None:
+        return f"diagnosis {code!r} is not a code in the loaded ICD-10-CM category {code[:3]}"
+    return f"diagnosis {code!r} is outside the loaded ICD-10-CM slices, so the graph can't check it"
+
+
+def parse_extraction(raw: dict, note: str, graph: CoverageGraph, criteria: list[Criterion]) -> Parsed:
+    """Check an extraction against the note, the terminology and the criteria offered for the claim."""
     if not isinstance(raw, dict):
         return Parsed(None, ["response does not match the extraction schema: not an object"])
     fields = {name: _items(raw, name, key) for name, key in
@@ -117,14 +133,18 @@ def parse_extraction(raw: dict, note: str, graph: CoverageGraph) -> Parsed:
         return Parsed(None, [f"response does not match the extraction schema: {', '.join(bad)}"])
 
     problems, spans = [], []
-    known = graph.criterion_ids()
+    offered = {c.id: c for c in _walk(criteria)}
     for name, items in fields.items():
         for key, span in items:
             if name == "diagnoses":
-                if not is_icd10cm(key) or graph.title(key) is None:
-                    problems.append(f"diagnosis {key!r} is not a code in the loaded ICD-10-CM terminology")
-            elif key not in known:
-                problems.append(f"criterion {key!r} is not a curated criterion")
+                if problem := _code_problem(key, graph):
+                    problems.append(problem)
+            elif key not in offered:
+                problems.append(f"criterion {key!r} was not offered for this claim")
+            elif name == "criteria_not_met" and offered[key].any_of:
+                # One span can rule out one alternative only; naming each keeps the model from
+                # failing the parent while the note documents another alternative.
+                problems.append(f"criterion {key!r} has alternatives; record each alternative the note shows is not met")
             start = note.find(span)
             if len(span.strip()) < MIN_SPAN:
                 problems.append(f"{key} span {span!r} is shorter than {MIN_SPAN} characters")
@@ -145,14 +165,28 @@ def _rejected(statement: str) -> Verdict:
     return Verdict("needs_human", (), reasons=(Reason("extraction_rejected", statement),))
 
 
-def triage_note(claim: Claim, note: str, graph: CoverageGraph, extractor: Extractor) -> tuple[Verdict, Extraction]:
-    """Extract evidence from the note, validate it, then adjudicate as with supplied evidence."""
-    lcds = [lcd for lcd in graph.lcds_listing(claim.hcpcs) if graph.applicability(lcd, claim.hcpcs)]
-    criteria = [c for lcd in lcds for c in graph.criteria(lcd)]
+def triage_note(
+    claim: Claim, note: str, graph: CoverageGraph, extractor: Extractor,
+) -> tuple[Verdict, Extraction | None]:
+    """Extract evidence from the note, validate it, then adjudicate as with supplied evidence.
+    A claim that is out of scope is handed off without calling the model (no Extraction)."""
+    if (hand_off := out_of_scope(claim, graph)) is not None:
+        return hand_off, None
+    criteria = [c for lcd in applicable_lcds(claim, graph) for c in graph.criteria(lcd)]
     extraction = extractor(note, criteria)
     if extraction.raw is None:
         return _rejected(f"Evidence extraction stopped with {extraction.stop_reason}; no evidence was used"), extraction
-    parsed = parse_extraction(extraction.raw, note, graph)
+    parsed = parse_extraction(extraction.raw, note, graph, criteria)
     if parsed.problems:
         return _rejected("Extracted evidence was rejected: " + "; ".join(parsed.problems)), extraction
-    return adjudicate(claim, parsed.evidence, graph), extraction
+    verdict = adjudicate(claim, parsed.evidence, graph)
+    # Supplied evidence is asserted complete; an extraction may have missed a covered diagnosis
+    # the note documents, so "no documented diagnosis is covered" needs the note to rule it out.
+    condition = sorted(c.id for c in _walk(criteria) if c.satisfied_by == "covered_diagnosis")
+    ruled_out = set(condition) & {c.criterion for c in parsed.evidence.criteria_not_met}
+    if verdict.outcome == "uphold" and not ruled_out and any(r.kind == "diagnosis_not_covered" for r in verdict.reasons):
+        return Verdict("needs_human", (), reasons=(Reason(
+            "covered_diagnosis_not_ruled_out",
+            f"The billed diagnosis is not covered, but the note doesn't rule out the covered condition "
+            f"({', '.join(condition)}) and extraction can miss a documented diagnosis"),)), extraction
+    return verdict, extraction

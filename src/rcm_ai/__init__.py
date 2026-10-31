@@ -52,8 +52,14 @@ def _triage(case_path: Path, data_dir: Path, extract: bool = False, log_dir: Pat
         graph = build_graph(data_dir)
         if extract:
             client = _client()
-            verdict, extraction = ex.triage_note(
-                case.claim, case.note, graph, lambda n, c: ex.extract(n, c, client))
+            logs = []
+
+            def call(note, criteria):
+                extraction = ex.extract(note, criteria, client)
+                logs.append(_save_extraction(log_dir, case.id, extraction))  # before the case can fail
+                return extraction
+
+            verdict, extraction = ex.triage_note(case.claim, case.note, graph, call)
         elif case.evidence is None:
             raise SchemaError(f"{case_path}: case has no evidence; run with --extract to extract it from the note")
         else:
@@ -69,11 +75,13 @@ def _triage(case_path: Path, data_dir: Path, extract: bool = False, log_dir: Pat
         return 2
     _warn_rejected(graph)
     print(f"{case.id}: {verdict.outcome}")
-    if extract:
+    if extract and extraction is None:
+        print("  no model call: the claim is out of scope")
+    elif extract:
         served = (extraction.record.get("response") or {}).get("model", "?")
         print(f"  evidence extracted by {served} (effort {ex.EFFORT}), stop {extraction.stop_reason}, "
               f"request {extraction.record.get('request_id')}")
-        print(f"  extraction log: {_save_extraction(log_dir, case.id, extraction)}")
+        print(f"  extraction log: {logs[0]}")
     for r in verdict.reasons:
         print(f"  reason ({r.kind}): {r.statement}")
         if r.source:
@@ -116,10 +124,6 @@ def _ingest(data_dir: Path) -> int:
 ARM_MODELS = {"graph": None, "extracted": ex.MODEL}
 
 
-def _sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
-
-
 def _served(extraction) -> dict:
     if extraction is None:
         return {"served_model": None, "request_id": None, "stop_reason": None}
@@ -127,11 +131,25 @@ def _served(extraction) -> dict:
             "request_id": extraction.record.get("request_id"), "stop_reason": extraction.stop_reason}
 
 
-def _extractor_config() -> dict:
+def _sent_config(extractions: list) -> dict:
+    """The configuration read from the request bodies sent, not from constants or files that
+    could change mid-run; a setting that varied is recorded as every value sent."""
     # Opus 5.5 rejects temperature, so runs are not deterministic; effort and the exact
-    # prompt and schema are what pin the configuration.
-    return {"effort": ex.EFFORT, "max_tokens": ex.MAX_TOKENS, "temperature": None,
-            "prompt_sha256": _sha256(ex.PROMPT), "schema_sha256": _sha256(ex.SCHEMA)}
+    # prompt and schema are what pin the configuration. The schema is hashed as canonical
+    # JSON because the request carries it re-serialized.
+    seen = {}
+    for extraction in extractions:
+        body = json.loads(extraction.record["http_request_body"])
+        schema = json.dumps(body["output_config"]["format"]["schema"], sort_keys=True, separators=(",", ":"))
+        for key, value in {
+            "model": body["model"], "effort": body["output_config"].get("effort"),
+            "max_tokens": body["max_tokens"], "temperature": body.get("temperature"),
+            "prompt_sha256": hashlib.sha256(body["system"].encode()).hexdigest(),
+            "schema_sha256": hashlib.sha256(schema.encode()).hexdigest(),
+        }.items():
+            seen.setdefault(key, set()).add(value)
+    config = {key: next(iter(v)) if len(v) == 1 else sorted(v, key=str) for key, v in seen.items()}
+    return {**config, "requests": len(extractions)}
 
 
 def _git(*args: str) -> str | None:
@@ -151,6 +169,9 @@ def _pct(x: float | None) -> str:
 
 
 def _eval(data_dir: Path, out_dir: Path, arm_names: list[str] = ("graph",)) -> int:
+    started = datetime.now(timezone.utc)
+    stamp = started.strftime('%Y%m%dT%H%M%SZ')
+    log_dir = out_dir / f"eval-{stamp}-extractions"
     extractions = {}
     try:
         unknown = sorted(set(arm_names) - ARM_MODELS.keys())
@@ -164,9 +185,12 @@ def _eval(data_dir: Path, out_dir: Path, arm_names: list[str] = ("graph",)) -> i
             client = _client()
 
             def extracted(c):
-                verdict, extraction = ex.triage_note(
-                    c.case.claim, c.case.note, graph, lambda n, cr: ex.extract(n, cr, client))
-                extractions[c.case.id] = extraction
+                def call(note, criteria):
+                    extraction = extractions[c.case.id] = ex.extract(note, criteria, client)
+                    _save_extraction(log_dir, c.case.id, extraction)  # before the case can fail
+                    return extraction
+
+                verdict, _ = ex.triage_note(c.case.claim, c.case.note, graph, call)
                 return verdict
 
             available["extracted"] = extracted
@@ -186,14 +210,14 @@ def _eval(data_dir: Path, out_dir: Path, arm_names: list[str] = ("graph",)) -> i
         if not r.correct:
             note = "known gap" if gaps[r.case] else "UNEXPLAINED"
             print(f"    {r.arm} {r.case}: gold {r.gold}, got {r.outcome}  [{note}]")
-    now = datetime.now(timezone.utc)
     record = {
-        "date": now.isoformat(timespec="seconds"),
+        "date": started.isoformat(timespec="seconds"),
         "git_sha": _git_sha(),
         "eval_set": {"data_dir": str(data_dir.resolve()), "expected_cases": eval_set.expected,
                      "sha256": eval_set.sha256},
         "arms": {
-            name: {"model": ARM_MODELS[name], **(_extractor_config() if name == "extracted" else {}),
+            name: {"model": ARM_MODELS[name],
+                   **(_sent_config(list(extractions.values())) if name == "extracted" else {}),
                    **asdict(m), "accuracy": m.accuracy,
                    "abstention_rate": m.abstention_rate, "abstention_precision": m.abstention_precision}
             for name, m in report.arms.items()
@@ -203,14 +227,11 @@ def _eval(data_dir: Path, out_dir: Path, arm_names: list[str] = ("graph",)) -> i
                     for r in report.results],
     }
     out_dir.mkdir(parents=True, exist_ok=True)
-    path = out_dir / f"eval-{now.strftime('%Y%m%dT%H%M%SZ')}.json"
+    path = out_dir / f"eval-{stamp}.json"
     path.write_text(json.dumps(record, indent=2) + "\n")
     print(f"results: {path}")
     if extractions:
-        log = out_dir / f"eval-{now.strftime('%Y%m%dT%H%M%SZ')}-extractions"
-        for case_id, extraction in extractions.items():
-            _save_extraction(log, case_id, extraction)
-        print(f"extraction logs: {log}")
+        print(f"extraction logs: {log_dir}")
     errors = sum(m.errors for m in report.arms.values())
     if errors:
         print(f"eval incomplete: {errors} arm error{'s' if errors > 1 else ''}; metrics are not comparable",

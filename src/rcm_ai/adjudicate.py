@@ -23,7 +23,7 @@ def _not_met_spans(c: Criterion, not_met: dict[str, str]) -> list[str]:
     if c.any_of:
         spans = [_not_met_spans(s, not_met) for s in c.any_of]
         if all(spans):
-            return [x for branch in spans for x in branch]
+            return list(dict.fromkeys(x for branch in spans for x in branch))
     return []
 
 
@@ -126,12 +126,12 @@ def _support(dx: str, documented: set[str], hcpcs: str, graph: CoverageGraph) ->
     return False, None
 
 
-def adjudicate(claim: Claim, evidence: Evidence, graph: CoverageGraph) -> Verdict:
-    met = {c.criterion for c in evidence.criteria}
-    not_met = {c.criterion: c.span for c in evidence.criteria_not_met}
-    unknown = sorted((met | not_met.keys()) - graph.criterion_ids())
-    if unknown:
-        raise SchemaError(f"evidence names unknown criteria: {', '.join(unknown)}")
+def applicable_lcds(claim: Claim, graph: CoverageGraph) -> list[str]:
+    return [lcd for lcd in graph.lcds_listing(claim.hcpcs) if graph.applicability(lcd, claim.hcpcs)]
+
+
+def out_of_scope(claim: Claim, graph: CoverageGraph) -> Verdict | None:
+    """The hand-off for a claim no evidence could decide, or None. Needs only the claim."""
     if claim.carc not in MEDICAL_NECESSITY_CARCS:
         return _hand_off(Reason("denial_out_of_scope",
                                 f"CARC {claim.carc} is not a medical-necessity denial; coverage documentation cannot overturn it"))
@@ -141,10 +141,21 @@ def adjudicate(claim: Claim, evidence: Evidence, graph: CoverageGraph) -> Verdic
     lcds = graph.lcds_listing(claim.hcpcs)
     if not lcds:
         return _hand_off(Reason("no_lcd_for_item", f"No LCD in the graph lists {claim.hcpcs}"))
-    applicable = [lcd for lcd in lcds if graph.applicability(lcd, claim.hcpcs)]
-    if not applicable:
+    if not applicable_lcds(claim, graph):
         return _hand_off(Reason("item_not_in_criteria",
                                 f"{claim.hcpcs} is listed in {', '.join(lcds)}, but none of the modeled coverage criteria apply to it"))
+    return None
+
+
+def adjudicate(claim: Claim, evidence: Evidence, graph: CoverageGraph) -> Verdict:
+    met = {c.criterion for c in evidence.criteria}
+    not_met = {c.criterion: c.span for c in evidence.criteria_not_met}
+    unknown = sorted((met | not_met.keys()) - graph.criterion_ids())
+    if unknown:
+        raise SchemaError(f"evidence names unknown criteria: {', '.join(unknown)}")
+    if (hand_off := out_of_scope(claim, graph)) is not None:
+        return hand_off
+    applicable = applicable_lcds(claim, graph)
     documented = {d.code for d in evidence.diagnoses}
     # Conflicts among documented codes count too: a note that documents type 1 and type 2
     # together cannot support either one.
