@@ -2,6 +2,7 @@ import hashlib
 import json
 import os
 import re
+import shutil
 from pathlib import Path
 
 import pytest
@@ -46,6 +47,32 @@ def test_the_request_carries_nothing_the_graph_decides():
     assert codes <= set(case.claim.icd10)
     assert "A52464" not in content
     assert "Excludes1" not in content
+
+
+def test_the_prompt_defines_the_verdicts_with_the_gold_label_rules_word_for_word():
+    rules = (DATA / "eval" / "README.md").read_text()
+    prompt = bl.PROMPT.read_text()
+
+    for outcome in OUTCOMES:
+        (rule,) = re.findall(rf"^- \*\*{outcome}:\*\* (.+)$", rules, re.MULTILINE)
+        assert f"- {outcome}: {rule}" in prompt
+
+
+def test_the_prompt_carries_nothing_the_graph_decides():
+    prompt = bl.PROMPT.read_text()
+
+    assert not [w for w in re.findall(r"\b[A-Z][0-9][0-9A-Z](?:\.[0-9A-Z]{1,4})?\b", prompt) if is_icd10cm(w)]
+    assert "A52464" not in prompt
+
+
+def test_ask_sends_the_baseline_request(monkeypatch):
+    case = load_case(EVAL / "ev-01.json")
+    sent = []
+    monkeypatch.setattr(ex, "send", lambda request, client: sent.append(request) or _answer(None))
+
+    bl.ask(case.claim, case.note, POLICY, client=None)
+
+    assert sent == [bl.build_request(case.claim, case.note, POLICY)]
 
 
 def test_the_request_pins_the_extractors_model_settings_and_its_own_prompt_file():
@@ -173,6 +200,39 @@ def test_the_llm_only_and_extracted_arms_keep_separate_run_records(tmp_path, mon
     assert len(list(tmp_path.glob("eval-*-llm-only/*.json"))) == 20
 
 
+def test_responses_without_output_are_counted_and_warned_about(tmp_path, monkeypatch, capsys):
+    code, record = _eval(tmp_path, monkeypatch, _replying(None, stop_reason="max_tokens"))
+
+    captured = capsys.readouterr()
+    arm = record["arms"]["llm-only"]
+    assert code == 0  # scored as hand-offs, as a refused extraction is, but never silent
+    assert (arm["stop_reasons"], arm["without_output"]) == ({"max_tokens": 20}, 20)
+    assert "llm-only: 20 model calls, 20 responses, 20 without output (stop reasons: max_tokens 20)" in captured.out
+    assert "warning: llm-only: 20 of 20 responses had no usable output" in captured.err
+
+
+def test_a_known_system_gap_is_not_applied_to_the_baseline(tmp_path, monkeypatch, capsys):
+    data = tmp_path / "data"
+    for d in ("eval", "fixtures", "curated"):
+        shutil.copytree(DATA / d, data / d)
+    ev01 = data / "eval" / "cases" / "ev-01.json"
+    raw = json.loads(ev01.read_text())
+    raw["gold"]["known_system_gap"] = "a gap in the graph"
+    ev01.write_text(json.dumps(raw))
+    monkeypatch.setattr(rcm_ai, "_client", lambda: None)
+    monkeypatch.setattr(bl, "ask", _replying({**EVIDENCE, "verdict": "uphold", "reasons": ["r"]}))
+
+    rcm_ai.main(["eval", "--arms", "graph,llm-only", "--data", str(data), "--out", str(tmp_path / "out")])
+
+    out = capsys.readouterr().out
+    (record,) = (tmp_path / "out").glob("eval-*.json")
+    results = {(r["arm"], r["case"]): r for r in json.loads(record.read_text())["results"]}
+    (line,) = [x for x in out.splitlines() if "llm-only ev-01:" in x]
+    assert "known gap" not in line and "UNEXPLAINED" not in line
+    assert results[("llm-only", "ev-01")]["known_system_gap"] is None
+    assert results[("graph", "ev-01")]["known_system_gap"] == "a gap in the graph"
+
+
 def test_eval_prints_and_records_every_case_where_the_arms_disagree(tmp_path, monkeypatch, capsys):
     code, record = _eval(tmp_path, monkeypatch, _replying(
         {**EVIDENCE, "verdict": "uphold", "reasons": ["not covered"]}), arms="graph,llm-only")
@@ -208,5 +268,9 @@ def test_live_baseline_returns_a_verdict_and_logs_the_wire_request():
     assert sent["model"] == ex.MODEL
     assert sent["output_config"]["effort"] == ex.EFFORT
     assert "temperature" not in sent
+    assert sent["system"] == bl.PROMPT.read_text()
+    assert {"verdict", "reasons"} <= sent["output_config"]["format"]["schema"]["properties"].keys()
     assert response.record["request_id"]
-    assert bl.verdict_from(response).outcome in OUTCOMES
+    verdict = bl.verdict_from(response)
+    assert verdict.outcome in OUTCOMES
+    assert "no_verdict" not in [r.kind for r in verdict.reasons]
