@@ -4,7 +4,7 @@ Exploratory prototype: graph-grounded triage of Medicare medical-necessity denia
 
 ## Problem
 
-A denial analyst working a medical-necessity denial (CARC 50) must decide whether the documented diagnosis supports the billed item under the governing coverage policy, which means cross-referencing the note, the claim's ICD-10-CM and HCPCS codes, the ICD-10-CM hierarchy and Excludes1 rules, and the LCD's billing article. An LLM can draft an appeal, but it decides coverage from memory and cites policy it can't trace. This prototype lets a small terminology-and-policy graph make the coverage decision and return a justification path where every hop points at a row in a public source file. The LLM only extracts evidence from the note. An eval set of 20 labeled synthetic cases scores the graph on supplied evidence and on LLM-extracted evidence against an LLM-only baseline, so the value of the knowledge layer is measured, not asserted. Not built yet: appeal-letter drafting (#11). The labels are Claude's best judgment and await human review (#15).
+A denial analyst working a medical-necessity denial (CARC 50) must decide whether the documented diagnosis supports the billed item under the governing coverage policy, which means cross-referencing the note, the claim's ICD-10-CM and HCPCS codes, the ICD-10-CM hierarchy and Excludes1 rules, and the LCD's billing article. An LLM can draft an appeal, but it decides coverage from memory and cites policy it can't trace. This prototype lets a small terminology-and-policy graph make the coverage decision and return a justification path where every hop points at a row in a public source file. The LLM extracts evidence from the note and drafts the appeal, and a deterministic checker fails any letter that cites a code or policy ID the justification path doesn't establish. An eval set of 20 labeled synthetic cases scores the graph on supplied evidence and on LLM-extracted evidence against an LLM-only baseline, on verdicts and on the citations in their appeals, so the value of the knowledge layer is measured, not asserted. The labels are Claude's best judgment and await human review (#15).
 
 ## Scope
 
@@ -38,7 +38,7 @@ From the repo root:
 uv run rcm-ai triage data/synthetic/case-001.json
 ```
 
-It prints the verdict: `overturnable` (with each step of the justification path: the fixture file and line, the source version, and the text to look for there), `uphold` (with the coverage condition the note shows failing, or an uncovered diagnosis), or `needs_human` (with the reason: out of scope, coding conflict, undocumented or conflicting evidence, or a gap in the loaded data). Uphold always rests on something the note says; a criterion the note doesn't mention is a hand-off, not an uphold. Cases must be marked `"synthetic": true`. A malformed or unreadable case, or one with no `evidence` block run without `--extract`, is rejected on stderr with exit code 2. `--data` points at a different data directory (default `data`, relative to the current directory).
+It prints the verdict: `overturnable` (with each step of the justification path: the fixture file and line, the source version, and the text to look for there), `uphold` (with the coverage condition the note shows failing, or an uncovered diagnosis), or `needs_human` (with the reason: out of scope, coding conflict, undocumented or conflicting evidence, or a gap in the loaded data). Uphold always rests on something the note says; a criterion the note doesn't mention is a hand-off, not an uphold. Cases must be marked `"synthetic": true`. A malformed or unreadable case, or one with no `evidence` block run without `--extract`, is rejected on stderr with exit code 2. `--data` points at a different data directory (default `data`, relative to the current directory). `--draft` also drafts an appeal for an overturnable verdict and prints it with its citation check (see below).
 
 To score the system against the locked eval set (`data/eval`):
 
@@ -46,7 +46,7 @@ To score the system against the locked eval set (`data/eval`):
 uv run rcm-ai eval
 ```
 
-It asserts the case count from `data/eval/set.json` and fails with exit code 2 on an empty or partial set. It prints per-arm accuracy, false-overturnable and false-uphold cases, abstention rate and abstention precision, and lists each miss, marking a graph or extracted miss as a known gap or UNEXPLAINED; any arm error makes the run exit 3. Per-case results, with the date, git SHA, model id and the reasons behind each verdict, go to `eval-results/` (gitignored). `--arms` picks the arms: `graph` (the default, using each case's supplied evidence), `extracted` and `llm-only` (see below). With more than one arm, eval also prints each case where the arms' outcomes differ, with the reasons of each arm that missed gold, and records every such case, with all arms' reasons, under `disagreements`.
+It asserts the case count from `data/eval/set.json` and fails with exit code 2 on an empty or partial set. It prints per-arm accuracy, false-overturnable and false-uphold cases, abstention rate and abstention precision, and lists each miss, marking a graph or extracted miss as a known gap or UNEXPLAINED; any arm error makes the run exit 3. Per-case results, with the date, git SHA, model id and the reasons behind each verdict, go to `eval-results/` (gitignored). `--arms` picks the arms: `graph` (the default, using each case's supplied evidence), `extracted` and `llm-only` (see below). With more than one arm, eval also prints each case where the arms' outcomes differ, with the reasons of each arm that missed gold, and records every such case, with all arms' reasons, under `disagreements`. `--draft` adds appeal drafting and the unsupported-citation rate per arm (see below).
 
 LCD coverage criteria live in `data/curated/L33822-cgm-criteria.json`, hand-curated with verbatim quotes from the LCD text. In scope: initial coverage of the CGM device (E2102, E2103) for medical-necessity denials (CARC 50). Supply allowances, continued coverage, and other denial reasons return `needs_human`. Evidence spans must appear verbatim in the case note, and evidence naming an unknown criterion is rejected.
 
@@ -97,6 +97,33 @@ Runs on 2026-10-31, each marked dirty only by the untracked `docs/diagrams/`:
   - the notes are short and test one issue each;
   - each arm ran once on 20 cases;
   - the eval scores the verdict, not its grounding: the baseline's overturnable justifications cite nothing a reviewer can check.
+
+### Appeal drafting and citation checking
+
+`uv run rcm-ai triage <case> --draft` drafts an appeal for an overturnable verdict, prints it, and checks its citations against the verdict's path. `uv run rcm-ai eval --arms graph,extracted,llm-only --draft` does the same for every overturnable verdict of every arm. Drafting calls the model, so it's opt-in; without `--draft`, `triage` and `eval` make no drafting call.
+- **Drafter:** `claude-opus-5-5` with the extractor's settings and `src/rcm_ai/prompts/draft_appeal.md`. It gets the claim, the path's statements and the note's quotes (diagnoses unlabeled by code, then each criterion met), and returns one `letter` field. Every arm uses the same drafter with its own verdict and evidence: the graph arm the case's evidence, the extracted arm its validated extraction, the baseline its own reasons and unchecked evidence fields. The steps carry no source file names, so every arm's input reads alike.
+- **Checker:** deterministic. It reads every ICD-10-CM code (with or without its dot), HCPCS code (with or without modifiers), LCD and article ID (as `L33822` or "LCD 33822"), NCD ID, and CPT code labeled "CPT" in the letter, and fails the letter on any its reference path doesn't establish. A path establishes what its hop statements name, not their source anchors or asides.
+  - In `triage`, the reference is the verdict's own path.
+  - In `eval`, every arm's letter is checked against the graph's path on the case's gold evidence. When the graph wouldn't overturn the claim, that path is empty and every citation is unsupported.
+  - **Limits:** a bare five-digit number isn't read as a CPT code, so an unlabeled CPT code passes; lowercase codes aren't read; and code-shaped words like "vitamin B12" or the remark code M25 are read as codes and fail the letter.
+- **Metrics per arm:** letters drafted, letters that fail the check, drafts without a letter, drafting errors, and the unsupported-citation rate (unsupported citations over all citations, each code counted once per letter). A failed draft doesn't change the verdict's score; a drafting error makes the run exit 3.
+
+Run on 2026-10-31 at `9328cbc` (marked dirty only by the untracked `docs/diagrams/`), all three arms, 60 model calls:
+
+| Arm | Accuracy | Letters | Letters failing the check | Unsupported citations |
+|---|---|---|---|---|
+| graph | 20/20 | 9 | 0 | 0/36 |
+| extracted | 15/20 | 7 | 0 | 0/28 |
+| llm-only | 19/20 (false uphold: ev-18) | 9 | 4 | 7/26 (27%) |
+
+- Every unsupported citation is a real ICD-10-CM code taken from the baseline's own reasons. None is fabricated, but the graph's path establishes none of them:
+  - Z79.4 on ev-01, ev-05 and ev-08;
+  - Z90.411 on ev-05;
+  - E11.65 on ev-08 and E11.22 with N18.31 on ev-09. These are the more specific diagnoses the notes document, not the billed E11.9, so those letters argue a diagnosis that isn't on the claim.
+- The grounded letters cite the LCD and the article every time. Only one of the baseline's nine cites any policy ID.
+- The extracted arm missed ev-06 this run (it coded Z79.4, outside the loaded slices) and passed ev-05: run-to-run variance at the same prompt.
+- After this run, the checker learned more written forms, and the drafter's steps lost their source file names. Re-scoring the saved letters with the final checker gives the same counts. The letters themselves were drafted from steps that still named source files.
+- Like the verdict results, these come from one run on 20 cases drafted and labeled by the same model family the baseline runs on.
 
 For criteria hops, the line number is where the LCD record starts (the record spans about 130 lines). The `look for` text is the HTML-decoded indication text, so search the decoded text: the raw CSV stores `<` as `&lt;`.
 

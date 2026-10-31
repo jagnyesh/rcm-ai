@@ -25,6 +25,7 @@
 - **abstention precision:** of those hand-offs, the share where gold is also needs_human. A hand-off on a gold-uphold case counts as an unnecessary hand-off: safe, but it costs reviewer time.
 - **no output:** a model response that is refused, truncated or not JSON, or, for the LLM-only baseline, not a verdict. The arm hands the claim off (needs_human), so it scores like an abstention. The run record counts these per arm by stop reason, and eval warns about them on stderr.
 - **disagreements:** with more than one arm, each case where the arms' outcomes differ, with gold and each arm's outcome and reasons.
+- **appeals** (`eval --draft`): for each overturnable verdict, the drafter writes a letter, and the checker reads its codes and policy IDs. The reference is the graph's path on the case's gold evidence, or nothing when the graph wouldn't overturn the claim. **Letters failing the check** cite something the reference doesn't establish. The **unsupported-citation rate** is unsupported citations over all citations, each code counted once per letter. Arms cite different numbers of codes, so letters failing the check compare arms more directly than the rate does. Drafts without a letter and drafting errors are counted apart, and a drafting error never changes the verdict's score.
 - **errors:** cases where the arm raised. They count as wrong, never as abstentions, and a run with any errors exits 3, because its metrics aren't comparable to a clean run.
 
 ## Locking rule
