@@ -336,10 +336,23 @@ def test_triage_draft_prints_the_letter_and_the_citation_check(tmp_path, monkeyp
     assert f"draft log: {log.relative_to(tmp_path)}" in out
 
 
-def test_triage_draft_names_each_unsupported_citation(tmp_path, monkeypatch, capsys):
-    _triage(tmp_path, monkeypatch, "ev-01", _drafting("Covered under L99999 for E11.65 and Z79.4."))
+def test_triage_draft_names_each_unsupported_citation_and_exits_4(tmp_path, monkeypatch, capsys):
+    # A script gating on the exit code must not send a failing letter; 4 can't be read as a crash's 1.
+    code = _triage(tmp_path, monkeypatch, "ev-01", _drafting("Covered under L99999 for E11.65 and Z79.4."))
 
+    assert code == 4
     assert "  citation check: FAILED, unsupported: L99999, Z79.4 (cited: L99999, E11.65, Z79.4)" in capsys.readouterr().out
+
+
+def test_triage_draft_exits_4_for_a_failing_letter_whose_log_cannot_be_written(tmp_path, monkeypatch, capsys):
+    (tmp_path / "eval-results").write_text("")  # a file where the log directory would go
+
+    code = _triage(tmp_path, monkeypatch, "ev-01", _drafting("Covered under L99999."))
+
+    captured = capsys.readouterr()
+    assert code == 4
+    assert "citation check: FAILED, unsupported: L99999" in captured.out
+    assert "appeal draft log not written:" in captured.err
 
 
 def test_triage_draft_checks_against_the_verdicts_own_path(tmp_path, monkeypatch, capsys):
@@ -422,7 +435,8 @@ def test_triage_keeps_the_verdict_when_drafting_fails(tmp_path, monkeypatch, cap
     assert "appeal draft failed: RuntimeError: 529 overloaded" in captured.err
 
 
-def test_triage_draft_without_a_letter_says_so_and_checks_nothing(tmp_path, monkeypatch, capsys):
+def test_triage_draft_without_a_letter_says_so_checks_nothing_and_exits_3(tmp_path, monkeypatch, capsys):
+    # No letter leaves nothing to send, as when the drafting call fails.
     def refuses(claim, path, quotes, client, findings=()):
         return Extraction(None, "refusal", {"request_id": "req_draft",
                                             "http_request_body": json.dumps(ap.build_request(claim, path, quotes, findings)),
@@ -432,7 +446,7 @@ def test_triage_draft_without_a_letter_says_so_and_checks_nothing(tmp_path, monk
 
     out = capsys.readouterr().out
     (log,) = tmp_path.glob("eval-results/drafts/ev-01-*.json")
-    assert code == 0
+    assert code == 3
     assert "  no appeal letter: the drafter returned none (stop refusal)" in out
     assert "appeal draft:" not in out and "citation check" not in out
     assert f"draft log: {log.relative_to(tmp_path)}" in out
