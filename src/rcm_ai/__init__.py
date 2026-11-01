@@ -139,8 +139,12 @@ def _triage(case_path: Path, data_dir: Path, extract: bool = False, draft: bool 
                 print(f"  citation check: FAILED, unsupported: {', '.join(check.unsupported)} (cited: {cited})")
         if log_error:
             print(f"appeal draft log not written: {log_error}", file=sys.stderr)
+        else:
+            print(f"  draft log: {draft_log}")
+        if letter is not None and not check.passed:
+            return 4  # a failing letter must not be sent, whatever else went wrong
+        if letter is None or log_error:
             return 3
-        print(f"  draft log: {draft_log}")
     return 0
 
 
