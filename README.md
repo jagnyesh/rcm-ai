@@ -109,21 +109,19 @@ Runs on 2026-10-31, each marked dirty only by the untracked `docs/diagrams/`:
   - **Limits:** a bare five-digit number isn't read as a CPT code, so an unlabeled CPT code passes, and only one ID after a singular label is read ("CPT codes 95249 and 95250" reads nothing); lowercase codes and IDs written with separators ("L-39999") aren't read; two characters after a HCPCS code read as a modifier, so "E210365" passes as E2103; two different codes written alike but for a dot or a hyphenated modifier (E11.40 and E1140-RR) count as one code, though the letter still fails if either is unsupported; and code-shaped words like "vitamin B12" or the remark code M25 are read as codes and fail the letter.
 - **Metrics per arm:** letters drafted, letters that fail the check, drafts without a letter, drafting errors, and the unsupported-citation rate (unsupported citations over all citations, each code counted once per letter however it's written). Letters failing compare arms more directly than the rate: the graph and extracted letters' citations include the item, LCD, article and diagnosis their steps hand the drafter, while the baseline never gets the article ID. A failed draft doesn't change the verdict's score; a drafting error makes the run exit 3.
 
-Run on 2026-10-31 at `9328cbc` (marked dirty only by the untracked `docs/diagrams/`), all three arms, 60 model calls:
+Run on 2026-11-01 at `6ed732a` (marked dirty only by the untracked `docs/diagrams/`), all three arms, 61 model calls (15 extractions, 20 baseline verdicts, 26 drafts), 97,919 input and 57,502 output tokens summed from the logs:
 
 | Arm | Accuracy | Letters | Letters failing the check | Unsupported citations |
 |---|---|---|---|---|
-| graph | 20/20 | 9 | 0 | 0/36 |
-| extracted | 15/20 | 7 | 0 | 0/28 |
-| llm-only | 19/20 (false uphold: ev-18) | 9 | 4 | 7/26 (27%) |
+| graph | 20/20 | 9 | 0 | 0/38 |
+| extracted | 16/20 | 8 | 0 | 0/33 |
+| llm-only | 19/20 (false uphold: ev-18) | 9 | 3 | 3/24 (12%) |
 
-- Every unsupported citation is a real ICD-10-CM code taken from the baseline's own reasons. None is fabricated, but the graph's path establishes none of them:
-  - Z79.4 on ev-01, ev-05 and ev-08;
-  - Z90.411 on ev-05;
-  - E11.65 on ev-08 and E11.22 with N18.31 on ev-09. These are the more specific diagnoses the notes document, not the billed E11.9, so those letters argue a diagnosis that isn't on the claim.
-- The grounded letters cite the LCD and the article every time. Only one of the baseline's nine cites any policy ID.
-- The extracted arm missed ev-06 this run (it coded Z79.4, outside the loaded slices) and passed ev-05: run-to-run variance at the same prompt.
-- After this run, the checker learned more written forms, and the drafter's steps lost their source file names. Re-scoring the saved letters with the final checker gives the same counts. The letters themselves were drafted from steps that still named source files.
+- The baseline's three unsupported citations are codes the notes document but the graph doesn't model: Z79.4 for insulin use on ev-01 and ev-06, and N18.31 for the CKD stage on ev-09. None is fabricated.
+- On ev-08 and ev-09, every arm's letter names the more specific code that the specificity finding names (E11.65, E11.22), and the check accepts that code. The graph and extracted letters say the claim will be corrected and resubmitted; the baseline's ev-08 letter asks that E11.65 "be considered on appeal". The check can't tell these apart.
+- The graph and extracted letters cite the LCD and the article every time; one of the baseline's nine cites a policy ID. Their steps hand them both IDs, and the baseline never gets the article's, so this reflects the inputs as much as grounding.
+- The extracted arm missed ev-09 (it coded N18.31 and Z79.4, outside the loaded slices), ev-11, ev-12 and ev-13, all as hand-offs.
+- Two earlier runs, at `9328cbc` and `f7debc8`, came before the review changed the checker and the drafter's input, so their citation counts aren't comparable.
 - Like the verdict results, these come from one run on 20 cases drafted and labeled by the same model family the baseline runs on.
 
 For criteria hops, the line number is where the LCD record starts (the record spans about 130 lines). The `look for` text is the HTML-decoded indication text, so search the decoded text: the raw CSV stores `<` as `&lt;`.
