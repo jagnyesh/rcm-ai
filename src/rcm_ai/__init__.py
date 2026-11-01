@@ -157,10 +157,25 @@ def _print_letter(letter: str, verdict) -> ap.CitationCheck:
     return check
 
 
+def _load_demo(data_dir: Path):
+    path = data_dir / "demo" / "demo.json"
+    try:
+        demo = json.loads(path.read_text())
+        case_ids, letters = demo["cases"], demo["letters"]
+        if not isinstance(case_ids, list) or not isinstance(letters, dict):
+            raise TypeError("cases must be a list and letters a mapping")
+    except (OSError, ValueError, KeyError, TypeError) as e:
+        raise SchemaError(f"{path} is not a demo file: {type(e).__name__}: {e}") from e
+    cases = [load_case(data_dir / "eval" / "cases" / f"{case_id}.json") for case_id in case_ids]
+    for case in cases:
+        if case.evidence is None:
+            raise SchemaError(f"{case.id}: a demo case runs on its own evidence, and it has no evidence block")
+    return cases, letters
+
+
 def _demo(data_dir: Path) -> int:
     try:
-        demo = json.loads((data_dir / "demo" / "demo.json").read_text())
-        cases = [load_case(data_dir / "eval" / "cases" / f"{case_id}.json") for case_id in demo["cases"]]
+        cases, letters = _load_demo(data_dir)
         graph = build_graph(data_dir)
     except SchemaError as e:
         print(f"rejected: {e}", file=sys.stderr)
@@ -184,13 +199,16 @@ def _demo(data_dir: Path) -> int:
         for c in case.evidence.criteria_not_met:
             print(f'    {c.criterion} not met: "{c.span}"')
         _print_steps(verdict, data_dir)
-        recorded = demo["letters"].get(case.id)
+        recorded = letters.get(case.id)
         if verdict.outcome == "overturnable" and recorded:
             print(f"  appeal letter, recorded {recorded['recorded']} from {recorded['model']} at {recorded['git_sha']} "
                   f"({recorded['arm']} arm), not drafted now:")
             failed |= not _print_letter(recorded["letter"], verdict).passed
         elif verdict.outcome == "overturnable":
             print("  no recorded letter: `rcm-ai triage <case> --draft` drafts one (calls the model)")
+        elif recorded:
+            print("  recorded letter FAILED: the verdict is not overturnable, so no letter is warranted")
+            failed = True
         print()
     return 4 if failed else 0  # as in triage, a failing letter must not be sent
 
