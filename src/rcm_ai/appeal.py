@@ -7,6 +7,7 @@ verdict didn't establish. Against a reference that establishes nothing, every le
 """
 
 import re
+import unicodedata
 from dataclasses import dataclass
 
 from rcm_ai import extract as ex
@@ -31,16 +32,31 @@ SCHEMA = {
 # backtrack cubically on a whitespace run in the letter.
 # What may come between a label and its ID: "(LCD) 39999", "LCD ID", "LCD No.", "LCD number", "LCD #", "LCD:".
 _LABEL_TAIL = r"(?:\s*\))?(?:\s*ID)?(?:\s*(?:No\b\.?|number\b|#))?(?:\s*:)?\s*"
+# The patterns read ASCII only, so a code next to a letter of another script is still read; the
+# text is first made ASCII wherever a reader would see ASCII (_as_read).
 _CITATIONS = (
     (re.compile(r"\b(?:[A-Z]\d\d|C4A|C7A|C7B|D3A|M1A|Z3A)(?:\.[0-9A-Z]{1,4}|[0-9A-Z]{1,5})?(?:\.[0-9A-Z]+)*"
-                r"(?:-[A-Z0-9]{2})*\b"),
+                r"(?:-[A-Z0-9]{2})*\b", re.ASCII),
      lambda m: m.group()),
-    (re.compile(r"\bDL\d{5}\b"), lambda m: m.group()),
-    (re.compile(rf"\bLCD{_LABEL_TAIL}L?(\d{{5}}(?:\.[0-9A-Z]+)*)\b", re.IGNORECASE), lambda m: f"L{m.group(1)}"),
-    (re.compile(rf"\barticle{_LABEL_TAIL}A?(\d{{5}}(?:\.[0-9A-Z]+)*)\b", re.IGNORECASE),
+    (re.compile(r"\bDL\d{5}\b", re.ASCII), lambda m: m.group()),
+    (re.compile(rf"\bLCD{_LABEL_TAIL}L?(\d{{5}}(?:\.[0-9A-Z]+)*)\b", re.IGNORECASE | re.ASCII),
+     lambda m: f"L{m.group(1)}"),
+    (re.compile(rf"\barticle{_LABEL_TAIL}A?(\d{{5}}(?:\.[0-9A-Z]+)*)\b", re.IGNORECASE | re.ASCII),
      lambda m: f"A{m.group(1)}"),
-    (re.compile(rf"\bNCD{_LABEL_TAIL}(\d{{1,3}}(?:\.\d{{1,2}})?)\b", re.IGNORECASE), lambda m: f"NCD {m.group(1)}"),
-    (re.compile(rf"\bCPT(?:\s*®)?(?:\s*code)?{_LABEL_TAIL}(\d{{4}}[0-9FTU])\b", re.IGNORECASE), lambda m: m.group(1)),
+    (re.compile(rf"\bNCD{_LABEL_TAIL}(\d{{1,3}}(?:\.\d{{1,2}})?)\b", re.IGNORECASE | re.ASCII),
+     lambda m: f"NCD {m.group(1)}"),
+    (re.compile(rf"\bCPT(?:\s*®)?(?:\s*code)?{_LABEL_TAIL}(\d{{4}}[0-9FTU])\b", re.IGNORECASE | re.ASCII),
+     lambda m: m.group(1)),
+)
+# Cyrillic and Greek letters a reader takes for Latin ones, which NFKC leaves alone (single letters
+# from Unicode's confusables). Escaped, since in source they'd look like the letters they map to.
+_LATIN = str.maketrans(
+    "АВЕКМНОРСТХЅІЈҮӀԚԜ"
+    "аеорсухѕіјԁһԛԝ"
+    "ΑΒΕΖΗΙΚΜΝΟΡΤΥΧο",
+    "ABEKMHOPCTXSIJYIQW"
+    "aeopcyxsijdhqw"
+    "ABEZHIKMNOPTYXo",
 )
 # A HCPCS code with its modifiers, which cite the code itself.
 _MODIFIED = re.compile(r"([A-V]\d{4})(?:-?[A-Z0-9]{2})+")
@@ -60,8 +76,18 @@ class CitationCheck:
         return self.warranted and not self.unsupported
 
 
+def _as_read(text: str) -> str:
+    """The text as a reader sees it: compatibility forms such as fullwidth folded, look-alike
+    letters made Latin, every script's digits made ASCII, and invisible characters (zero-width,
+    soft hyphens, marks left uncomposed) dropped, so none of them can hide a code."""
+    text = unicodedata.normalize("NFKC", text).translate(_LATIN)
+    return "".join(str(unicodedata.decimal(c)) if c.isdecimal() else c
+                   for c in text if unicodedata.category(c) not in ("Cf", "Mn"))
+
+
 def citations(text: str) -> tuple[str, ...]:
     """Each code or policy ID in the text, once, in order of first appearance."""
+    text = _as_read(text)
     found = sorted((m.start(), write(m)) for pattern, write in _CITATIONS for m in pattern.finditer(text))
     return tuple(dict.fromkeys(c for _, c in found))
 
