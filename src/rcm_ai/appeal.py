@@ -51,9 +51,9 @@ _CITATIONS = (
 # Cyrillic and Greek letters a reader takes for Latin ones, which NFKC leaves alone (single letters
 # from Unicode's confusables). Escaped, since in source they'd look like the letters they map to.
 _LATIN = str.maketrans(
-    "АВЕКМНОРСТХЅІЈҮӀԚԜ"
-    "аеорсухѕіјԁһԛԝ"
-    "ΑΒΕΖΗΙΚΜΝΟΡΤΥΧο",
+    "\u0410\u0412\u0415\u041a\u041c\u041d\u041e\u0420\u0421\u0422\u0425\u0405\u0406\u0408\u04ae\u04c0\u051a\u051c"
+    "\u0430\u0435\u043e\u0440\u0441\u0443\u0445\u0455\u0456\u0458\u0501\u04bb\u051b\u051d"
+    "\u0391\u0392\u0395\u0396\u0397\u0399\u039a\u039c\u039d\u039f\u03a1\u03a4\u03a5\u03a7\u03bf",
     "ABEKMHOPCTXSIJYIQW"
     "aeopcyxsijdhqw"
     "ABEZHIKMNOPTYXo",

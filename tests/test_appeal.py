@@ -109,26 +109,26 @@ def test_an_id_after_a_label_with_punctuation_is_read(text, cited):
 
 
 @pytest.mark.parametrize("text", [
-    "Ｅ１１．９",  # fullwidth
-    "Е11.9",  # Cyrillic Е
-    "Ε11.9",  # Greek Ε
-    "E11­.9",  # soft hyphen
-    "E1​1.9",  # zero-width space
-    "E11͏.9",  # combining grapheme joiner
-    "E١١.٩",  # Arabic-Indic digits
-    "ДE11.9",  # glued to a letter of another script
+    "\uff25\uff11\uff11\uff0e\uff19",  # fullwidth
+    "\u041511.9",  # Cyrillic U+0415
+    "\u039511.9",  # Greek U+0395
+    "E11\u00ad.9",  # soft hyphen
+    "E1\u200b1.9",  # zero-width space
+    "E11\u034f.9",  # combining grapheme joiner
+    "E\u0661\u0661.\u0669",  # Arabic-Indic digits
+    "\u0414E11.9",  # glued to a letter of another script
 ])
 def test_a_code_hidden_by_look_alike_or_invisible_characters_is_read_as_a_reader_sees_it(text):
     assert ap.check_citations(f"Diagnosis {text} applies.", EV01).unsupported == ("E11.9",)
 
 
-@pytest.mark.parametrize("text, cited", [("LСD 39999", "L39999"), ("аrticle 52999", "A52999")])
+@pytest.mark.parametrize("text, cited", [("L\u0421D 39999", "L39999"), ("\u0430rticle 52999", "A52999")])
 def test_a_label_written_with_look_alikes_is_read(text, cited):
     assert ap.check_citations(f"Per {text}, coverage applies.", EV01).unsupported == (cited,)
 
 
 def test_a_path_code_written_in_fullwidth_is_supported():
-    check = ap.check_citations("We appeal Ｅ２１０３ under LCD Ｌ３３８２２.", EV01)
+    check = ap.check_citations("We appeal \uff25\uff12\uff11\uff10\uff13 under LCD \uff2c\uff13\uff13\uff18\uff12\uff12.", EV01)
 
     assert check.citations == ("E2103", "L33822") and check.passed
 
