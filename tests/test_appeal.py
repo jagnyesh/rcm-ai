@@ -117,9 +117,14 @@ def test_a_made_up_code_sharing_a_path_codes_characters_fails(cited):
     assert ap.check_citations(f"Diagnosis {cited} applies.", EV01).unsupported == (cited,)
 
 
-@pytest.mark.parametrize("cited", ["E2103.0", "E11.65.1", "L33822.1", "A52464.12"])
-def test_a_path_code_with_a_dotted_suffix_is_another_code(cited):
-    assert ap.check_citations(f"Per {cited}, coverage applies.", EV01).unsupported == (cited,)
+@pytest.mark.parametrize("text, cited", [
+    ("E2103.0", "E2103.0"), ("E11.65.1", "E11.65.1"), ("L33822.1", "L33822.1"), ("A52464.12", "A52464.12"),
+    ("LCD 33822.1", "L33822.1"), ("LCD L33822.1", "L33822.1"), ("article 52464.12", "A52464.12"),
+])
+def test_a_path_code_with_a_dotted_suffix_is_another_code(text, cited):
+    check = ap.check_citations(f"Per {text}, coverage applies.", EV01)
+
+    assert check.citations == check.unsupported == (cited,)
 
 
 def test_a_code_written_two_ways_is_counted_once():
@@ -548,7 +553,7 @@ def test_eval_draft_gives_the_extracted_arm_its_own_validated_evidence(tmp_path,
     assert sorted(ev01) == sorted([ap.quotes(load_case(EVAL / "ev-01.json").evidence), EV01_EXTRACTED_QUOTES])
 
 
-def _eval_edited(tmp_path, monkeypatch, case_id, edit):
+def _eval_edited(tmp_path, monkeypatch, case_id, edit, drafter=None):
     """eval --arms llm-only --draft on a copy of the data with one eval case edited."""
     data = tmp_path / "data"
     for d in ("eval", "fixtures", "curated"):
@@ -559,7 +564,7 @@ def _eval_edited(tmp_path, monkeypatch, case_id, edit):
     case.write_text(json.dumps(raw))
     monkeypatch.setattr(rcm_ai, "_client", lambda: None)
     monkeypatch.setattr(bl, "ask", _baseline_overturns)
-    monkeypatch.setattr(ap, "draft", _drafting())
+    monkeypatch.setattr(ap, "draft", drafter or _drafting())
 
     code = rcm_ai.main(["eval", "--arms", "llm-only", "--data", str(data), "--out", str(tmp_path / "out"), "--draft"])
 
@@ -567,17 +572,48 @@ def _eval_edited(tmp_path, monkeypatch, case_id, edit):
     return code, json.loads(record.read_text())
 
 
-def test_a_case_whose_graph_verdict_differs_from_its_gold_label_gets_no_appeal(tmp_path, monkeypatch, capsys):
+def test_a_gold_overturnable_case_the_graph_wont_overturn_gets_no_appeal(tmp_path, monkeypatch, capsys):
+    # The graph upholds ev-10 on its gold evidence, so there's no path to check a letter against.
+    def relabel(raw):
+        raw["gold"]["verdict"] = "overturnable"
+
+    code, record = _eval_edited(tmp_path, monkeypatch, "ev-10", relabel)
+
+    captured = capsys.readouterr()
+    ev10 = next(r for r in record["results"] if r["case"] == "ev-10")
+    assert code == 0
+    assert "appeal" not in ev10
+    assert record["drafting"]["calls"] == 19 and record["drafting"]["no_reference"] == ["ev-10"]
+    assert record["arms"]["llm-only"]["appeals"]["no_reference"] == 1
+    assert "appeals: 19 drafted" in captured.out and "1 without a reference" in captured.out
+    assert "no appeal drafted for ev-10" in captured.err
+
+
+def test_a_letter_for_a_claim_gold_doesnt_overturn_is_checked_against_nothing(tmp_path, monkeypatch):
+    # Whatever the graph says, the gold label says no letter is warranted, so every citation fails.
     def relabel(raw):
         raw["gold"]["verdict"] = "needs_human"
 
     code, record = _eval_edited(tmp_path, monkeypatch, "ev-02", relabel)
 
-    ev02 = next(r for r in record["results"] if r["case"] == "ev-02")
+    appeal = next(r for r in record["results"] if r["case"] == "ev-02")["appeal"]
     assert code == 0
-    assert "appeal" not in ev02
-    assert record["drafting"]["calls"] == 19 and record["drafting"]["no_reference"] == ["ev-02"]
-    assert "no appeal drafted for ev-02" in capsys.readouterr().err
+    assert appeal["reference"] == [] and appeal["unsupported"] == appeal["citations"] != []
+    assert record["drafting"]["no_reference"] == []
+
+
+def test_the_no_letter_warning_counts_only_calls_made(tmp_path, monkeypatch, capsys):
+    def break_evidence(raw):
+        raw["evidence"]["criteria"][0]["criterion"] = "bogus"
+
+    def refuses(claim, path, quotes, client, findings=()):
+        return Extraction(None, "refusal", {"request_id": "req_draft",
+                                            "http_request_body": json.dumps(ap.build_request(claim, path, quotes, findings)),
+                                            "response": {"model": ex.MODEL}})
+
+    _eval_edited(tmp_path, monkeypatch, "ev-01", break_evidence, refuses)
+
+    assert "warning: 19 of 19 appeal drafts had no letter" in capsys.readouterr().err
 
 
 def test_a_case_whose_reference_path_cannot_be_built_is_a_draft_error(tmp_path, monkeypatch):
