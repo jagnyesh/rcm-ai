@@ -51,5 +51,15 @@
     "reason": "One level 2 event is not 'recurrent', and there was no level 3 event; criterion 4 fails.",
     "findings": [],
     "label_status": "claude-labeled"
+  },
+  "review": {
+    "status": "claude-drafted",
+    "expertise": [
+      "coding",
+      "clinical",
+      "payer-policy"
+    ],
+    "covers": "the claim, the note, the evidence block, and the gold path and findings; the label itself is tracked by gold.label_status",
+    "issue": "#15"
   }
 }

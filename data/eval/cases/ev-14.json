@@ -43,5 +43,15 @@
     "reason": "Criterion 5 fails: no qualifying visit within six months before the order.",
     "findings": [],
     "label_status": "claude-labeled"
+  },
+  "review": {
+    "status": "claude-drafted",
+    "expertise": [
+      "coding",
+      "clinical",
+      "payer-policy"
+    ],
+    "covers": "the claim, the note, the evidence block, and the gold path and findings; the label itself is tracked by gold.label_status",
+    "issue": "#15"
   }
 }
