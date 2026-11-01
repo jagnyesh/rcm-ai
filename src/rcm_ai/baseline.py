@@ -11,7 +11,7 @@ import json
 from rcm_ai import extract as ex
 from rcm_ai.extract import Extraction
 from rcm_ai.graph import Criterion
-from rcm_ai.schemas import OUTCOMES, Claim, Hop, Reason, Verdict
+from rcm_ai.schemas import OUTCOMES, Claim, CriterionEvidence, DocumentedCode, Evidence, Hop, Reason, Verdict
 
 PROMPT = ex.PROMPTS / "llm_only_verdict.md"
 
@@ -37,13 +37,7 @@ def build_request(claim: Claim, note: str, policy: dict[str, list[Criterion]]) -
         f"LCD {lcd} coverage criteria (id: policy text):\n" + "\n".join(ex.describe_criteria(c))
         for lcd, c in policy.items()
     ) or "No LCD lists the billed item."
-    content = (
-        f"Claim:\n- billed item (HCPCS): {claim.hcpcs}\n"
-        f"- billed diagnoses (ICD-10-CM): {', '.join(claim.icd10)}\n"
-        f"- denial reason: CARC {claim.carc}\n"
-        f"- coverage: {claim.coverage}\n\n"
-        f"{criteria}\n\nNote:\n<note>\n{note}\n</note>"
-    )
+    content = f"{ex.describe_claim(claim)}\n\n{criteria}\n\nNote:\n<note>\n{note}\n</note>"
     return {
         "model": ex.MODEL,
         "max_tokens": ex.MAX_TOKENS,
@@ -76,3 +70,20 @@ def verdict_from(response: Extraction) -> Verdict:
             return _no_verdict("The model said overturnable but gave no reasons to justify it")
         return Verdict(outcome, tuple(Hop(r) for r in reasons))
     return Verdict(outcome, (), reasons=tuple(Reason("model_reason", r) for r in reasons))
+
+
+def evidence_from(response: Extraction) -> Evidence | None:
+    """The baseline's evidence fields as given, unchecked: what it hands the appeal drafter."""
+    if not isinstance(response.raw, dict):
+        return None
+
+    def items(name: str, key: str) -> list[tuple[str, str]]:
+        found = response.raw.get(name)
+        return [(i[key], i["span"]) for i in (found if isinstance(found, list) else [])
+                if isinstance(i, dict) and isinstance(i.get(key), str) and isinstance(i.get("span"), str)]
+
+    return Evidence(
+        tuple(DocumentedCode(k, s) for k, s in items("diagnoses", "code")),
+        tuple(CriterionEvidence(k, s) for k, s in items("criteria_met", "criterion")),
+        tuple(CriterionEvidence(k, s) for k, s in items("criteria_not_met", "criterion")),
+    )

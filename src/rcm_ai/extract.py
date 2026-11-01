@@ -64,6 +64,13 @@ def describe_criteria(criteria: list[Criterion], depth: int = 0) -> list[str]:
     return lines
 
 
+def describe_claim(claim: Claim) -> str:
+    return (f"Claim:\n- billed item (HCPCS): {claim.hcpcs}\n"
+            f"- billed diagnoses (ICD-10-CM): {', '.join(claim.icd10)}\n"
+            f"- denial reason: CARC {claim.carc}\n"
+            f"- coverage: {claim.coverage}")
+
+
 def build_request(note: str, criteria: list[Criterion]) -> dict:
     """Keyword arguments for messages.create. Criteria are top-level ones; alternatives nest."""
     content = (
@@ -167,6 +174,17 @@ def parse_extraction(raw: dict, note: str, graph: CoverageGraph, criteria: list[
     ), [], spans)
 
 
+def _offered(claim: Claim, graph: CoverageGraph) -> list[Criterion]:
+    return [c for lcd in applicable_lcds(claim, graph) for c in graph.criteria(lcd)]
+
+
+def extracted_evidence(claim: Claim, note: str, graph: CoverageGraph, extraction: Extraction | None) -> Evidence | None:
+    """The validated evidence triage_note adjudicated, or None when it used none."""
+    if extraction is None or extraction.raw is None:
+        return None
+    return parse_extraction(extraction.raw, note, graph, _offered(claim, graph)).evidence
+
+
 def _rejected(statement: str) -> Verdict:
     return Verdict("needs_human", (), reasons=(Reason("extraction_rejected", statement),))
 
@@ -179,7 +197,7 @@ def triage_note(
     for decided_by_claim in (out_of_scope, billed_coding_conflict):
         if (hand_off := decided_by_claim(claim, graph)) is not None:
             return hand_off, None
-    criteria = [c for lcd in applicable_lcds(claim, graph) for c in graph.criteria(lcd)]
+    criteria = _offered(claim, graph)
     extraction = extractor(note, criteria)
     if extraction.raw is None:
         return _rejected(f"Evidence extraction stopped with {extraction.stop_reason}; no evidence was used"), extraction

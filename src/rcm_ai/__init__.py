@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from rcm_ai.adjudicate import adjudicate
+from rcm_ai import appeal as ap
 from rcm_ai import baseline as bl
 from rcm_ai.evaluate import EvalError, load_eval_set, run_eval
 from rcm_ai import extract as ex
@@ -48,10 +49,13 @@ def _save_extraction(log_dir: Path, case_id: str, extraction) -> Path:
     return path
 
 
-def _triage(case_path: Path, data_dir: Path, extract: bool = False, log_dir: Path = Path("eval-results/extractions")) -> int:
+def _triage(case_path: Path, data_dir: Path, extract: bool = False, draft: bool = False,
+            log_dir: Path = Path("eval-results/extractions"), draft_dir: Path = Path("eval-results/drafts")) -> int:
+    appeal = draft_error = log_error = None
     try:
         case = load_case(case_path)
         graph = build_graph(data_dir)
+        client = None
         if extract:
             client = _client()
             logs = []
@@ -62,10 +66,23 @@ def _triage(case_path: Path, data_dir: Path, extract: bool = False, log_dir: Pat
                 return extraction
 
             verdict, extraction = ex.triage_note(case.claim, case.note, graph, call)
+            evidence = ex.extracted_evidence(case.claim, case.note, graph, extraction) if draft else None
         elif case.evidence is None:
             raise SchemaError(f"{case_path}: case has no evidence; run with --extract to extract it from the note")
         else:
-            verdict = adjudicate(case.claim, case.evidence, graph)
+            verdict, evidence = adjudicate(case.claim, case.evidence, graph), case.evidence
+        if draft and verdict.outcome == "overturnable":
+            try:
+                if client is None:
+                    client = _client()
+                appeal = ap.draft(case.claim, verdict.path, ap.quotes(evidence), client, findings=verdict.findings)
+            except Exception as e:  # the verdict needs no model, so it's still reported
+                draft_error = f"{type(e).__name__}: {e}"
+            else:
+                try:
+                    draft_log = _save_extraction(draft_dir, case.id, appeal)
+                except OSError as e:  # the letter is paid for, so it's still printed
+                    log_error = f"{type(e).__name__}: {e}"
     except SchemaError as e:
         print(f"rejected: {e}", file=sys.stderr)
         return 2
@@ -73,7 +90,7 @@ def _triage(case_path: Path, data_dir: Path, extract: bool = False, log_dir: Pat
         print(f"ingest failed: {e}", file=sys.stderr)
         return 2
     except CredentialError as e:
-        print(f"extraction unavailable: {e}", file=sys.stderr)
+        print(f"model unavailable: {e}", file=sys.stderr)
         return 2
     _warn_rejected(graph)
     print(f"{case.id}: {verdict.outcome}")
@@ -101,6 +118,29 @@ def _triage(case_path: Path, data_dir: Path, extract: bool = False, log_dir: Pat
         if f.source:
             print(f"     {data_dir / 'fixtures' / f.source.path}:{f.source.line}  [{f.source.version}]")
             print(f"     look for: {f.anchor}")
+    if draft_error:
+        print(f"appeal draft failed: {draft_error}", file=sys.stderr)
+        return 3
+    if draft and appeal is None:
+        print("  no appeal drafted: the verdict is not overturnable")
+    elif draft:
+        letter = ap.letter_of(appeal)
+        if letter is None:
+            print(f"  no appeal letter: the drafter returned none (stop {appeal.stop_reason})")
+        else:
+            print("  appeal draft:")
+            for line in letter.splitlines():
+                print(f"    {line}".rstrip())
+            check = ap.check_citations(letter, verdict.path, verdict.findings)
+            cited = ", ".join(check.citations) or "nothing cited"
+            if check.passed:
+                print(f"  citation check: passed ({cited})")
+            else:
+                print(f"  citation check: FAILED, unsupported: {', '.join(check.unsupported)} (cited: {cited})")
+        if log_error:
+            print(f"appeal draft log not written: {log_error}", file=sys.stderr)
+            return 3
+        print(f"  draft log: {draft_log}")
     return 0
 
 
@@ -187,7 +227,7 @@ def _pct(x: float | None) -> str:
     return "n/a" if x is None else f"{x:.0%}"
 
 
-def _eval(data_dir: Path, out_dir: Path, arm_names: list[str] = ("graph",)) -> int:
+def _eval(data_dir: Path, out_dir: Path, arm_names: list[str] = ("graph",), draft: bool = False) -> int:
     started = datetime.now(timezone.utc)
     stamp = started.strftime('%Y%m%dT%H%M%SZ')
     log_dirs = {arm: out_dir / f"eval-{stamp}-{suffix}" for arm, suffix in LOG_SUFFIXES.items()}
@@ -196,6 +236,11 @@ def _eval(data_dir: Path, out_dir: Path, arm_names: list[str] = ("graph",)) -> i
     # Cases whose response the arm couldn't use (refused, truncated, not JSON, or for the
     # baseline not a verdict). They score as hand-offs, so they're counted and warned about.
     unusable = {arm: set() for arm in LOG_SUFFIXES}
+    draft_dir = out_dir / f"eval-{stamp}-drafts"
+    appeals = {arm: {} for arm in arm_names} if draft else {}  # arm -> case id -> Appeal
+    drafts = []  # every drafting call's response
+    draft_calls = []  # the case of every drafting call made
+    no_reference = {arm: set() for arm in arm_names}  # cases gold overturns but the graph won't, on gold evidence
     try:
         unknown = sorted(set(arm_names) - ARM_MODELS.keys())
         if unknown:
@@ -203,7 +248,40 @@ def _eval(data_dir: Path, out_dir: Path, arm_names: list[str] = ("graph",)) -> i
         eval_set = load_eval_set(data_dir / "eval")
         graph = build_graph(data_dir)
         _warn_rejected(graph)
-        client = _client() if set(arm_names) & LOG_SUFFIXES.keys() else None
+        client = _client() if draft or set(arm_names) & LOG_SUFFIXES.keys() else None
+        def appeal_for(arm, c, verdict, evidence):
+            reference = None
+            try:
+                # What a letter for this claim may cite: nothing when the gold label doesn't overturn
+                # it, else what the graph's verdict on the case's gold evidence asserts. Every arm's
+                # letter is checked against it, so a claim gold overturns but the graph won't gets none.
+                reference_path, reference_findings = (), ()
+                if c.gold["verdict"] == "overturnable":
+                    gold = adjudicate(c.case.claim, c.case.evidence, graph)
+                    if gold.outcome != "overturnable":
+                        return None
+                    reference_path, reference_findings = gold.path, gold.findings
+                reference = ap.established(reference_path, reference_findings)
+                draft_calls.append(c.case.id)
+                response = ap.draft(c.case.claim, verdict.path, ap.quotes(evidence), client, findings=verdict.findings)
+                drafts.append(response)
+                _save_extraction(draft_dir, f"{arm}-{c.case.id}", response)
+            except Exception as e:  # a failed draft is counted; it must not change the verdict's score
+                return ap.Appeal(reference, error=f"{type(e).__name__}: {e}")
+            letter = ap.letter_of(response)
+            check = ap.check_citations(letter, reference_path, reference_findings) if letter else None
+            return ap.Appeal(reference, letter, check)
+
+        def drafting(arm, decide):
+            def run(c):
+                verdict, evidence = decide(c)
+                if draft and verdict.outcome == "overturnable":
+                    if (appeal := appeal_for(arm, c, verdict, evidence)) is None:
+                        no_reference[arm].add(c.case.id)
+                    else:
+                        appeals[arm][c.case.id] = appeal
+                return verdict
+            return run
 
         def calling(arm, c, call):
             called[arm].add(c.case.id)
@@ -214,32 +292,42 @@ def _eval(data_dir: Path, out_dir: Path, arm_names: list[str] = ("graph",)) -> i
             return response
 
         def extracted(c):
-            verdict, _ = ex.triage_note(c.case.claim, c.case.note, graph, lambda note, criteria: calling(
+            verdict, extraction = ex.triage_note(c.case.claim, c.case.note, graph, lambda note, criteria: calling(
                 "extracted", c, lambda: ex.extract(note, criteria, client)))
-            return verdict
+            return verdict, ex.extracted_evidence(c.case.claim, c.case.note, graph, extraction) if draft else None
 
         def llm_only(c):
             # The criteria of each LCD whose HCPCS table lists the item: the policy the denial
             # falls under, as an analyst would look it up. Nothing else comes from the graph.
             policy = {lcd: graph.criteria(lcd) for lcd in graph.lcds_listing(c.case.claim.hcpcs)}
-            verdict = bl.verdict_from(calling("llm-only", c, lambda: bl.ask(c.case.claim, c.case.note, policy, client)))
+            response = calling("llm-only", c, lambda: bl.ask(c.case.claim, c.case.note, policy, client))
+            verdict = bl.verdict_from(response)
             if any(r.kind == "no_verdict" for r in verdict.reasons):
                 unusable["llm-only"].add(c.case.id)
-            return verdict
+            return verdict, bl.evidence_from(response)
 
-        available = {"graph": lambda c: adjudicate(c.case.claim, c.case.evidence, graph),
+        available = {"graph": lambda c: (adjudicate(c.case.claim, c.case.evidence, graph), c.case.evidence),
                      "extracted": extracted, "llm-only": llm_only}
-        report = run_eval(eval_set.cases, {name: available[name] for name in arm_names})
+        report = run_eval(eval_set.cases, {name: drafting(name, available[name]) for name in arm_names})
     except (EvalError, IngestError, ProvenanceError, CredentialError) as e:
         print(f"eval failed: {e}", file=sys.stderr)
         return 2
     print(f"eval: {len(eval_set.cases)} cases ran (expected {eval_set.expected})")
+    tallies = {name: {**ap.tally(list(appeals[name].values())), "no_reference": len(no_reference[name])}
+               for name in appeals}
+    unreferenced = sorted(set().union(*no_reference.values())) if draft else []
     for name, m in report.arms.items():
         print(f"  {name}: accuracy {m.correct}/{m.n} ({_pct(m.accuracy)}), errors {m.errors}")
         print(f"    false overturnable: {len(m.false_overturnable)} {m.false_overturnable}")
         print(f"    false uphold: {len(m.false_uphold)} {m.false_uphold}")
         print(f"    abstention rate: {m.abstentions}/{m.n} ({_pct(m.abstention_rate)}), "
               f"precision {m.correct_abstentions}/{m.abstentions} ({_pct(m.abstention_precision)})")
+        if draft:
+            a = tallies[name]
+            print(f"    appeals: {a['drafted']} drafted, {a['failed']} failed the citation check, "
+                  f"{a['without_letter']} without a letter, {a['errors']} errors; "
+                  f"unsupported citations {a['unsupported']}/{a['citations']} ({_pct(a['unsupported_rate'])})"
+                  + (f"; {a['no_reference']} without a reference" if a["no_reference"] else ""))
     gaps = {c.case.id: c.gold.get("known_system_gap") for c in eval_set.cases}
     for r in report.results:
         if not r.correct:
@@ -264,6 +352,7 @@ def _eval(data_dir: Path, out_dir: Path, arm_names: list[str] = ("graph",)) -> i
         "arms": {
             name: {"model": ARM_MODELS[name],
                    **sent.get(name, {}),
+                   **({"appeals": tallies[name]} if draft else {}),
                    **asdict(m), "accuracy": m.accuracy,
                    "abstention_rate": m.abstention_rate, "abstention_precision": m.abstention_precision}
             for name, m in report.arms.items()
@@ -271,13 +360,16 @@ def _eval(data_dir: Path, out_dir: Path, arm_names: list[str] = ("graph",)) -> i
         "results": [{**asdict(r), "correct": r.correct,
                      "known_system_gap": gaps[r.case] if r.arm in SYSTEM_ARMS else None,
                      **({"model_called": r.case in called[r.arm], **_served(responses[r.arm].get(r.case))}
-                        if r.arm in LOG_SUFFIXES else {})}
+                        if r.arm in LOG_SUFFIXES else {}),
+                     **({"appeal": _appeal_record(appeals[r.arm][r.case])} if r.case in appeals.get(r.arm, {}) else {})}
                     for r in report.results],
         "disagreements": [
             {"case": d.case, "gold": d.gold,
              "arms": {name: {"outcome": r.outcome, "correct": r.correct, "why": list(r.why)}
                       for name, r in d.arms.items()}}
             for d in report.disagreements],
+        **({"drafting": {**_sent_config(drafts, len(draft_calls)), "no_reference": unreferenced}}
+           if draft else {}),
     }
     out_dir.mkdir(parents=True, exist_ok=True)
     path = out_dir / f"eval-{stamp}.json"
@@ -292,12 +384,32 @@ def _eval(data_dir: Path, out_dir: Path, arm_names: list[str] = ("graph",)) -> i
         if s["without_output"]:
             print(f"warning: {arm}: {s['without_output']} of {s['responses']} responses had no usable output",
                   file=sys.stderr)
+    if draft:
+        print(f"drafting: {len(draft_calls)} model calls, {len(drafts)} responses")
+        if drafts:
+            print(f"  logs: {draft_dir}")
+        no_letter = sum(a["without_letter"] for a in tallies.values())
+        if no_letter:
+            print(f"warning: {no_letter} of {len(draft_calls)} appeal drafts had no letter", file=sys.stderr)
+        if unreferenced:
+            print(f"warning: no appeal drafted for {', '.join(unreferenced)}: gold overturns it but the graph's "
+                  "verdict on the gold evidence doesn't, so there's no reference to check against", file=sys.stderr)
     errors = sum(m.errors for m in report.arms.values())
+    draft_errors = sum(a["errors"] for a in tallies.values())
     if errors:
         print(f"eval incomplete: {errors} arm error{'s' if errors > 1 else ''}; metrics are not comparable",
               file=sys.stderr)
-        return 3
-    return 0
+    if draft_errors:
+        print(f"eval incomplete: {draft_errors} appeal draft error{'s' if draft_errors > 1 else ''}; "
+              "citation metrics are not comparable", file=sys.stderr)
+    return 3 if errors or draft_errors else 0
+
+
+def _appeal_record(a) -> dict:
+    return {"letter": a.letter, "citations": list(a.check.citations) if a.check else [],
+            "unsupported": list(a.check.unsupported) if a.check else [],
+            "reference": list(a.reference) if a.reference is not None else None,
+            "error": a.error}
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -308,20 +420,24 @@ def main(argv: list[str] | None = None) -> int:
     triage.add_argument("--data", type=Path, default=Path("data"))
     triage.add_argument("--extract", action="store_true",
                         help="extract evidence from the note with the LLM instead of using the case's evidence")
+    triage.add_argument("--draft", action="store_true",
+                        help="draft an appeal for an overturnable verdict and check its citations (calls the model)")
     ev = sub.add_parser("eval", help="score the arms against the locked eval set")
     ev.add_argument("--data", type=Path, default=Path("data"))
     ev.add_argument("--out", type=Path, default=Path("eval-results"))
     ev.add_argument("--arms", default="graph",
                     help="comma-separated arms: graph (gold evidence), extracted (LLM evidence; calls the model), "
                          "llm-only (the model decides with no graph; calls the model)")
+    ev.add_argument("--draft", action="store_true",
+                    help="draft an appeal for each overturnable verdict and score its citations (calls the model)")
     ing = sub.add_parser("ingest", help="load the sources and report per-source record counts")
     ing.add_argument("--data", type=Path, default=Path("data"))
     args = parser.parse_args(argv)
     if args.command == "ingest":
         return _ingest(args.data)
     if args.command == "eval":
-        return _eval(args.data, args.out, args.arms.split(","))
-    return _triage(args.case, args.data, args.extract)
+        return _eval(args.data, args.out, args.arms.split(","), args.draft)
+    return _triage(args.case, args.data, args.extract, args.draft)
 
 
 if __name__ == "__main__":
