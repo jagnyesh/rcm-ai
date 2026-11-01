@@ -98,6 +98,16 @@ def test_another_item_or_policy_in_any_written_form_fails(text, cited):
     assert ap.check_citations(f"Per {text}, coverage applies.", EV01).unsupported == (cited,)
 
 
+@pytest.mark.parametrize("text, cited", [
+    ("LCD: 39999", "L39999"), ("LCD No. 39999", "L39999"), ("LCD number 39999", "L39999"),
+    ("Local Coverage Determination (LCD) 39999", "L39999"), ("LCD ID #: 39999", "L39999"),
+    ("Article No. 52999", "A52999"), ("article: 52999", "A52999"), ("NCD: 40.2", "NCD 40.2"),
+    ("CPT: 95249", "95249"), ("CPT code: 95249", "95249"), ("CPT® code No. 95249", "95249"),
+])
+def test_an_id_after_a_label_with_punctuation_is_read(text, cited):
+    assert ap.check_citations(f"Per {text}, coverage applies.", EV01).unsupported == (cited,)
+
+
 @pytest.mark.parametrize("cited", ["T38.3X5A", "C7A.00", "Z3A.20", "E11.3213"])
 def test_long_codes_and_categories_with_a_letter_third_are_read_whole(cited):
     assert ap.citations(f"Code {cited} was documented.") == (cited,)
@@ -152,7 +162,8 @@ def test_two_codes_written_without_their_dots_stay_two():
 def test_a_long_whitespace_run_after_a_label_is_read_quickly():
     # The letter is model output; a label's optional parts between adjacent \s* backtracked
     # cubically on a whitespace run (2,000 spaces took about 12 s).
-    text = " x. ".join(label + " " * 2000 for label in ("CPT", "LCD", "article", "NCD")) + " x."
+    text = " x. ".join(label + " " * 2000 for label in ("CPT", "CPT code", "LCD", "LCD No.", "(LCD)", "article",
+                                                        "article ID #:", "NCD")) + " x."
 
     start = time.perf_counter()
     assert ap.citations(text) == ()
