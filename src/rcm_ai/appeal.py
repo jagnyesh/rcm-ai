@@ -184,17 +184,21 @@ class Appeal:
     reference: tuple[str, ...] | None  # what the reference verdict lets the letter cite; None if it wasn't built
     letter: str | None = None
     check: CitationCheck | None = None  # None without a letter
-    error: str | None = None  # building the reference, the drafting call or writing its log raised
+    error: str | None = None  # building the reference or the drafting call raised
+    log_error: str | None = None  # writing the call's log raised; the letter is kept
 
 
 def tally(appeals: list[Appeal]) -> dict:
+    """Each attempt gives a letter, a draft without one, or an error."""
     checks = [a.check for a in appeals if a.check is not None]
     cited = sum(len(c.citations) for c in checks)
     unsupported = sum(len(c.unsupported) for c in checks)
     return {
-        "drafted": len(appeals),
+        "attempted": len(appeals),
+        "letters": sum(a.letter is not None for a in appeals),
         "without_letter": sum(a.letter is None and a.error is None for a in appeals),
         "errors": sum(a.error is not None for a in appeals),
+        "log_errors": sum(a.log_error is not None for a in appeals),
         "failed": sum(not c.passed for c in checks),
         "citations": cited,
         "unsupported": unsupported,
