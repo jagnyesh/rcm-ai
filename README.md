@@ -64,16 +64,26 @@ These numbers show direction, not production accuracy:
 - **Faked, as stand-ins for steps not built or not done:**
   - each case's `evidence` block, which Claude wrote with the case as a perfect extractor would return it; the graph arm and the demo run on it;
   - the gold labels, Claude's best judgment against the LCD text, unreviewed (#15);
-  - the coverage criteria in `data/curated/`, structured by hand, though each is a verbatim quote from the LCD;
+  - the coverage criteria in `data/curated/`, structured by Claude, though each is a verbatim quote from the LCD;
   - the demo's appeal letter, a recording from the 2026-11-01 run (`data/demo/demo.json`), not a live call;
   - drafted letters' placeholders, such as `[Beneficiary name]`, where a real letter carries the beneficiary's and supplier's details.
+
+**Human review.** Nothing Claude wrote here has been reviewed by a person yet.
+- Each data file that holds Claude's work carries a `review` tag: every case, the criteria file and the recorded letter.
+  - `status` is `claude-drafted` until a reviewer sets it to `confirmed`.
+  - `expertise` names what a reviewer needs: `coding`, `clinical`, `payer-policy`, `appeals` or `legal`.
+  - `covers` says what in the file the tag is for.
+  - `issue` points at the issue tracking the review.
+- `tests/test_review.py` fails if one of those files lacks a tag.
+- Judgment calls that can't carry a tag are listed in #28: the rules in the code, the prompts, the label rules, this README's interpretation, and data licensing.
+- The eval labels keep their own `gold.label_status` (#15).
 
 ## What would break on real payer policy
 
 - **One policy.** Only LCD L33822 and article A52464 are loaded, so any other item or LCD goes to `needs_human`. No commercial payer's policy is modeled.
 - **Partial terminology.** Only the E08–E13, E15–E16, O24 and R73 slices of ICD-10-CM are loaded. Real notes document conditions coded outside them: from the eval notes the model has extracted Z90.411, N18.31, Z79.4, Z79.84 and Z98.84, and the extracted arm hands those claims off.
 - **One denial type.** Only CARC 50 and initial coverage of E2102 and E2103 are adjudicated. Continued coverage, supply allowances, CARC 11 and other denial reasons are handed off, and a real remittance often carries several CARC and RARC codes.
-- **Short notes.** Each eval note is a few sentences testing one issue. Real notes are long, cover several problems and are dated. Nothing here computes dates, so the extractor judges the six-month visit window from the note's wording.
+- **Short notes.** Each eval note is a few sentences testing one issue. Real notes are long, cover several problems and are dated. Nothing checks the six-month visit window, because cases carry no dates. Whoever supplies the evidence, the extractor or the case's author, decides from the note's wording whether the visit qualifies.
 - **Span checks prove presence, not support.** A negated phrase or a reused span passes validation (#22).
 - **One diagnosis per path.** A claim with several billed diagnoses establishes only the one on its winning path, so a letter that names the others fails the check. No eval case exercises this.
 - **Pinned versions.** The graph holds one version of each LCD and article, and ingest refuses two at once, so a policy revision means re-ingesting. The LCD's link to the article cites v49, an older version than the v65 loaded.
@@ -121,7 +131,7 @@ uv run rcm-ai eval
 
 It asserts the case count from `data/eval/set.json` and fails with exit code 2 on an empty or partial set. It prints per-arm accuracy, false-overturnable and false-uphold cases, abstention rate and abstention precision, and lists each miss, marking a graph or extracted miss as a known gap or UNEXPLAINED; any arm error makes the run exit 3. Per-case results, with the date, git SHA, model id and the reasons behind each verdict, go to `eval-results/` (gitignored). `--arms` picks the arms: `graph` (the default, using each case's supplied evidence), `extracted` and `llm-only` (see below). With more than one arm, eval also prints each case where the arms' outcomes differ, with the reasons of each arm that missed gold, and records every such case, with all arms' reasons, under `disagreements`. `--draft` adds appeal drafting and the unsupported-citation rate per arm (see below).
 
-LCD coverage criteria live in `data/curated/L33822-cgm-criteria.json`, hand-curated with verbatim quotes from the LCD text. In scope: initial coverage of the CGM device (E2102, E2103) for medical-necessity denials (CARC 50). Supply allowances, continued coverage, and other denial reasons return `needs_human`. Evidence spans must appear verbatim in the case note, and evidence naming an unknown criterion is rejected.
+LCD coverage criteria live in `data/curated/L33822-cgm-criteria.json`, curated by Claude with verbatim quotes from the LCD text and awaiting review (#28). In scope: initial coverage of the CGM device (E2102, E2103) for medical-necessity denials (CARC 50). Supply allowances, continued coverage, and other denial reasons return `needs_human`. Evidence spans must appear verbatim in the case note, and evidence naming an unknown criterion is rejected.
 
 ### LLM evidence extraction
 
