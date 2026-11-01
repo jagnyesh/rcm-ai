@@ -240,7 +240,7 @@ def _eval(data_dir: Path, out_dir: Path, arm_names: list[str] = ("graph",), draf
     appeals = {arm: {} for arm in arm_names} if draft else {}  # arm -> case id -> Appeal
     drafts = []  # every drafting call's response
     draft_calls = []  # the case of every drafting call made
-    no_reference = set()  # cases whose gold reference disagrees with their gold label
+    no_reference = {arm: set() for arm in arm_names}  # cases gold overturns but the graph won't, on gold evidence
     try:
         unknown = sorted(set(arm_names) - ARM_MODELS.keys())
         if unknown:
@@ -252,15 +252,15 @@ def _eval(data_dir: Path, out_dir: Path, arm_names: list[str] = ("graph",), draf
         def appeal_for(arm, c, verdict, evidence):
             reference = None
             try:
-                # What a letter for this claim may cite: what the graph's verdict on the case's gold
-                # evidence asserts, nothing when it wouldn't overturn the claim. Every arm's letter is
-                # checked against it, so a case where it disagrees with the gold label gets no letter.
-                gold = adjudicate(c.case.claim, c.case.evidence, graph)
-                if gold.outcome != c.gold["verdict"]:
-                    no_reference.add(c.case.id)
-                    return None
-                overturned = gold.outcome == "overturnable"
-                reference_path, reference_findings = (gold.path, gold.findings) if overturned else ((), ())
+                # What a letter for this claim may cite: nothing when the gold label doesn't overturn
+                # it, else what the graph's verdict on the case's gold evidence asserts. Every arm's
+                # letter is checked against it, so a claim gold overturns but the graph won't gets none.
+                reference_path, reference_findings = (), ()
+                if c.gold["verdict"] == "overturnable":
+                    gold = adjudicate(c.case.claim, c.case.evidence, graph)
+                    if gold.outcome != "overturnable":
+                        return None
+                    reference_path, reference_findings = gold.path, gold.findings
                 reference = ap.established(reference_path, reference_findings)
                 draft_calls.append(c.case.id)
                 response = ap.draft(c.case.claim, verdict.path, ap.quotes(evidence), client, findings=verdict.findings)
@@ -276,7 +276,9 @@ def _eval(data_dir: Path, out_dir: Path, arm_names: list[str] = ("graph",), draf
             def run(c):
                 verdict, evidence = decide(c)
                 if draft and verdict.outcome == "overturnable":
-                    if (appeal := appeal_for(arm, c, verdict, evidence)) is not None:
+                    if (appeal := appeal_for(arm, c, verdict, evidence)) is None:
+                        no_reference[arm].add(c.case.id)
+                    else:
                         appeals[arm][c.case.id] = appeal
                 return verdict
             return run
@@ -311,7 +313,9 @@ def _eval(data_dir: Path, out_dir: Path, arm_names: list[str] = ("graph",), draf
         print(f"eval failed: {e}", file=sys.stderr)
         return 2
     print(f"eval: {len(eval_set.cases)} cases ran (expected {eval_set.expected})")
-    tallies = {name: ap.tally(list(appeals[name].values())) for name in appeals}
+    tallies = {name: {**ap.tally(list(appeals[name].values())), "no_reference": len(no_reference[name])}
+               for name in appeals}
+    unreferenced = sorted(set().union(*no_reference.values())) if draft else []
     for name, m in report.arms.items():
         print(f"  {name}: accuracy {m.correct}/{m.n} ({_pct(m.accuracy)}), errors {m.errors}")
         print(f"    false overturnable: {len(m.false_overturnable)} {m.false_overturnable}")
@@ -322,7 +326,8 @@ def _eval(data_dir: Path, out_dir: Path, arm_names: list[str] = ("graph",), draf
             a = tallies[name]
             print(f"    appeals: {a['drafted']} drafted, {a['failed']} failed the citation check, "
                   f"{a['without_letter']} without a letter, {a['errors']} errors; "
-                  f"unsupported citations {a['unsupported']}/{a['citations']} ({_pct(a['unsupported_rate'])})")
+                  f"unsupported citations {a['unsupported']}/{a['citations']} ({_pct(a['unsupported_rate'])})"
+                  + (f"; {a['no_reference']} without a reference" if a["no_reference"] else ""))
     gaps = {c.case.id: c.gold.get("known_system_gap") for c in eval_set.cases}
     for r in report.results:
         if not r.correct:
@@ -363,7 +368,7 @@ def _eval(data_dir: Path, out_dir: Path, arm_names: list[str] = ("graph",), draf
              "arms": {name: {"outcome": r.outcome, "correct": r.correct, "why": list(r.why)}
                       for name, r in d.arms.items()}}
             for d in report.disagreements],
-        **({"drafting": {**_sent_config(drafts, len(draft_calls)), "no_reference": sorted(no_reference)}}
+        **({"drafting": {**_sent_config(drafts, len(draft_calls)), "no_reference": unreferenced}}
            if draft else {}),
     }
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -386,10 +391,9 @@ def _eval(data_dir: Path, out_dir: Path, arm_names: list[str] = ("graph",), draf
         no_letter = sum(a["without_letter"] for a in tallies.values())
         if no_letter:
             print(f"warning: {no_letter} of {len(draft_calls)} appeal drafts had no letter", file=sys.stderr)
-        if no_reference:
-            print(f"warning: no appeal drafted for {', '.join(sorted(no_reference))}: the graph's verdict on "
-                  "the gold evidence disagrees with the gold label, so there's no reference to check against",
-                  file=sys.stderr)
+        if unreferenced:
+            print(f"warning: no appeal drafted for {', '.join(unreferenced)}: gold overturns it but the graph's "
+                  "verdict on the gold evidence doesn't, so there's no reference to check against", file=sys.stderr)
     errors = sum(m.errors for m in report.arms.values())
     draft_errors = sum(a["errors"] for a in tallies.values())
     if errors:

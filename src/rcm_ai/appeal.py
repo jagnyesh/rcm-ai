@@ -34,8 +34,9 @@ _CITATIONS = (
                 r"(?:-[A-Z0-9]{2})*\b"),
      lambda m: m.group()),
     (re.compile(r"\bDL\d{5}\b"), lambda m: m.group()),
-    (re.compile(r"\bLCD(?:\s*ID)?(?:\s*#)?\s*L?(\d{5})\b", re.IGNORECASE), lambda m: f"L{m.group(1)}"),
-    (re.compile(r"\barticle(?:\s*ID)?(?:\s*#)?\s*A?(\d{5})\b", re.IGNORECASE), lambda m: f"A{m.group(1)}"),
+    (re.compile(r"\bLCD(?:\s*ID)?(?:\s*#)?\s*L?(\d{5}(?:\.[0-9A-Z]+)*)\b", re.IGNORECASE), lambda m: f"L{m.group(1)}"),
+    (re.compile(r"\barticle(?:\s*ID)?(?:\s*#)?\s*A?(\d{5}(?:\.[0-9A-Z]+)*)\b", re.IGNORECASE),
+     lambda m: f"A{m.group(1)}"),
     (re.compile(r"\bNCD(?:\s*#)?\s*(\d{1,3}(?:\.\d{1,2})?)\b", re.IGNORECASE), lambda m: f"NCD {m.group(1)}"),
     (re.compile(r"\bCPT(?:\s*®)?(?:\s*code)?(?:\s*#)?\s*(\d{4}[0-9FTU])\b", re.IGNORECASE), lambda m: m.group(1)),
 )
@@ -48,7 +49,7 @@ _ASIDE = re.compile(r"\s*\([^)]*\)")
 
 @dataclass(frozen=True)
 class CitationCheck:
-    citations: tuple[str, ...]  # each code or policy ID the letter cites, once, as first written, in order
+    citations: tuple[str, ...]  # each code or policy ID the letter cites, once, in order: its first unsupported form, else its first
     unsupported: tuple[str, ...]  # those the reference doesn't establish, each in the form it doesn't
 
     @property
@@ -154,7 +155,7 @@ class Appeal:
     reference: tuple[str, ...] | None  # what the reference verdict lets the letter cite; None if it wasn't built
     letter: str | None = None
     check: CitationCheck | None = None  # None without a letter
-    error: str | None = None  # building the reference or the drafting call raised
+    error: str | None = None  # building the reference, the drafting call or writing its log raised
 
 
 def tally(appeals: list[Appeal]) -> dict:
