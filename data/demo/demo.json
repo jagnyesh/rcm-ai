@@ -10,7 +10,15 @@
       "arm": "graph",
       "model": "claude-opus-5-5",
       "recorded": "2026-11-01",
-      "git_sha": "6ed732a"
+      "git_sha": "6ed732a",
+      "review": {
+        "status": "claude-drafted",
+        "expertise": [
+          "appeals"
+        ],
+        "covers": "the letter's content; the citation checker verified only its codes and policy IDs",
+        "issue": "#28"
+      }
     }
   }
 }

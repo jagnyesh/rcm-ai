@@ -35,5 +35,14 @@
         "span": "Telehealth follow-up for type 2 diabetes mellitus with hyperglycemia"
       }
     ]
+  },
+  "review": {
+    "status": "claude-drafted",
+    "expertise": [
+      "coding",
+      "clinical"
+    ],
+    "covers": "the claim, the note and the evidence block; the note doesn't date the visit relative to the order",
+    "issue": "#28"
   }
 }

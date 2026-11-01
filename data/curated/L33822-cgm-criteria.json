@@ -1,5 +1,5 @@
 {
-  "description": "Initial coverage criteria for continuous glucose monitors under LCD L33822 v70, hand-curated from the LCD's indication text. Every quote must appear verbatim in the normalized indication text of the source record; tests enforce this.",
+  "description": "Initial coverage criteria for continuous glucose monitors under LCD L33822 v70, curated by Claude from the LCD's indication text. Every quote must appear verbatim in the normalized indication text of the source record; tests enforce this.",
   "lcd": "L33822",
   "source": "cms/lcd-L33822-v70.csv",
   "column": "indication",
@@ -55,5 +55,13 @@
       "id": "cgm-5-visit",
       "quote": "Within six (6) months prior to ordering the CGM, the treating practitioner has an in-person or Medicare-approved telehealth visit with the beneficiary to evaluate their diabetes control and determined that criteria (1)-(4) above are met"
     }
-  ]
+  ],
+  "review": {
+    "status": "claude-drafted",
+    "expertise": [
+      "payer-policy"
+    ],
+    "covers": "the split into criteria, the any_of and satisfied_by structure, and the scope; tests check only that each quote is verbatim",
+    "issue": "#28"
+  }
 }
