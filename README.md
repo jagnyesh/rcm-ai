@@ -121,6 +121,7 @@ Run on 2026-11-01 at `6ed732a` (marked dirty only by the untracked `docs/diagram
 - On ev-08 and ev-09, every arm's letter names the more specific code that the specificity finding names (E11.65, E11.22), and the check accepts that code. The graph and extracted letters say the claim will be corrected and resubmitted; the baseline's ev-08 letter asks that E11.65 "be considered on appeal". The check can't tell these apart.
 - The graph and extracted letters cite the LCD and the article every time; one of the baseline's nine cites a policy ID. Their steps hand them both IDs, and the baseline never gets the article's, so this reflects the inputs as much as grounding.
 - The extracted arm missed ev-09 (it coded N18.31 and Z79.4, outside the loaded slices), ev-11, ev-12 and ev-13, all as hand-offs.
+- Re-checking this run's 26 recorded letters with the later checker (label punctuation, look-alike characters, letters citing nothing) gives the same counts.
 - Two earlier runs, at `9328cbc` and `f7debc8`, came before the review changed the checker and the drafter's input, so their citation counts aren't comparable.
 - Like the verdict results, these come from one run on 20 cases drafted and labeled by the same model family the baseline runs on.
 
