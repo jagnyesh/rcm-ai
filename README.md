@@ -2,9 +2,75 @@
 
 Exploratory prototype: graph-grounded triage of Medicare medical-necessity denials. Synthetic data only.
 
+**The eval labels are unconfirmed.** Claude drafted all 20 eval cases and labeled them, and no human has reviewed a label yet (#15). Every accuracy number below is agreement with those labels; a corrected label changes it.
+
+## Quickstart
+
+You need [uv](https://docs.astral.sh/uv/), which installs Python 3.13 if you don't have it. From a clone:
+
+```bash
+uv run rcm-ai demo
+```
+
+It makes no model call and needs no API key. For three eval cases, one per verdict, it prints the claim, the note, the evidence spans, the verdict, and each step behind the verdict with the source row it rests on: the fixture file and line, the source version, and the text to look for there. Read each case's first line, the verdict, then its numbered steps or its reason. For the overturnable case it also prints an appeal letter recorded in the 2026-11-01 run, not drafted now, and checks the letter's citations against the verdict; a letter that fails the check makes the demo exit 4.
+
+| Command | Model calls |
+|---|---|
+| `uv run rcm-ai demo` | none |
+| `uv run rcm-ai triage <case>` | none |
+| `uv run rcm-ai eval` (graph arm only) | none |
+| `uv run rcm-ai ingest` | none |
+| `uv run rcm-ai triage <case> --extract` | at most 1 |
+| `uv run rcm-ai triage <case> --draft` | 1 for an overturnable verdict |
+| `uv run rcm-ai eval --arms graph,extracted,llm-only` | 35 in the last run: an extraction for each claim not decided by the claim alone, and a baseline verdict for every claim |
+| `uv run rcm-ai eval --arms graph,extracted,llm-only --draft` | 61 in the last run: the above plus a draft for each overturnable verdict of each arm |
+
+Commands that call the model need `ANTHROPIC_API_KEY` set. The eval's metrics are defined in [data/eval/README.md](data/eval/README.md). Run the tests with `uv run pytest -q`; they take about two minutes and skip the 3 live tests without credentials.
+
 ## Problem
 
 A denial analyst working a medical-necessity denial (CARC 50) must decide whether the documented diagnosis supports the billed item under the governing coverage policy, which means cross-referencing the note, the claim's ICD-10-CM and HCPCS codes, the ICD-10-CM hierarchy and Excludes1 rules, and the LCD's billing article. An LLM can draft an appeal, but it decides coverage from memory and cites policy it can't trace. This prototype lets a small terminology-and-policy graph make the coverage decision and return a justification path where every hop points at a row in a public source file. The LLM extracts evidence from the note and drafts the appeal, and a deterministic checker fails any letter that cites a code or policy ID the justification path doesn't establish. An eval set of 20 labeled synthetic cases scores the graph on supplied evidence and on LLM-extracted evidence against an LLM-only baseline, on verdicts and on the citations in their appeals, so the value of the knowledge layer is measured, not asserted. The labels are Claude's best judgment and await human review (#15).
+
+## Results
+
+One run of every arm: 2026-11-01 at 00:06 UTC, git `6ed732a`, model `claude-opus-5-5` at effort high, N = 20 cases (eval set sha256 `fdbc346c`), 61 model calls. Since then only the citation checker and the exit codes have changed (#26), and re-checking the run's 26 letters with the current checker gives the same counts.
+
+| Arm | Evidence | N | Accuracy | False overturnable | False uphold | Hand-offs (correct) | Letters | Letters failing the check | Unsupported citations |
+|---|---|---|---|---|---|---|---|---|---|
+| graph | the case's own, as a perfect extractor would return it | 20 | 20/20 | 0 | 0 | 6 (6) | 9 | 0 | 0/38 |
+| extracted | `claude-opus-5-5` extracts it from the note | 20 | 16/20 | 0 | 0 | 10 (6) | 8 | 0 | 0/33 |
+| llm-only | none: the model decides without the graph | 20 | 19/20 | 0 | 1 (ev-18) | 5 (5) | 9 | 3 | 3/24 |
+
+**Falsification.** The PRD (#1) counts the premise as falsified if the grounded arm fails to beat the LLM-only arm on verdict accuracy or on the unsupported-citation rate. On verdict accuracy it fails: with evidence the model extracts, the graph scored 16/20 and the baseline 19/20, and the baseline has matched or beaten the extracted arm in every run of both (see the sections below). On the citation rate the grounded arms win, 0/33 against 3/24, but the check scores a letter against the graph's own verdict, so it favors the graph by construction, and none of the baseline's three unsupported codes is fabricated.
+
+What the graph did that the baseline didn't, in this run:
+- It made no false uphold. The baseline wrote off ev-18, whose note doesn't settle the glycemic-control criterion either way.
+- Each of its misses is a hand-off to a human. The extracted arm's four: ev-09 and ev-13, where the model extracted codes outside the loaded ICD-10-CM slices; ev-11, where it didn't mark the insulin criterion failed; and ev-12, where the graph holds back an uphold because extracted evidence can miss a covered diagnosis.
+- Every step of its overturnable paths names a source row. The baseline's cite nothing a reviewer can check.
+
+With perfect evidence the graph scored 20/20, so the gap to 16/20 comes from working with extracted evidence: codes outside what the graph loads, a criterion the extractor didn't mark, and an uphold withheld because extraction can miss a diagnosis. These numbers show direction, not production accuracy: 20 short synthetic notes that each test one issue, cases and labels drafted by the model family the baseline runs on, each arm run once, and labels no human has confirmed.
+
+## Real, synthetic and faked
+
+- **Real:** the policy and terminology data, sha256-pinned slices of the CDC ICD-10-CM FY2027 tabular and of CMS LCD L33822 v70 and article A52464 v65 (see Sources); the HCPCS Level II codes; and every model number above, which comes from logged `claude-opus-5-5` responses.
+- **Synthetic:** every claim and note, the 20 eval cases and `data/synthetic/case-001.json`, each marked `"synthetic": true`. No real patient, member or claim data. A claim is a small JSON schema standing in for an 837 line, and its denial reason is given, not read from an 835.
+- **Faked, as stand-ins for steps not built or not done:**
+  - each case's `evidence` block, written by hand as a perfect extractor would return it; the graph arm and the demo run on it;
+  - the gold labels, Claude's best judgment against the LCD text, unreviewed (#15);
+  - the coverage criteria in `data/curated/`, structured by hand, though each is a verbatim quote from the LCD;
+  - the demo's appeal letter, a recording from the 2026-11-01 run (`data/demo/demo.json`), not a live call;
+  - drafted letters' placeholders, such as `[Beneficiary name]`, where a real letter carries the beneficiary's and supplier's details.
+
+## What would break on real payer policy
+
+- **One policy.** Only LCD L33822 and article A52464 are loaded, so any other item or LCD goes to `needs_human`. No commercial payer's policy is modeled.
+- **Partial terminology.** Only the E08–E13, E15–E16, O24 and R73 slices of ICD-10-CM are loaded. Real notes document conditions coded outside them: from the eval notes the model has extracted Z90.411, N18.31, Z79.4 and Z98.84, and the extracted arm hands those claims off.
+- **One denial type.** Only CARC 50 and initial coverage of E2102 and E2103 are adjudicated. Continued coverage, supply allowances, CARC 11 and other denial reasons are handed off, and a real remittance often carries several CARC and RARC codes.
+- **Short notes.** Each eval note is a few sentences testing one issue. Real notes are long, cover several problems and are dated. Nothing here computes dates, so the extractor judges the six-month visit window from the note's wording.
+- **Span checks prove presence, not support.** A negated phrase or a reused span passes validation (#22).
+- **One diagnosis per path.** A claim with several billed diagnoses establishes only the one on its winning path, so a letter that names the others fails the check. No eval case exercises this.
+- **Pinned versions.** The graph holds one version of each LCD and article, and ingest refuses two at once, so a policy revision means re-ingesting. The LCD's link to the article already cites v49 while v65 is loaded.
+- **No production controls.** There is no de-identification, access control or audit trail, and the logs keep each note's full text. That's safe only because every note is synthetic.
 
 ## Scope
 
