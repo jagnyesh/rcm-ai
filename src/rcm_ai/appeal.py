@@ -29,16 +29,18 @@ SCHEMA = {
 # numbers, minutes and money. A code is read through any further dotted part, so "E2103.0" isn't
 # read as E2103. Each optional part of a label carries its own leading whitespace: adjacent \s*
 # backtrack cubically on a whitespace run in the letter.
+# What may come between a label and its ID: "(LCD) 39999", "LCD ID", "LCD No.", "LCD number", "LCD #", "LCD:".
+_LABEL_TAIL = r"(?:\s*\))?(?:\s*ID)?(?:\s*(?:No\b\.?|number\b|#))?(?:\s*:)?\s*"
 _CITATIONS = (
     (re.compile(r"\b(?:[A-Z]\d\d|C4A|C7A|C7B|D3A|M1A|Z3A)(?:\.[0-9A-Z]{1,4}|[0-9A-Z]{1,5})?(?:\.[0-9A-Z]+)*"
                 r"(?:-[A-Z0-9]{2})*\b"),
      lambda m: m.group()),
     (re.compile(r"\bDL\d{5}\b"), lambda m: m.group()),
-    (re.compile(r"\bLCD(?:\s*ID)?(?:\s*#)?\s*L?(\d{5}(?:\.[0-9A-Z]+)*)\b", re.IGNORECASE), lambda m: f"L{m.group(1)}"),
-    (re.compile(r"\barticle(?:\s*ID)?(?:\s*#)?\s*A?(\d{5}(?:\.[0-9A-Z]+)*)\b", re.IGNORECASE),
+    (re.compile(rf"\bLCD{_LABEL_TAIL}L?(\d{{5}}(?:\.[0-9A-Z]+)*)\b", re.IGNORECASE), lambda m: f"L{m.group(1)}"),
+    (re.compile(rf"\barticle{_LABEL_TAIL}A?(\d{{5}}(?:\.[0-9A-Z]+)*)\b", re.IGNORECASE),
      lambda m: f"A{m.group(1)}"),
-    (re.compile(r"\bNCD(?:\s*#)?\s*(\d{1,3}(?:\.\d{1,2})?)\b", re.IGNORECASE), lambda m: f"NCD {m.group(1)}"),
-    (re.compile(r"\bCPT(?:\s*®)?(?:\s*code)?(?:\s*#)?\s*(\d{4}[0-9FTU])\b", re.IGNORECASE), lambda m: m.group(1)),
+    (re.compile(rf"\bNCD{_LABEL_TAIL}(\d{{1,3}}(?:\.\d{{1,2}})?)\b", re.IGNORECASE), lambda m: f"NCD {m.group(1)}"),
+    (re.compile(rf"\bCPT(?:\s*®)?(?:\s*code)?{_LABEL_TAIL}(\d{{4}}[0-9FTU])\b", re.IGNORECASE), lambda m: m.group(1)),
 )
 # A HCPCS code with its modifiers, which cite the code itself.
 _MODIFIED = re.compile(r"([A-V]\d{4})(?:-?[A-Z0-9]{2})+")
