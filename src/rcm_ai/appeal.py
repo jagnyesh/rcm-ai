@@ -3,10 +3,11 @@
 The drafter (an LLM) writes a letter from a verdict's justification path, its findings and the
 note's quotes. The checker (deterministic) pulls every code and policy ID from the letter and fails
 it if any is not in a reference verdict's path or findings, so a letter never cites what that
-verdict didn't establish.
+verdict didn't establish. Against a reference that establishes nothing, every letter fails.
 """
 
 import re
+import unicodedata
 from dataclasses import dataclass
 
 from rcm_ai import extract as ex
@@ -29,16 +30,33 @@ SCHEMA = {
 # numbers, minutes and money. A code is read through any further dotted part, so "E2103.0" isn't
 # read as E2103. Each optional part of a label carries its own leading whitespace: adjacent \s*
 # backtrack cubically on a whitespace run in the letter.
+# What may come between a label and its ID: "(LCD) 39999", "LCD ID", "LCD No.", "LCD number", "LCD #", "LCD:".
+_LABEL_TAIL = r"(?:\s*\))?(?:\s*ID)?(?:\s*(?:No\b\.?|number\b|#))?(?:\s*:)?\s*"
+# The patterns read ASCII only, so a code next to a letter of another script is still read; the
+# text is first made ASCII wherever a reader would see ASCII (_as_read).
 _CITATIONS = (
     (re.compile(r"\b(?:[A-Z]\d\d|C4A|C7A|C7B|D3A|M1A|Z3A)(?:\.[0-9A-Z]{1,4}|[0-9A-Z]{1,5})?(?:\.[0-9A-Z]+)*"
-                r"(?:-[A-Z0-9]{2})*\b"),
+                r"(?:-[A-Z0-9]{2})*\b", re.ASCII),
      lambda m: m.group()),
-    (re.compile(r"\bDL\d{5}\b"), lambda m: m.group()),
-    (re.compile(r"\bLCD(?:\s*ID)?(?:\s*#)?\s*L?(\d{5}(?:\.[0-9A-Z]+)*)\b", re.IGNORECASE), lambda m: f"L{m.group(1)}"),
-    (re.compile(r"\barticle(?:\s*ID)?(?:\s*#)?\s*A?(\d{5}(?:\.[0-9A-Z]+)*)\b", re.IGNORECASE),
+    (re.compile(r"\bDL\d{5}\b", re.ASCII), lambda m: m.group()),
+    (re.compile(rf"\bLCD{_LABEL_TAIL}L?(\d{{5}}(?:\.[0-9A-Z]+)*)\b", re.IGNORECASE | re.ASCII),
+     lambda m: f"L{m.group(1)}"),
+    (re.compile(rf"\barticle{_LABEL_TAIL}A?(\d{{5}}(?:\.[0-9A-Z]+)*)\b", re.IGNORECASE | re.ASCII),
      lambda m: f"A{m.group(1)}"),
-    (re.compile(r"\bNCD(?:\s*#)?\s*(\d{1,3}(?:\.\d{1,2})?)\b", re.IGNORECASE), lambda m: f"NCD {m.group(1)}"),
-    (re.compile(r"\bCPT(?:\s*®)?(?:\s*code)?(?:\s*#)?\s*(\d{4}[0-9FTU])\b", re.IGNORECASE), lambda m: m.group(1)),
+    (re.compile(rf"\bNCD{_LABEL_TAIL}(\d{{1,3}}(?:\.\d{{1,2}})?)\b", re.IGNORECASE | re.ASCII),
+     lambda m: f"NCD {m.group(1)}"),
+    (re.compile(rf"\bCPT(?:\s*®)?(?:\s*code)?{_LABEL_TAIL}(\d{{4}}[0-9FTU])\b", re.IGNORECASE | re.ASCII),
+     lambda m: m.group(1)),
+)
+# Cyrillic and Greek letters a reader takes for Latin ones, which NFKC leaves alone (single letters
+# from Unicode's confusables). Escaped, since in source they'd look like the letters they map to.
+_LATIN = str.maketrans(
+    "\u0410\u0412\u0415\u041a\u041c\u041d\u041e\u0420\u0421\u0422\u0425\u0405\u0406\u0408\u04ae\u04c0\u051a\u051c"
+    "\u0430\u0435\u043e\u0440\u0441\u0443\u0445\u0455\u0456\u0458\u0501\u04bb\u051b\u051d"
+    "\u0391\u0392\u0395\u0396\u0397\u0399\u039a\u039c\u039d\u039f\u03a1\u03a4\u03a5\u03a7\u03bf",
+    "ABEKMHOPCTXSIJYIQW"
+    "aeopcyxsijdhqw"
+    "ABEZHIKMNOPTYXo",
 )
 # A HCPCS code with its modifiers, which cite the code itself.
 _MODIFIED = re.compile(r"([A-V]\d{4})(?:-?[A-Z0-9]{2})+")
@@ -51,14 +69,25 @@ _ASIDE = re.compile(r"\s*\([^)]*\)")
 class CitationCheck:
     citations: tuple[str, ...]  # each code or policy ID the letter cites, once, in order: its first unsupported form, else its first
     unsupported: tuple[str, ...]  # those the reference doesn't establish, each in the form it doesn't
+    warranted: bool = True  # False when the reference establishes nothing, so no letter passes
 
     @property
     def passed(self) -> bool:
-        return not self.unsupported
+        return self.warranted and not self.unsupported
+
+
+def _as_read(text: str) -> str:
+    """The text as a reader sees it: compatibility forms such as fullwidth folded, look-alike
+    letters made Latin, every script's digits made ASCII, and invisible characters (zero-width,
+    soft hyphens, marks left uncomposed) dropped, so none of them can hide a code."""
+    text = unicodedata.normalize("NFKC", text).translate(_LATIN)
+    return "".join(str(unicodedata.decimal(c)) if c.isdecimal() else c
+                   for c in text if unicodedata.category(c) not in ("Cf", "Mn"))
 
 
 def citations(text: str) -> tuple[str, ...]:
     """Each code or policy ID in the text, once, in order of first appearance."""
+    text = _as_read(text)
     found = sorted((m.start(), write(m)) for pattern, write in _CITATIONS for m in pattern.finditer(text))
     return tuple(dict.fromkeys(c for _, c in found))
 
@@ -106,7 +135,7 @@ def check_citations(letter: str, path: tuple[Hop, ...], findings: tuple[Finding,
         bad = [c for c in forms if not _forms(c) & allowed]
         cited.append((bad or forms)[0])
         unsupported += bad[:1]
-    return CitationCheck(tuple(cited), tuple(unsupported))
+    return CitationCheck(tuple(cited), tuple(unsupported), warranted=bool(allowed))
 
 
 def quotes(evidence: Evidence | None) -> list[tuple[str, str]]:
@@ -155,17 +184,21 @@ class Appeal:
     reference: tuple[str, ...] | None  # what the reference verdict lets the letter cite; None if it wasn't built
     letter: str | None = None
     check: CitationCheck | None = None  # None without a letter
-    error: str | None = None  # building the reference, the drafting call or writing its log raised
+    error: str | None = None  # building the reference or the drafting call raised
+    log_error: str | None = None  # writing the call's log raised; the letter is kept
 
 
 def tally(appeals: list[Appeal]) -> dict:
+    """Each attempt gives a letter, a draft without one, or an error."""
     checks = [a.check for a in appeals if a.check is not None]
     cited = sum(len(c.citations) for c in checks)
     unsupported = sum(len(c.unsupported) for c in checks)
     return {
-        "drafted": len(appeals),
+        "attempted": len(appeals),
+        "letters": sum(a.letter is not None for a in appeals),
         "without_letter": sum(a.letter is None and a.error is None for a in appeals),
         "errors": sum(a.error is not None for a in appeals),
+        "log_errors": sum(a.log_error is not None for a in appeals),
         "failed": sum(not c.passed for c in checks),
         "citations": cited,
         "unsupported": unsupported,

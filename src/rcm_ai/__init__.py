@@ -139,8 +139,12 @@ def _triage(case_path: Path, data_dir: Path, extract: bool = False, draft: bool 
                 print(f"  citation check: FAILED, unsupported: {', '.join(check.unsupported)} (cited: {cited})")
         if log_error:
             print(f"appeal draft log not written: {log_error}", file=sys.stderr)
+        else:
+            print(f"  draft log: {draft_log}")
+        if letter is not None and not check.passed:
+            return 4  # a failing letter must not be sent, whatever else went wrong
+        if letter is None or log_error:
             return 3
-        print(f"  draft log: {draft_log}")
     return 0
 
 
@@ -265,12 +269,16 @@ def _eval(data_dir: Path, out_dir: Path, arm_names: list[str] = ("graph",), draf
                 draft_calls.append(c.case.id)
                 response = ap.draft(c.case.claim, verdict.path, ap.quotes(evidence), client, findings=verdict.findings)
                 drafts.append(response)
-                _save_extraction(draft_dir, f"{arm}-{c.case.id}", response)
             except Exception as e:  # a failed draft is counted; it must not change the verdict's score
                 return ap.Appeal(reference, error=f"{type(e).__name__}: {e}")
+            log_error = None
+            try:
+                _save_extraction(draft_dir, f"{arm}-{c.case.id}", response)
+            except Exception as e:  # the letter is paid for, so it's still checked and recorded
+                log_error = f"{type(e).__name__}: {e}"
             letter = ap.letter_of(response)
             check = ap.check_citations(letter, reference_path, reference_findings) if letter else None
-            return ap.Appeal(reference, letter, check)
+            return ap.Appeal(reference, letter, check, log_error=log_error)
 
         def drafting(arm, decide):
             def run(c):
@@ -324,10 +332,11 @@ def _eval(data_dir: Path, out_dir: Path, arm_names: list[str] = ("graph",), draf
               f"precision {m.correct_abstentions}/{m.abstentions} ({_pct(m.abstention_precision)})")
         if draft:
             a = tallies[name]
-            print(f"    appeals: {a['drafted']} drafted, {a['failed']} failed the citation check, "
-                  f"{a['without_letter']} without a letter, {a['errors']} errors; "
+            print(f"    appeals: {a['attempted']} attempted: {a['letters']} letters ({a['failed']} failed the citation "
+                  f"check), {a['without_letter']} without a letter, {a['errors']} errors; "
                   f"unsupported citations {a['unsupported']}/{a['citations']} ({_pct(a['unsupported_rate'])})"
-                  + (f"; {a['no_reference']} without a reference" if a["no_reference"] else ""))
+                  + (f"; {a['no_reference']} without a reference" if a["no_reference"] else "")
+                  + (f"; {a['log_errors']} logs not written" if a["log_errors"] else ""))
     gaps = {c.case.id: c.gold.get("known_system_gap") for c in eval_set.cases}
     for r in report.results:
         if not r.correct:
@@ -396,20 +405,25 @@ def _eval(data_dir: Path, out_dir: Path, arm_names: list[str] = ("graph",), draf
                   "verdict on the gold evidence doesn't, so there's no reference to check against", file=sys.stderr)
     errors = sum(m.errors for m in report.arms.values())
     draft_errors = sum(a["errors"] for a in tallies.values())
+    log_errors = sum(a["log_errors"] for a in tallies.values())
     if errors:
         print(f"eval incomplete: {errors} arm error{'s' if errors > 1 else ''}; metrics are not comparable",
               file=sys.stderr)
     if draft_errors:
         print(f"eval incomplete: {draft_errors} appeal draft error{'s' if draft_errors > 1 else ''}; "
               "citation metrics are not comparable", file=sys.stderr)
-    return 3 if errors or draft_errors else 0
+    if log_errors:
+        print(f"eval incomplete: {log_errors} appeal draft log{'s' if log_errors > 1 else ''} not written; "
+              "the letters and their checks are in the record", file=sys.stderr)
+    return 3 if errors or draft_errors or log_errors else 0
 
 
 def _appeal_record(a) -> dict:
-    return {"letter": a.letter, "citations": list(a.check.citations) if a.check else [],
+    return {"letter": a.letter, "passed": a.check.passed if a.check else None,
+            "citations": list(a.check.citations) if a.check else [],
             "unsupported": list(a.check.unsupported) if a.check else [],
             "reference": list(a.reference) if a.reference is not None else None,
-            "error": a.error}
+            "error": a.error, "log_error": a.log_error}
 
 
 def main(argv: list[str] | None = None) -> int:

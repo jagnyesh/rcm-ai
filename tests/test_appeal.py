@@ -98,6 +98,41 @@ def test_another_item_or_policy_in_any_written_form_fails(text, cited):
     assert ap.check_citations(f"Per {text}, coverage applies.", EV01).unsupported == (cited,)
 
 
+@pytest.mark.parametrize("text, cited", [
+    ("LCD: 39999", "L39999"), ("LCD No. 39999", "L39999"), ("LCD number 39999", "L39999"),
+    ("Local Coverage Determination (LCD) 39999", "L39999"), ("LCD ID #: 39999", "L39999"),
+    ("Article No. 52999", "A52999"), ("article: 52999", "A52999"), ("NCD: 40.2", "NCD 40.2"),
+    ("CPT: 95249", "95249"), ("CPT code: 95249", "95249"), ("CPT® code No. 95249", "95249"),
+])
+def test_an_id_after_a_label_with_punctuation_is_read(text, cited):
+    assert ap.check_citations(f"Per {text}, coverage applies.", EV01).unsupported == (cited,)
+
+
+@pytest.mark.parametrize("text", [
+    "\uff25\uff11\uff11\uff0e\uff19",  # fullwidth
+    "\u041511.9",  # Cyrillic U+0415
+    "\u039511.9",  # Greek U+0395
+    "E11\u00ad.9",  # soft hyphen
+    "E1\u200b1.9",  # zero-width space
+    "E11\u034f.9",  # combining grapheme joiner
+    "E\u0661\u0661.\u0669",  # Arabic-Indic digits
+    "\u0414E11.9",  # glued to a letter of another script
+])
+def test_a_code_hidden_by_look_alike_or_invisible_characters_is_read_as_a_reader_sees_it(text):
+    assert ap.check_citations(f"Diagnosis {text} applies.", EV01).unsupported == ("E11.9",)
+
+
+@pytest.mark.parametrize("text, cited", [("L\u0421D 39999", "L39999"), ("\u0430rticle 52999", "A52999")])
+def test_a_label_written_with_look_alikes_is_read(text, cited):
+    assert ap.check_citations(f"Per {text}, coverage applies.", EV01).unsupported == (cited,)
+
+
+def test_a_path_code_written_in_fullwidth_is_supported():
+    check = ap.check_citations("We appeal \uff25\uff12\uff11\uff10\uff13 under LCD \uff2c\uff13\uff13\uff18\uff12\uff12.", EV01)
+
+    assert check.citations == ("E2103", "L33822") and check.passed
+
+
 @pytest.mark.parametrize("cited", ["T38.3X5A", "C7A.00", "Z3A.20", "E11.3213"])
 def test_long_codes_and_categories_with_a_letter_third_are_read_whole(cited):
     assert ap.citations(f"Code {cited} was documented.") == (cited,)
@@ -152,7 +187,8 @@ def test_two_codes_written_without_their_dots_stay_two():
 def test_a_long_whitespace_run_after_a_label_is_read_quickly():
     # The letter is model output; a label's optional parts between adjacent \s* backtracked
     # cubically on a whitespace run (2,000 spaces took about 12 s).
-    text = " x. ".join(label + " " * 2000 for label in ("CPT", "LCD", "article", "NCD")) + " x."
+    text = " x. ".join(label + " " * 2000 for label in ("CPT", "CPT code", "LCD", "LCD No.", "(LCD)", "article",
+                                                        "article ID #:", "NCD")) + " x."
 
     start = time.perf_counter()
     assert ap.citations(text) == ()
@@ -169,6 +205,14 @@ def test_an_empty_path_supports_no_citation():
     check = ap.check_citations("E2103 under LCD L33822 for E11.65.", ())
 
     assert check.unsupported == ("E2103", "L33822", "E11.65")
+
+
+def test_a_letter_citing_nothing_fails_against_a_reference_that_establishes_nothing():
+    # An empty reference means no letter is warranted, so leaving every code out can't pass.
+    letter = "We ask that the denial be reversed."
+
+    assert not ap.check_citations(letter, ()).passed
+    assert ap.check_citations(letter, EV01).passed
 
 
 def test_the_checker_reads_the_path_statements_not_their_source_anchors():
@@ -275,10 +319,13 @@ def test_a_response_gives_a_letter_only_when_it_holds_one(raw, letter):
     assert ap.letter_of(Extraction(raw, "end_turn", {})) == letter
 
 
-def test_a_draft_that_raised_is_an_error_not_a_draft_without_a_letter():
-    tallied = ap.tally([ap.Appeal(("E2103",), error="RuntimeError: 529"), ap.Appeal(("E2103",))])
+def test_attempts_split_into_letters_drafts_without_a_letter_and_errors():
+    # A draft that raised is an error, not a draft without a letter; a log error keeps its letter.
+    letter = ap.Appeal(("E2103",), "We appeal E2103.", ap.check_citations("We appeal E2103.", EV01), log_error="OSError")
+    tallied = ap.tally([ap.Appeal(("E2103",), error="RuntimeError: 529"), ap.Appeal(("E2103",)), letter])
 
-    assert (tallied["drafted"], tallied["errors"], tallied["without_letter"]) == (2, 1, 1)
+    assert {k: tallied[k] for k in ("attempted", "letters", "without_letter", "errors", "log_errors")} == {
+        "attempted": 3, "letters": 1, "without_letter": 1, "errors": 1, "log_errors": 1}
 
 
 def test_draft_sends_the_draft_request(monkeypatch):
@@ -336,10 +383,23 @@ def test_triage_draft_prints_the_letter_and_the_citation_check(tmp_path, monkeyp
     assert f"draft log: {log.relative_to(tmp_path)}" in out
 
 
-def test_triage_draft_names_each_unsupported_citation(tmp_path, monkeypatch, capsys):
-    _triage(tmp_path, monkeypatch, "ev-01", _drafting("Covered under L99999 for E11.65 and Z79.4."))
+def test_triage_draft_names_each_unsupported_citation_and_exits_4(tmp_path, monkeypatch, capsys):
+    # A script gating on the exit code must not send a failing letter; 4 can't be read as a crash's 1.
+    code = _triage(tmp_path, monkeypatch, "ev-01", _drafting("Covered under L99999 for E11.65 and Z79.4."))
 
+    assert code == 4
     assert "  citation check: FAILED, unsupported: L99999, Z79.4 (cited: L99999, E11.65, Z79.4)" in capsys.readouterr().out
+
+
+def test_triage_draft_exits_4_for_a_failing_letter_whose_log_cannot_be_written(tmp_path, monkeypatch, capsys):
+    (tmp_path / "eval-results").write_text("")  # a file where the log directory would go
+
+    code = _triage(tmp_path, monkeypatch, "ev-01", _drafting("Covered under L99999."))
+
+    captured = capsys.readouterr()
+    assert code == 4
+    assert "citation check: FAILED, unsupported: L99999" in captured.out
+    assert "appeal draft log not written:" in captured.err
 
 
 def test_triage_draft_checks_against_the_verdicts_own_path(tmp_path, monkeypatch, capsys):
@@ -422,7 +482,8 @@ def test_triage_keeps_the_verdict_when_drafting_fails(tmp_path, monkeypatch, cap
     assert "appeal draft failed: RuntimeError: 529 overloaded" in captured.err
 
 
-def test_triage_draft_without_a_letter_says_so_and_checks_nothing(tmp_path, monkeypatch, capsys):
+def test_triage_draft_without_a_letter_says_so_checks_nothing_and_exits_3(tmp_path, monkeypatch, capsys):
+    # No letter leaves nothing to send, as when the drafting call fails.
     def refuses(claim, path, quotes, client, findings=()):
         return Extraction(None, "refusal", {"request_id": "req_draft",
                                             "http_request_body": json.dumps(ap.build_request(claim, path, quotes, findings)),
@@ -432,7 +493,7 @@ def test_triage_draft_without_a_letter_says_so_and_checks_nothing(tmp_path, monk
 
     out = capsys.readouterr().out
     (log,) = tmp_path.glob("eval-results/drafts/ev-01-*.json")
-    assert code == 0
+    assert code == 3
     assert "  no appeal letter: the drafter returned none (stop refusal)" in out
     assert "appeal draft:" not in out and "citation check" not in out
     assert f"draft log: {log.relative_to(tmp_path)}" in out
@@ -488,19 +549,20 @@ def test_eval_draft_checks_each_overturnable_verdict_against_the_graphs_path_for
     graph, baseline = record["arms"]["graph"]["appeals"], record["arms"]["llm-only"]["appeals"]
     assert code == 0
     # The graph arm drafts from the reference path itself, so every citation is supported.
-    assert {k: graph[k] for k in ("drafted", "failed", "unsupported")} == {"drafted": 9, "failed": 0, "unsupported": 0}
+    assert {k: graph[k] for k in ("attempted", "letters", "failed", "unsupported")} == {
+        "attempted": 9, "letters": 9, "failed": 0, "unsupported": 0}
     assert graph["unsupported_rate"] == 0.0
     # The baseline overturns all 20 and cites L33822 and E11.65 each time. Against the graph's
     # verdict, both are unsupported on the 11 claims the graph doesn't overturn, and E11.65 is on
     # 7 of the 9 it does: ev-01 bills E11.65, and on ev-08 the graph's specificity finding names it.
-    assert {k: baseline[k] for k in ("drafted", "failed", "citations", "unsupported")} == {
-        "drafted": 20, "failed": 18, "citations": 40, "unsupported": 29}
+    assert {k: baseline[k] for k in ("attempted", "failed", "citations", "unsupported")} == {
+        "attempted": 20, "failed": 18, "citations": 40, "unsupported": 29}
     assert baseline["unsupported_rate"] == pytest.approx(29 / 40)
     ev10 = next(r for r in record["results"] if r["arm"] == "llm-only" and r["case"] == "ev-10")
     assert ev10["appeal"]["unsupported"] == ["L33822", "E11.65"] and ev10["appeal"]["reference"] == []
     ev08 = next(r for r in record["results"] if r["arm"] == "llm-only" and r["case"] == "ev-08")
     assert ev08["appeal"]["unsupported"] == [] and "E11.65" in ev08["appeal"]["reference"]
-    assert "appeals: 20 drafted, 18 failed the citation check, 0 without a letter, 0 errors; " \
+    assert "appeals: 20 attempted: 20 letters (18 failed the citation check), 0 without a letter, 0 errors; " \
            "unsupported citations 29/40 (72%)" in out
     assert len(list(tmp_path.glob("eval-*-drafts/*.json"))) == 29
     assert record["drafting"]["calls"] == 29 and record["drafting"]["prompt_sha256"]
@@ -585,7 +647,7 @@ def test_a_gold_overturnable_case_the_graph_wont_overturn_gets_no_appeal(tmp_pat
     assert "appeal" not in ev10
     assert record["drafting"]["calls"] == 19 and record["drafting"]["no_reference"] == ["ev-10"]
     assert record["arms"]["llm-only"]["appeals"]["no_reference"] == 1
-    assert "appeals: 19 drafted" in captured.out and "1 without a reference" in captured.out
+    assert "appeals: 19 attempted" in captured.out and "1 without a reference" in captured.out
     assert "no appeal drafted for ev-10" in captured.err
 
 
@@ -600,6 +662,18 @@ def test_a_letter_for_a_claim_gold_doesnt_overturn_is_checked_against_nothing(tm
     assert code == 0
     assert appeal["reference"] == [] and appeal["unsupported"] == appeal["citations"] != []
     assert record["drafting"]["no_reference"] == []
+
+
+def test_eval_fails_a_letter_citing_nothing_for_a_claim_gold_doesnt_overturn(tmp_path, monkeypatch, capsys):
+    # The baseline overturns all 20; gold overturns 9, so its 11 other letters fail though they cite nothing.
+    code, record = _eval(tmp_path, monkeypatch, _drafting("We ask that the denial be reversed."))
+
+    graph, baseline = record["arms"]["graph"]["appeals"], record["arms"]["llm-only"]["appeals"]
+    assert code == 0
+    assert (graph["failed"], baseline["failed"], baseline["citations"]) == (0, 11, 0)
+    results = {(r["arm"], r["case"]): r["appeal"] for r in record["results"] if "appeal" in r}
+    assert results["llm-only", "ev-10"]["passed"] is False and results["llm-only", "ev-01"]["passed"] is True
+    assert "11 failed the citation check" in capsys.readouterr().out
 
 
 def test_the_no_letter_warning_counts_only_calls_made(tmp_path, monkeypatch, capsys):
@@ -650,7 +724,8 @@ def test_a_draft_without_a_letter_is_counted_and_never_passes(tmp_path, monkeypa
 
     graph = record["arms"]["graph"]["appeals"]
     assert code == 0
-    assert (graph["drafted"], graph["without_letter"], graph["failed"], graph["citations"]) == (9, 9, 0, 0)
+    assert (graph["attempted"], graph["letters"], graph["without_letter"], graph["failed"], graph["citations"]) == (
+        9, 0, 9, 0, 0)
     assert graph["unsupported_rate"] is None
     assert "warning: 9 of 9 appeal drafts had no letter" in capsys.readouterr().err
 
@@ -664,11 +739,31 @@ def test_a_drafting_error_keeps_the_verdict_and_marks_the_run_incomplete(tmp_pat
     arm = record["arms"]["graph"]
     assert code == 3
     assert (arm["correct"], arm["errors"]) == (20, 0)  # verdicts are scored as without drafting
-    assert (arm["appeals"]["drafted"], arm["appeals"]["errors"]) == (9, 9)
+    assert (arm["appeals"]["attempted"], arm["appeals"]["letters"], arm["appeals"]["errors"]) == (9, 0, 9)
     assert record["drafting"]["calls"] == 9 and record["drafting"]["responses"] == 0
     ev01 = next(r for r in record["results"] if r["case"] == "ev-01")
     assert ev01["appeal"]["reference"] == ["E2103", "L33822", "A52464", "E11.65"]  # built before the call failed
     assert "9 appeal draft errors" in capsys.readouterr().err
+
+
+def test_eval_keeps_a_letter_whose_log_cannot_be_written(tmp_path, monkeypatch, capsys):
+    # The letter is paid for, so it's still checked and recorded; the log error is recorded apart.
+    blocked, save = tmp_path / "blocked", rcm_ai._save_extraction
+    blocked.write_text("")  # a file where the drafts' log directory would go
+    monkeypatch.setattr(rcm_ai, "_save_extraction", lambda log_dir, case_id, extraction: save(
+        blocked if log_dir.name.endswith("-drafts") else log_dir, case_id, extraction))
+
+    code, record = _eval(tmp_path, monkeypatch, _drafting(), arms="graph")
+
+    appeals = record["arms"]["graph"]["appeals"]
+    ev01 = next(r for r in record["results"] if r["case"] == "ev-01")["appeal"]
+    assert code == 3
+    assert {k: appeals[k] for k in ("attempted", "letters", "errors", "log_errors", "failed")} == {
+        "attempted": 9, "letters": 9, "errors": 0, "log_errors": 9, "failed": 0}
+    assert ev01["letter"] and ev01["passed"] and ev01["error"] is None
+    assert ev01["log_error"].startswith("FileExistsError")
+    assert record["drafting"]["calls"] == record["drafting"]["responses"] == 9
+    assert "eval incomplete: 9 appeal draft logs not written" in capsys.readouterr().err
 
 
 # triage's verdict needs no model, so it's still printed; eval checks credentials before any case.
