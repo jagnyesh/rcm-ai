@@ -171,6 +171,14 @@ def test_an_empty_path_supports_no_citation():
     assert check.unsupported == ("E2103", "L33822", "E11.65")
 
 
+def test_a_letter_citing_nothing_fails_against_a_reference_that_establishes_nothing():
+    # An empty reference means no letter is warranted, so leaving every code out can't pass.
+    letter = "We ask that the denial be reversed."
+
+    assert not ap.check_citations(letter, ()).passed
+    assert ap.check_citations(letter, EV01).passed
+
+
 def test_the_checker_reads_the_path_statements_not_their_source_anchors():
     hop = Hop("E2103 is listed in LCD L33822", anchor="E11.9", source=EV01[0].source)
 
@@ -614,6 +622,18 @@ def test_a_letter_for_a_claim_gold_doesnt_overturn_is_checked_against_nothing(tm
     assert code == 0
     assert appeal["reference"] == [] and appeal["unsupported"] == appeal["citations"] != []
     assert record["drafting"]["no_reference"] == []
+
+
+def test_eval_fails_a_letter_citing_nothing_for_a_claim_gold_doesnt_overturn(tmp_path, monkeypatch, capsys):
+    # The baseline overturns all 20; gold overturns 9, so its 11 other letters fail though they cite nothing.
+    code, record = _eval(tmp_path, monkeypatch, _drafting("We ask that the denial be reversed."))
+
+    graph, baseline = record["arms"]["graph"]["appeals"], record["arms"]["llm-only"]["appeals"]
+    assert code == 0
+    assert (graph["failed"], baseline["failed"], baseline["citations"]) == (0, 11, 0)
+    results = {(r["arm"], r["case"]): r["appeal"] for r in record["results"] if "appeal" in r}
+    assert results["llm-only", "ev-10"]["passed"] is False and results["llm-only", "ev-01"]["passed"] is True
+    assert "11 failed the citation check" in capsys.readouterr().out
 
 
 def test_the_no_letter_warning_counts_only_calls_made(tmp_path, monkeypatch, capsys):
