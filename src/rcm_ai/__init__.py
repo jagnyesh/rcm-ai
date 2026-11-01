@@ -410,7 +410,8 @@ def _eval(data_dir: Path, out_dir: Path, arm_names: list[str] = ("graph",), draf
 
 
 def _appeal_record(a) -> dict:
-    return {"letter": a.letter, "citations": list(a.check.citations) if a.check else [],
+    return {"letter": a.letter, "passed": a.check.passed if a.check else None,
+            "citations": list(a.check.citations) if a.check else [],
             "unsupported": list(a.check.unsupported) if a.check else [],
             "reference": list(a.reference) if a.reference is not None else None,
             "error": a.error}

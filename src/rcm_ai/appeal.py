@@ -3,7 +3,7 @@
 The drafter (an LLM) writes a letter from a verdict's justification path, its findings and the
 note's quotes. The checker (deterministic) pulls every code and policy ID from the letter and fails
 it if any is not in a reference verdict's path or findings, so a letter never cites what that
-verdict didn't establish.
+verdict didn't establish. Against a reference that establishes nothing, every letter fails.
 """
 
 import re
@@ -51,10 +51,11 @@ _ASIDE = re.compile(r"\s*\([^)]*\)")
 class CitationCheck:
     citations: tuple[str, ...]  # each code or policy ID the letter cites, once, in order: its first unsupported form, else its first
     unsupported: tuple[str, ...]  # those the reference doesn't establish, each in the form it doesn't
+    warranted: bool = True  # False when the reference establishes nothing, so no letter passes
 
     @property
     def passed(self) -> bool:
-        return not self.unsupported
+        return self.warranted and not self.unsupported
 
 
 def citations(text: str) -> tuple[str, ...]:
@@ -106,7 +107,7 @@ def check_citations(letter: str, path: tuple[Hop, ...], findings: tuple[Finding,
         bad = [c for c in forms if not _forms(c) & allowed]
         cited.append((bad or forms)[0])
         unsupported += bad[:1]
-    return CitationCheck(tuple(cited), tuple(unsupported))
+    return CitationCheck(tuple(cited), tuple(unsupported), warranted=bool(allowed))
 
 
 def quotes(evidence: Evidence | None) -> list[tuple[str, str]]:
