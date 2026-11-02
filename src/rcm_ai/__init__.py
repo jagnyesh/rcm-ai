@@ -16,6 +16,7 @@ from rcm_ai import extract as ex
 from rcm_ai.graph import IngestError, build_graph
 from rcm_ai.provenance import ProvenanceError
 from rcm_ai.schemas import SchemaError, load_case
+from rcm_ai import stats
 
 
 class CredentialError(Exception):
@@ -491,6 +492,17 @@ def _appeal_record(a) -> dict:
             "error": a.error, "log_error": a.log_error}
 
 
+def _stats(paths: list[Path], allow_dirty: bool) -> int:
+    try:
+        records = stats.load(paths, allow_dirty)
+        lines = stats.report(records)
+    except stats.StatsError as e:
+        print(f"stats refused: {e}", file=sys.stderr)
+        return 2
+    print("\n".join(lines))
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="rcm-ai")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -513,7 +525,12 @@ def main(argv: list[str] | None = None) -> int:
     ing.add_argument("--data", type=Path, default=Path("data"))
     demo = sub.add_parser("demo", help="walk three bundled cases end to end, one per verdict (no model call)")
     demo.add_argument("--data", type=Path, default=Path("data"))
+    st = sub.add_parser("stats", help="report each arm's accuracy across eval run records of one run (no model call)")
+    st.add_argument("records", type=Path, nargs="+", help="eval run records (eval-<stamp>.json), each a repeat")
+    st.add_argument("--allow-dirty", action="store_true", help="accept records that ran on uncommitted code")
     args = parser.parse_args(argv)
+    if args.command == "stats":
+        return _stats(args.records, args.allow_dirty)
     if args.command == "ingest":
         return _ingest(args.data)
     if args.command == "demo":
