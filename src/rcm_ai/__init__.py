@@ -492,10 +492,10 @@ def _appeal_record(a) -> dict:
             "error": a.error, "log_error": a.log_error}
 
 
-def _stats(paths: list[Path], allow_dirty: bool) -> int:
+def _stats(paths: list[Path], allow_dirty: bool, seed: int) -> int:
     try:
         records = stats.load(paths, allow_dirty)
-        lines = stats.report(records)
+        lines = stats.report(records, seed)
     except stats.StatsError as e:
         print(f"stats refused: {e}", file=sys.stderr)
         return 2
@@ -525,12 +525,14 @@ def main(argv: list[str] | None = None) -> int:
     ing.add_argument("--data", type=Path, default=Path("data"))
     demo = sub.add_parser("demo", help="walk three bundled cases end to end, one per verdict (no model call)")
     demo.add_argument("--data", type=Path, default=Path("data"))
-    st = sub.add_parser("stats", help="report each arm's accuracy across eval run records of one run (no model call)")
+    st = sub.add_parser("stats", help="report each arm's accuracy across eval run records of one run, "
+                        "and compare each pair of arms (no model call)")
     st.add_argument("records", type=Path, nargs="+", help="eval run records (eval-<stamp>.json), each a repeat")
     st.add_argument("--allow-dirty", action="store_true", help="accept records that ran on uncommitted code")
+    st.add_argument("--seed", type=int, default=0, help="seed for the bootstrap interval (default 0)")
     args = parser.parse_args(argv)
     if args.command == "stats":
-        return _stats(args.records, args.allow_dirty)
+        return _stats(args.records, args.allow_dirty, args.seed)
     if args.command == "ingest":
         return _ingest(args.data)
     if args.command == "demo":
