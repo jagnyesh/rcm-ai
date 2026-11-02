@@ -1,0 +1,24 @@
+{
+  "cases": [
+    "ev-01",
+    "ev-10",
+    "ev-18"
+  ],
+  "letters": {
+    "ev-01": {
+      "letter": "[Date]\n\n[Medicare Administrative Contractor name]\n[Contractor address]\n\nRe: Request for Redetermination\nBeneficiary: [Beneficiary name]\nMedicare Beneficiary Identifier: [Beneficiary ID]\nClaim number: [Claim number]\nDate of service: [Date of service]\nSupplier: [Supplier name], [Provider ID]\nItem billed: E2103 (continuous glucose monitor)\n\nTo Whom It May Concern:\n\nI am requesting a redetermination of the denial of the above claim for a continuous glucose monitor (CGM), billed as HCPCS E2103. The claim was denied as not medically necessary. The medical record shows that this initial CGM order meets every coverage requirement, and I ask that the denial be reversed.\n\nApplicable policy\nE2103 is listed in LCD L33822, and the LCD's initial CGM coverage criteria apply to this item. The related policy article A52464 lists the covered diagnoses, including E11.65.\n\nCoverage criteria\n\nDiabetes diagnosis: The beneficiary has a diagnosis of E11.65, Type 2 diabetes mellitus with hyperglycemia, which article A52464 covers. The clinical note documents: \"Type 2 diabetes mellitus with hyperglycemia\"\n\nTraining and prescription: The beneficiary has been trained on the device, and the treating practitioner prescribed it. The note states: \"Completed CGM device training; prescription written for the CGM.\"\n\nFDA-labeled indications: The CGM is prescribed in line with its FDA indications. The note states: \"CGM prescribed per its FDA-labeled indications.\"\n\nGlycemic control: The beneficiary uses insulin, which meets the glycemic control requirement. The note states: \"On multiple daily insulin injections.\"\n\nPractitioner visit: The treating practitioner saw the beneficiary to evaluate diabetes control before ordering the CGM. The note states: \"Telehealth visit today to review diabetes control.\"\n\nConclusion\nThe documentation shows that all of the LCD L33822 initial coverage criteria for E2103 are met. The diagnosis E11.65 is covered under article A52464. The CGM is reasonable and necessary for this beneficiary.\n\nI respectfully ask that you reverse the denial and process the claim for payment. The supporting medical records are enclosed. Please contact me at [Phone number] if you need anything further.\n\nSincerely,\n\n[Name]\n[Title]\n[Supplier/Practice name]\n[Address]\n[Provider ID]\n\nEnclosures: Clinical note dated [Date]; order dated [Date]; denial notice dated [Date]",
+      "arm": "graph",
+      "model": "claude-opus-5-5",
+      "recorded": "2026-11-01",
+      "git_sha": "6ed732a",
+      "review": {
+        "status": "claude-drafted",
+        "expertise": [
+          "appeals"
+        ],
+        "covers": "the letter's content; the citation checker verified only its codes and policy IDs",
+        "issue": "#28"
+      }
+    }
+  }
+}

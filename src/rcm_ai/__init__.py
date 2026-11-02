@@ -101,6 +101,31 @@ def _triage(case_path: Path, data_dir: Path, extract: bool = False, draft: bool 
         print(f"  evidence extracted by {served} (effort {ex.EFFORT}), stop {extraction.stop_reason}, "
               f"request {extraction.record.get('request_id')}")
         print(f"  extraction log: {logs[0]}")
+    _print_steps(verdict, data_dir)
+    if draft_error:
+        print(f"appeal draft failed: {draft_error}", file=sys.stderr)
+        return 3
+    if draft and appeal is None:
+        print("  no appeal drafted: the verdict is not overturnable")
+    elif draft:
+        letter = ap.letter_of(appeal)
+        if letter is None:
+            print(f"  no appeal letter: the drafter returned none (stop {appeal.stop_reason})")
+        else:
+            print("  appeal draft:")
+            check = _print_letter(letter, verdict)
+        if log_error:
+            print(f"appeal draft log not written: {log_error}", file=sys.stderr)
+        else:
+            print(f"  draft log: {draft_log}")
+        if letter is not None and not check.passed:
+            return 4  # a failing letter must not be sent, whatever else went wrong
+        if letter is None or log_error:
+            return 3
+    return 0
+
+
+def _print_steps(verdict, data_dir: Path) -> None:
     for r in verdict.reasons:
         print(f"  reason ({r.kind}): {r.statement}")
         if r.source:
@@ -118,34 +143,74 @@ def _triage(case_path: Path, data_dir: Path, extract: bool = False, draft: bool 
         if f.source:
             print(f"     {data_dir / 'fixtures' / f.source.path}:{f.source.line}  [{f.source.version}]")
             print(f"     look for: {f.anchor}")
-    if draft_error:
-        print(f"appeal draft failed: {draft_error}", file=sys.stderr)
-        return 3
-    if draft and appeal is None:
-        print("  no appeal drafted: the verdict is not overturnable")
-    elif draft:
-        letter = ap.letter_of(appeal)
-        if letter is None:
-            print(f"  no appeal letter: the drafter returned none (stop {appeal.stop_reason})")
-        else:
-            print("  appeal draft:")
-            for line in letter.splitlines():
-                print(f"    {line}".rstrip())
-            check = ap.check_citations(letter, verdict.path, verdict.findings)
-            cited = ", ".join(check.citations) or "nothing cited"
-            if check.passed:
-                print(f"  citation check: passed ({cited})")
-            else:
-                print(f"  citation check: FAILED, unsupported: {', '.join(check.unsupported)} (cited: {cited})")
-        if log_error:
-            print(f"appeal draft log not written: {log_error}", file=sys.stderr)
-        else:
-            print(f"  draft log: {draft_log}")
-        if letter is not None and not check.passed:
-            return 4  # a failing letter must not be sent, whatever else went wrong
-        if letter is None or log_error:
-            return 3
-    return 0
+
+
+def _print_letter(letter: str, verdict) -> ap.CitationCheck:
+    for line in letter.splitlines():
+        print(f"    {line}".rstrip())
+    check = ap.check_citations(letter, verdict.path, verdict.findings)
+    cited = ", ".join(check.citations) or "nothing cited"
+    if check.passed:
+        print(f"  citation check: passed ({cited})")
+    else:
+        print(f"  citation check: FAILED, unsupported: {', '.join(check.unsupported)} (cited: {cited})")
+    return check
+
+
+def _load_demo(data_dir: Path):
+    path = data_dir / "demo" / "demo.json"
+    try:
+        demo = json.loads(path.read_text())
+        case_ids, letters = demo["cases"], demo["letters"]
+        if not isinstance(case_ids, list) or not isinstance(letters, dict):
+            raise TypeError("cases must be a list and letters a mapping")
+    except (OSError, ValueError, KeyError, TypeError) as e:
+        raise SchemaError(f"{path} is not a demo file: {type(e).__name__}: {e}") from e
+    cases = [load_case(data_dir / "eval" / "cases" / f"{case_id}.json") for case_id in case_ids]
+    for case in cases:
+        if case.evidence is None:
+            raise SchemaError(f"{case.id}: a demo case runs on its own evidence, and it has no evidence block")
+    return cases, letters
+
+
+def _demo(data_dir: Path) -> int:
+    try:
+        cases, letters = _load_demo(data_dir)
+        graph = build_graph(data_dir)
+    except SchemaError as e:
+        print(f"rejected: {e}", file=sys.stderr)
+        return 2
+    except (IngestError, ProvenanceError) as e:
+        print(f"ingest failed: {e}", file=sys.stderr)
+        return 2
+    _warn_rejected(graph)
+    failed = False
+    for case in cases:
+        verdict = adjudicate(case.claim, case.evidence, graph)
+        claim = case.claim
+        print(f"{case.id}: {verdict.outcome}")
+        print(f"  claim: {claim.hcpcs} for {', '.join(claim.icd10)}, denied CARC {claim.carc} ({claim.coverage} coverage)")
+        print(f"  note: {case.note}")
+        print("  evidence (the case's own, as a perfect extractor would return it):")
+        for d in case.evidence.diagnoses:
+            print(f'    {d.code}: "{d.span}"')
+        for c in case.evidence.criteria:
+            print(f'    {c.criterion} met: "{c.span}"')
+        for c in case.evidence.criteria_not_met:
+            print(f'    {c.criterion} not met: "{c.span}"')
+        _print_steps(verdict, data_dir)
+        recorded = letters.get(case.id)
+        if verdict.outcome == "overturnable" and recorded:
+            print(f"  appeal letter, recorded {recorded['recorded']} from {recorded['model']} at {recorded['git_sha']} "
+                  f"({recorded['arm']} arm), not drafted now:")
+            failed |= not _print_letter(recorded["letter"], verdict).passed
+        elif verdict.outcome == "overturnable":
+            print("  no recorded letter: `rcm-ai triage <case> --draft` drafts one (calls the model)")
+        elif recorded:
+            print("  recorded letter FAILED: the verdict is not overturnable, so no letter is warranted")
+            failed = True
+        print()
+    return 4 if failed else 0  # as in triage, a failing letter must not be sent
 
 
 def _warn_rejected(graph) -> None:
@@ -446,9 +511,13 @@ def main(argv: list[str] | None = None) -> int:
                     help="draft an appeal for each overturnable verdict and score its citations (calls the model)")
     ing = sub.add_parser("ingest", help="load the sources and report per-source record counts")
     ing.add_argument("--data", type=Path, default=Path("data"))
+    demo = sub.add_parser("demo", help="walk three bundled cases end to end, one per verdict (no model call)")
+    demo.add_argument("--data", type=Path, default=Path("data"))
     args = parser.parse_args(argv)
     if args.command == "ingest":
         return _ingest(args.data)
+    if args.command == "demo":
+        return _demo(args.data)
     if args.command == "eval":
         return _eval(args.data, args.out, args.arms.split(","), args.draft)
     return _triage(args.case, args.data, args.extract, args.draft)

@@ -4,6 +4,7 @@
 
 - **Drafted and labeled:** 2026-10-30 by Claude, on best judgment at the user's request, against the L33822 v70 text and the ICD-10-CM FY2027 tabular. Each case's `gold.label_status` is `claude-labeled`.
 - **Human review:** pending. A reviewer who agrees with a label sets it to `confirmed`; one who disagrees corrects it under the locking rule below.
+- **Review tag:** each case also carries a `review` tag for the rest of what Claude wrote: the claim, the note, the evidence block, and the gold path and findings. It reads `claude-drafted` until a reviewer sets it to `confirmed`. Tracked with the labels in #15; see the top-level README for the tag's fields.
 - **Count:** 20 (9 overturnable, 5 uphold, 6 needs_human; 2 specificity-mismatch and 2 Excludes1-conflict findings).
 
 ## Label rules
