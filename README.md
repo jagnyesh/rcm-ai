@@ -56,7 +56,7 @@ Here the knowledge layer means the graph and the rules that decide coverage from
 4. It queries the graph for a path from the item through the LCD and the article to the covered code. A billed code that isn't covered gives **uphold** when no documented code is covered either. A code outside the loaded slices, a header code, or rows rejected from the covered list hand off instead.
 5. It checks each criterion against the evidence: met, documented as not met, contradicted, or missing. All met gives **overturnable**, with the path as its justification. Otherwise a contradiction gives **needs_human**, then a criterion documented as not met gives **uphold**, and a gap gives **needs_human**.
 
-**What the model does.** In the extracted arm it reads the note and returns the evidence, and with `--draft` it drafts the appeal letters in every arm. It never decides coverage in the grounded arms. A separate deterministic checker fails any letter that cites a code or policy ID the path doesn't establish.
+**What the model does.** In the extracted arm it reads the note and returns the evidence. A second call then checks that each span supports the code or criterion it's given for, reading the sentence around it (#22); a span that doesn't support it hands the case off. With `--draft` it drafts the appeal letters in every arm. It never decides coverage in the grounded arms. A separate deterministic checker fails any letter that cites a code or policy ID the path doesn't establish.
 
 ## How the arms are scored
 
@@ -80,18 +80,18 @@ Extracted against llm-only is the comparison that measures the knowledge layer: 
 - hand-offs, and how many of them gold agrees with;
 - for appeal letters, the share that fail the citation check and the unsupported-citation rate.
 
-**The decision rule.** The PRD (#1) fixed it in advance: the premise is falsified if the grounded arm doesn't beat llm-only on accuracy or on the unsupported-citation rate. It compares raw counts from a run.
+**The decision rule.** The PRD (#1) fixed it in advance: the premise is falsified if the grounded arm doesn't beat llm-only on accuracy or on the unsupported-citation rate. It compares raw counts from a run. #33 kept it that way: for repeated runs (#34) it applies to each arm's mean accuracy, and the statistics below are reported beside the verdict, as "within noise" or "outside noise", without deciding it.
 
 **Is this a statistical test?** No. It isn't a designed experiment analyzed with something like ANOVA, which compares the means of a continuous outcome across groups. Here each case's outcome is right or wrong against a label, every arm sees the same 20 cases (a paired design), and each arm ran once per run.
 - **What would fit.** For paired right-or-wrong outcomes, the matching test is McNemar's exact test for two arms, or Cochran's Q for all three.
-- **The results.** It isn't part of the decision rule, but here it is for the 2026-11-01 run, the latest with all three arms and the one the Results table reports:
+- **The results.** They aren't part of the decision rule. `rcm-ai stats <run record>` computes them, and gives the paired accuracy difference with a 95% bootstrap interval over cases too. For the 2026-11-01 run, the latest with all three arms and the one the Results table reports:
   - **extracted against llm-only, 16 against 19:** the arms disagree on 5 cases. llm-only alone was right on 4 (ev-09, ev-11, ev-12, ev-13) and extracted alone on 1 (ev-18). Two-sided p = 0.375.
   - **graph against extracted, 20 against 16:** all 4 disagreements go the same way. p = 0.125.
   - **all three arms:** Cochran's Q = 5.2 with 2 degrees of freedom, p = 0.074.
 - **What that means.** None reaches p < 0.05. With 20 cases, McNemar's test needs at least 6 disagreements, all in the same direction, before it does. So this run can't show that either arm is better, and the falsification under Results follows the rule fixed in advance, not a statistically significant difference.
 
 A significance test wouldn't fix three more things:
-- **Variance.** Model output isn't deterministic, and each arm ran once per run. The extracted arm scored 15 or 16 in each of its six runs through 2026-11-01, which also span code and prompt changes. Separating the arms from that noise needs repeated runs of each arm on the same code, analyzed with each case as a block, for example in a mixed-effects logistic model. That is the repeated-measures counterpart of ANOVA for right-or-wrong outcomes.
+- **Variance.** Model output isn't deterministic, and each arm ran once per run. The extracted arm scored 15 or 16 in each of its six runs through 2026-11-01, which also span code and prompt changes. Separating the arms from that noise needs repeated runs of each arm on the same code (#34), analyzed with each case as a block. `rcm-ai stats` takes the records of such runs and refuses any that differ in code, eval set or model configuration. Its bootstrap resamples whole cases, keeping each case's repeats together. A mixed-effects logistic model, the repeated-measures counterpart of ANOVA for right-or-wrong outcomes, would also fit, but it was left out because it needs a large dependency (statsmodels).
 - **Kinds of error.** Accuracy counts every miss alike, but the misses differ. In that run, the extracted arm's four misses were hand-offs to a human, and the baseline's one miss was a false uphold.
 - **Generalization.** The cases aren't a sample of real denials, so a p-value wouldn't carry beyond them.
 
