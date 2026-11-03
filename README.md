@@ -20,7 +20,7 @@ It makes no model call and needs no API key. For three eval cases, one per verdi
 | `uv run rcm-ai triage <case>` | none |
 | `uv run rcm-ai eval` (graph arm only) | none |
 | `uv run rcm-ai ingest` | none |
-| `uv run rcm-ai stats <run record>...` | none: reports each arm's accuracy across run records of one commit, eval set and configuration, read as repeats |
+| `uv run rcm-ai stats <run record>... [--seed N]` | none: reports each arm's accuracy across run records of one commit, eval set and configuration, read as repeats, and compares each pair of arms: McNemar's exact test per repeat and the accuracy difference with a 95% bootstrap interval over cases |
 | `uv run rcm-ai triage <case> --extract` | at most 1 |
 | `uv run rcm-ai triage <case> --draft` | 1 for an overturnable verdict |
 | `uv run rcm-ai eval --arms graph,extracted,llm-only` | 35 in the last run: an extraction for each claim not decided by the claim alone, and a baseline verdict for every claim |
