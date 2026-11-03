@@ -124,6 +124,32 @@ def _paired(by_arm: dict, k: int, seed: int) -> list[str]:
     return lines
 
 
+def cochran_q(rows: list[list[bool]]) -> float | None:
+    """Cochran's Q over cases (rows) and arms (columns); None when no case splits the arms."""
+    k = len(rows[0])
+    cols = [sum(col) for col in zip(*rows)]
+    total = sum(cols)
+    denominator = k * total - sum(sum(row) ** 2 for row in rows)
+    return (k - 1) * (k * sum(c * c for c in cols) - total * total) / denominator if denominator else None
+
+
+def _cochran(by_arm: dict, k: int) -> list[str]:
+    # The chi-square tail in closed form needs 2 degrees of freedom, so exactly three arms.
+    if len(by_arm) != 3:
+        return []
+    arms = list(by_arm)
+    lines = []
+    for i in range(k):
+        cases = sorted(by_arm[arms[0]][i])
+        q = cochran_q([[by_arm[a][i][c][0] == by_arm[a][i][c][1] for a in arms] for c in cases])
+        lines.append("no case split the arms, so Q is undefined" if q is None
+                     else f"Q = {_number(q)}, p = {math.exp(-q / 2):.3g} (2 degrees of freedom)")
+    head = f"Cochran's Q across {', '.join(arms)}:"
+    if k == 1:
+        return [f"{head} {lines[0]}"]
+    return [head] + [f"  repeat {i}: {line}" for i, line in enumerate(lines, 1)]
+
+
 def report(records: list[dict], seed: int = 0) -> list[str]:
     k = len(records)
     by_arm = _outcomes(records)
@@ -149,4 +175,4 @@ def report(records: list[dict], seed: int = 0) -> list[str]:
         missed = [f"{case} {t}/{k}" for case, t in times.items() if t < k]
         lines.append(f"  right in fewer than {k} of {k}: {', '.join(missed)}" if missed
                      else f"  every case right in all {k}")
-    return lines + _paired(by_arm, k, seed)
+    return lines + _paired(by_arm, k, seed) + _cochran(by_arm, k)

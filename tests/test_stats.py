@@ -223,3 +223,32 @@ def test_arms_that_ran_different_cases_are_refused(tmp_path, capsys):
     code, out, err = _stats(capsys, _record(tmp_path, "r1", {"graph": _arm(), "extracted": short}))
 
     assert (code, out) == (2, "") and "graph and extracted ran different cases: ev-15" in err
+
+
+def test_cochrans_q_tests_whether_the_three_arms_differ(tmp_path, capsys):
+    code, out, _ = _stats(capsys, _run(tmp_path))
+
+    assert code == 0
+    assert "Cochran's Q across graph, extracted, llm-only: Q = 5.2, p = 0.0743 (2 degrees of freedom)\n" in out
+
+
+def test_cochrans_q_is_not_reported_for_fewer_than_three_arms(tmp_path, capsys):
+    _, out, _ = _stats(capsys, _run(tmp_path, misses={"graph": {}, "extracted": MISSES["extracted"]}))
+
+    assert "Cochran" not in out
+
+
+def test_cochrans_q_runs_on_each_repeat(tmp_path, capsys):
+    tie = {"graph": {}, "extracted": {"ev-18": "uphold"}, "llm-only": {"ev-18": "uphold"}}
+
+    _, out, _ = _stats(capsys, _run(tmp_path, "r1"), _run(tmp_path, "r2", misses=tie))
+
+    assert ("Cochran's Q across graph, extracted, llm-only:\n"
+            "  repeat 1: Q = 5.2, p = 0.0743 (2 degrees of freedom)\n"
+            "  repeat 2: Q = 2, p = 0.368 (2 degrees of freedom)\n") in out
+
+
+def test_cochrans_q_is_undefined_when_no_case_splits_the_arms(tmp_path, capsys):
+    _, out, _ = _stats(capsys, _run(tmp_path, misses={"graph": {}, "extracted": {}, "llm-only": {}}))
+
+    assert "Cochran's Q across graph, extracted, llm-only: no case split the arms, so Q is undefined\n" in out
