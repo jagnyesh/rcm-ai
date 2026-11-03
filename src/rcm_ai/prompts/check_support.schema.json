@@ -1,0 +1,16 @@
+{
+  "type": "object",
+  "properties": {
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {"item": {"type": "integer"}, "reason": {"type": "string"}, "supported": {"type": "boolean"}},
+        "required": ["item", "reason", "supported"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["items"],
+  "additionalProperties": false
+}

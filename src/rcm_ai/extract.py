@@ -1,11 +1,13 @@
 """LLM evidence extraction: note text in, evidence the graph can adjudicate out.
 
 The model only reads the note. Whatever it returns is checked against the note and the
-graph before use; one ungrounded item rejects the whole extraction and the claim goes to
+graph before use, then a second call checks that each span, read in its sentence, supports
+the code or criterion it's attached to. One ungrounded or unsupported item sends the claim to
 a human, because dropping just that item could flip the verdict.
 """
 
 import json
+import re
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -18,6 +20,8 @@ from rcm_ai.schemas import Claim, CriterionEvidence, DocumentedCode, Evidence, R
 PROMPTS = Path(__file__).parent / "prompts"
 PROMPT = PROMPTS / "extract_evidence.md"
 SCHEMA = PROMPTS / "extract_evidence.schema.json"
+SUPPORT_PROMPT = PROMPTS / "check_support.md"
+SUPPORT_SCHEMA = PROMPTS / "check_support.schema.json"
 MODEL = "claude-opus-5-5"
 # Opus 5.5 takes no temperature and can't turn thinking off; effort is the only control
 # (its default is medium). Criteria judgments like "level 2 hypoglycemia" justify high.
@@ -51,7 +55,16 @@ class Parsed:
     spans: list[Span] = field(default_factory=list)
 
 
+@dataclass(frozen=True)
+class Pair:
+    """An extracted span with what it's claimed to show, for the support check."""
+    span: Span
+    text: str  # the code's ICD-10-CM title or the criterion's policy text
+    sentence: str  # the note sentence holding the span, or the sentences it crosses
+
+
 Extractor = Callable[[str, list[Criterion]], Extraction]
+SupportChecker = Callable[[list[Pair]], Extraction]
 
 
 def describe_criteria(criteria: list[Criterion], depth: int = 0) -> list[str]:
@@ -174,6 +187,59 @@ def parse_extraction(raw: dict, note: str, graph: CoverageGraph, criteria: list[
     ), [], spans)
 
 
+# A sentence ends at terminal punctuation followed by whitespace, so "3.0mmol/L" stays whole.
+_SENTENCE_END = re.compile(r"[.!?](?=\s|$)|\n")
+
+
+def sentence_around(note: str, start: int, end: int) -> str:
+    """The note text from the sentence break before the span to the one after it."""
+    breaks = [m.end() for m in _SENTENCE_END.finditer(note, 0, start)]
+    after = _SENTENCE_END.search(note, max(start, end - 1))
+    return note[breaks[-1] if breaks else 0:after.end() if after else len(note)].strip()
+
+
+def support_pairs(spans: list[Span], note: str, graph: CoverageGraph, criteria: list[Criterion]) -> list[Pair]:
+    offered = {c.id: c for c in _walk(criteria)}
+    return [Pair(s, graph.title(s.key) if s.field == "diagnoses" else offered[s.key].quote,
+                 sentence_around(note, s.start, s.end)) for s in spans]
+
+
+_CLAIMED = {"diagnoses": "diagnosis {}", "criteria_met": "criterion {} met", "criteria_not_met": "criterion {} not met"}
+
+
+def build_support_request(pairs: list[Pair]) -> dict:
+    """Keyword arguments for messages.create: each pair's span in its sentence, never the whole note,
+    so the check judges that span and can't find support elsewhere."""
+    items = [f"Item {n}: {_CLAIMED[p.span.field].format(p.span.key)}\n"
+             f"  {'ICD-10-CM title' if p.span.field == 'diagnoses' else 'policy text'}: {json.dumps(p.text)}\n"
+             f"  span: {json.dumps(p.span.span)}\n  sentence: {json.dumps(p.sentence)}"
+             for n, p in enumerate(pairs, 1)]
+    return {
+        "model": MODEL,
+        "max_tokens": MAX_TOKENS,
+        "system": SUPPORT_PROMPT.read_text(),
+        "messages": [{"role": "user", "content": "\n\n".join(items)}],
+        "output_config": {"effort": EFFORT, "format": {"type": "json_schema", "schema": json.loads(SUPPORT_SCHEMA.read_text())}},
+    }
+
+
+def check_support(pairs: list[Pair], client) -> Extraction:
+    return send(build_support_request(pairs), client)
+
+
+def unsupported(check: Extraction, pairs: list[Pair]) -> list[str] | None:
+    """The pairs the check judged unsupported, each with its reason; None when the check
+    didn't judge every pair exactly once."""
+    items = check.raw.get("items") if isinstance(check.raw, dict) else None
+    if not isinstance(items, list) or not all(
+        isinstance(i, dict) and type(i.get("item")) is int and isinstance(i.get("supported"), bool)
+        and isinstance(i.get("reason"), str) for i in items
+    ) or sorted(i["item"] for i in items) != list(range(1, len(pairs) + 1)):
+        return None
+    return [f"Span {p.span.span!r} doesn't support {_CLAIMED[p.span.field].format(p.span.key)} ({p.text!r}): {i['reason']}"
+            for i in items if not i["supported"] for p in [pairs[i["item"] - 1]]]
+
+
 def _offered(claim: Claim, graph: CoverageGraph) -> list[Criterion]:
     return [c for lcd in applicable_lcds(claim, graph) for c in graph.criteria(lcd)]
 
@@ -190,10 +256,11 @@ def _rejected(statement: str) -> Verdict:
 
 
 def triage_note(
-    claim: Claim, note: str, graph: CoverageGraph, extractor: Extractor,
+    claim: Claim, note: str, graph: CoverageGraph, extractor: Extractor, checker: SupportChecker,
 ) -> tuple[Verdict, Extraction | None]:
-    """Extract evidence from the note, validate it, then adjudicate as with supplied evidence.
-    A claim the claim alone decides is handed off without calling the model (no Extraction)."""
+    """Extract evidence from the note, validate it, check each span supports what it's attached
+    to, then adjudicate as with supplied evidence. A claim the claim alone decides is handed off
+    without calling the model (no Extraction)."""
     for decided_by_claim in (out_of_scope, billed_coding_conflict):
         if (hand_off := decided_by_claim(claim, graph)) is not None:
             return hand_off, None
@@ -204,6 +271,19 @@ def triage_note(
     parsed = parse_extraction(extraction.raw, note, graph, criteria)
     if parsed.problems:
         return _rejected("Extracted evidence was rejected: " + "; ".join(parsed.problems)), extraction
+    # A span can be in the note and still not show its fact: negated ("not on insulin"), reused
+    # for another criterion, or under a different code. Any such pair could flip the verdict.
+    if pairs := support_pairs(parsed.spans, note, graph, criteria):
+        check = checker(pairs)
+        found = unsupported(check, pairs)
+        if found is None:
+            return Verdict("needs_human", (), reasons=(Reason(
+                "support_check_failed",
+                f"The span support check stopped with {check.stop_reason} or didn't judge every span; "
+                "no evidence was used"),)), extraction
+        if found:
+            return Verdict("needs_human", (), reasons=tuple(
+                Reason("span_not_supported", statement) for statement in found)), extraction
     verdict = adjudicate(claim, parsed.evidence, graph)
     # Supplied evidence is asserted complete; an extraction may have missed a covered diagnosis
     # the note documents, so "no documented diagnosis is covered" needs the note to rule it out.

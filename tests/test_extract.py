@@ -94,7 +94,7 @@ def test_a_not_met_on_a_criterion_with_alternatives_rejects_the_extraction(case_
     raw["criteria_not_met"].append({"criterion": parent, "span": span})
     case = load_case(EVAL / f"{case_id}.json")
 
-    verdict, _ = triage_note(case.claim, note, GRAPH, _stub(raw))
+    verdict, _ = triage_note(case.claim, note, GRAPH, _stub(raw), _supported)
 
     assert verdict.outcome == "needs_human"
     assert [r.kind for r in verdict.reasons] == ["extraction_rejected"]
@@ -121,12 +121,18 @@ def _stub(raw, stop_reason="end_turn"):
     return lambda note, criteria: Extraction(raw, stop_reason, {"stub": True})
 
 
+def _supported(pairs):
+    """A stand-in support check (#22) that judges every span supported."""
+    items = [{"item": n, "reason": "stand-in", "supported": True} for n in range(1, len(pairs) + 1)]
+    return Extraction({"items": items}, "end_turn", {"stub": True})
+
+
 def test_a_rejected_extraction_routes_the_claim_to_a_human_with_the_problems():
     raw, note = _gold_raw("ev-01")
     raw["diagnoses"][0]["span"] = "invented text"
     case = load_case(EVAL / "ev-01.json")
 
-    verdict, _ = triage_note(case.claim, note, GRAPH, _stub(raw))
+    verdict, _ = triage_note(case.claim, note, GRAPH, _stub(raw), _supported)
 
     assert verdict.outcome == "needs_human"
     (reason,) = verdict.reasons
@@ -138,7 +144,7 @@ def test_a_rejected_extraction_routes_the_claim_to_a_human_with_the_problems():
 def test_a_refused_or_truncated_extraction_routes_the_claim_to_a_human(stop_reason):
     case = load_case(EVAL / "ev-01.json")
 
-    verdict, _ = triage_note(case.claim, case.note, GRAPH, _stub(None, stop_reason))
+    verdict, _ = triage_note(case.claim, case.note, GRAPH, _stub(None, stop_reason), _supported)
 
     assert verdict.outcome == "needs_human"
     assert [r.kind for r in verdict.reasons] == ["extraction_rejected"]
@@ -151,7 +157,7 @@ def test_a_perfect_extraction_gives_the_same_verdict_as_gold_evidence(case_id):
     case = load_case(EVAL / f"{case_id}.json")
     from rcm_ai.adjudicate import adjudicate
 
-    verdict, _ = triage_note(case.claim, note, GRAPH, _stub(raw))
+    verdict, _ = triage_note(case.claim, note, GRAPH, _stub(raw), _supported)
 
     assert verdict == adjudicate(case.claim, case.evidence, GRAPH)
 
@@ -165,7 +171,7 @@ def test_an_out_of_scope_claim_is_handed_off_for_its_scope_reason_without_callin
     def must_not_call(note, criteria):
         raise AssertionError("the model was called for an out-of-scope claim")
 
-    verdict, extraction = triage_note(case.claim, case.note, GRAPH, must_not_call)
+    verdict, extraction = triage_note(case.claim, case.note, GRAPH, must_not_call, _supported)
 
     assert extraction is None
     assert verdict.outcome == "needs_human"
@@ -176,9 +182,9 @@ def test_an_uncovered_diagnosis_is_upheld_on_extracted_evidence_only_when_the_no
     case = load_case(EVAL / "ev-13.json")  # billed E16.2, not covered; the note says "no diabetes diagnosis"
     raw, note = _gold_raw("ev-13")
 
-    silent, _ = triage_note(case.claim, note, GRAPH, _stub(raw))
+    silent, _ = triage_note(case.claim, note, GRAPH, _stub(raw), _supported)
     raw["criteria_not_met"].append({"criterion": "cgm-1-diabetes", "span": "no diabetes diagnosis"})
-    ruled_out, _ = triage_note(case.claim, note, GRAPH, _stub(raw))
+    ruled_out, _ = triage_note(case.claim, note, GRAPH, _stub(raw), _supported)
 
     # The model may simply have missed a covered diagnosis the note documents.
     assert silent.outcome == "needs_human"
@@ -194,7 +200,7 @@ def test_a_criterion_decided_from_the_diagnosis_code_cannot_be_extracted_as_met(
     raw["criteria_met"].append({"criterion": "cgm-1-diabetes", "span": "Telehealth visit today to review diabetes control."})
     raw["criteria_not_met"].append({"criterion": "cgm-1-diabetes", "span": "no diabetes diagnosis"})
 
-    verdict, _ = triage_note(case.claim, note, GRAPH, _stub(raw))
+    verdict, _ = triage_note(case.claim, note, GRAPH, _stub(raw), _supported)
 
     assert verdict.outcome == "needs_human"
     assert [r.kind for r in verdict.reasons] == ["extraction_rejected"]
@@ -208,7 +214,7 @@ def test_a_claim_whose_billed_codes_conflict_is_handed_off_without_calling_the_m
     def must_not_call(note, criteria):
         raise AssertionError("the model was called for a claim its billed codes already decide")
 
-    verdict, extraction = triage_note(case.claim, case.note, GRAPH, must_not_call)
+    verdict, extraction = triage_note(case.claim, case.note, GRAPH, must_not_call, _supported)
 
     assert extraction is None
     assert verdict.outcome == "needs_human"
@@ -225,7 +231,7 @@ def test_a_span_that_shows_several_alternatives_fail_is_quoted_once():
         {"criterion": "cgm-4b2-level3", "span": "No hypoglycemia reported."},
     ]
 
-    verdict, _ = triage_note(case.claim, note, GRAPH, _stub(raw))
+    verdict, _ = triage_note(case.claim, note, GRAPH, _stub(raw), _supported)
 
     assert verdict.outcome == "uphold"
     (reason,) = verdict.reasons
@@ -240,7 +246,7 @@ def test_the_extractor_is_offered_every_curated_criterion_with_its_lcd_quote():
         seen["criteria"] = criteria
         return Extraction(None, "refusal", {})
 
-    triage_note(case.claim, case.note, GRAPH, spy)
+    triage_note(case.claim, case.note, GRAPH, spy, _supported)
 
     def ids(criteria):
         return {x for c in criteria for x in (c.id, *ids(c.any_of))}
@@ -370,6 +376,7 @@ def test_triage_extract_prints_the_verdict_and_the_log_of_the_call(tmp_path, mon
     monkeypatch.chdir(tmp_path)  # the log goes under the working directory
     monkeypatch.setattr(rcm_ai, "_client", lambda: None)
     monkeypatch.setattr(ex, "extract", _sending(raw=raw, stop_reason="end_turn"))
+    monkeypatch.setattr(ex, "check_support", lambda pairs, client: _supported(pairs))
 
     code = rcm_ai.main(["triage", str(EVAL / "ev-01.json"), "--extract", "--data", str(DATA)])
 
@@ -421,8 +428,9 @@ def test_live_extraction_of_a_documented_case_is_overturnable_and_logs_the_wire_
 
     case = load_case(EVAL / "ev-01.json")
 
+    client = anthropic.Anthropic()
     verdict, extraction = triage_note(
-        case.claim, case.note, GRAPH, lambda n, c: extract(n, c, anthropic.Anthropic()))
+        case.claim, case.note, GRAPH, lambda n, c: extract(n, c, client), lambda pairs: ex.check_support(pairs, client))
 
     sent = json.loads(extraction.record["http_request_body"])
     assert sent["model"] == "claude-opus-5-5"

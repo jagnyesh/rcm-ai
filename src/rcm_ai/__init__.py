@@ -51,8 +51,10 @@ def _save_extraction(log_dir: Path, case_id: str, extraction) -> Path:
 
 
 def _triage(case_path: Path, data_dir: Path, extract: bool = False, draft: bool = False,
-            log_dir: Path = Path("eval-results/extractions"), draft_dir: Path = Path("eval-results/drafts")) -> int:
+            log_dir: Path = Path("eval-results/extractions"), draft_dir: Path = Path("eval-results/drafts"),
+            check_dir: Path = Path("eval-results/support-checks")) -> int:
     appeal = draft_error = log_error = None
+    checks = []
     try:
         case = load_case(case_path)
         graph = build_graph(data_dir)
@@ -66,7 +68,12 @@ def _triage(case_path: Path, data_dir: Path, extract: bool = False, draft: bool 
                 logs.append(_save_extraction(log_dir, case.id, extraction))  # before the case can fail
                 return extraction
 
-            verdict, extraction = ex.triage_note(case.claim, case.note, graph, call)
+            def check(pairs):
+                response = ex.check_support(pairs, client)
+                checks.append((response, _save_extraction(check_dir, case.id, response)))
+                return response
+
+            verdict, extraction = ex.triage_note(case.claim, case.note, graph, call, check)
             evidence = ex.extracted_evidence(case.claim, case.note, graph, extraction) if draft else None
         elif case.evidence is None:
             raise SchemaError(f"{case_path}: case has no evidence; run with --extract to extract it from the note")
@@ -102,6 +109,11 @@ def _triage(case_path: Path, data_dir: Path, extract: bool = False, draft: bool 
         print(f"  evidence extracted by {served} (effort {ex.EFFORT}), stop {extraction.stop_reason}, "
               f"request {extraction.record.get('request_id')}")
         print(f"  extraction log: {logs[0]}")
+        for response, log in checks:
+            served = (response.record.get("response") or {}).get("model", "?")
+            print(f"  spans checked by {served} (effort {ex.EFFORT}), stop {response.stop_reason}, "
+                  f"request {response.record.get('request_id')}")
+            print(f"  support check log: {log}")
     _print_steps(verdict, data_dir)
     if draft_error:
         print(f"appeal draft failed: {draft_error}", file=sys.stderr)
@@ -306,6 +318,9 @@ def _eval(data_dir: Path, out_dir: Path, arm_names: list[str] = ("graph",), draf
     # Cases whose response the arm couldn't use (refused, truncated, not JSON, or for the
     # baseline not a verdict). They score as hand-offs, so they're counted and warned about.
     unusable = {arm: set() for arm in LOG_SUFFIXES}
+    check_dir = out_dir / f"eval-{stamp}-support"
+    checks = {}  # case id -> the extracted arm's support check
+    check_calls = set()
     draft_dir = out_dir / f"eval-{stamp}-drafts"
     appeals = {arm: {} for arm in arm_names} if draft else {}  # arm -> case id -> Appeal
     drafts = []  # every drafting call's response
@@ -365,9 +380,15 @@ def _eval(data_dir: Path, out_dir: Path, arm_names: list[str] = ("graph",), draf
                 unusable[arm].add(c.case.id)
             return response
 
+        def checking(c, pairs):
+            check_calls.add(c.case.id)
+            response = checks[c.case.id] = ex.check_support(pairs, client)
+            _save_extraction(check_dir, c.case.id, response)  # before the case can fail
+            return response
+
         def extracted(c):
             verdict, extraction = ex.triage_note(c.case.claim, c.case.note, graph, lambda note, criteria: calling(
-                "extracted", c, lambda: ex.extract(note, criteria, client)))
+                "extracted", c, lambda: ex.extract(note, criteria, client)), lambda pairs: checking(c, pairs))
             return verdict, ex.extracted_evidence(c.case.claim, c.case.note, graph, extraction) if draft else None
 
         def llm_only(c):
@@ -419,6 +440,9 @@ def _eval(data_dir: Path, out_dir: Path, arm_names: list[str] = ("graph",), draf
     sent = {name: {**_sent_config(list(responses[name].values()), len(called[name])),
                    "without_output": len(unusable[name])}
             for name in report.arms if name in LOG_SUFFIXES}
+    if "extracted" in sent:
+        sent["extracted"]["support_check"] = {**_sent_config(list(checks.values()), len(check_calls)),
+                                              "without_output": sum(r.raw is None for r in checks.values())}
     record = {
         "date": started.isoformat(timespec="seconds"),
         "git_sha": _git_sha(),
@@ -436,6 +460,8 @@ def _eval(data_dir: Path, out_dir: Path, arm_names: list[str] = ("graph",), draf
                      "known_system_gap": gaps[r.case] if r.arm in SYSTEM_ARMS else None,
                      **({"model_called": r.case in called[r.arm], **_served(responses[r.arm].get(r.case))}
                         if r.arm in LOG_SUFFIXES else {}),
+                     **({"support_check": {"called": r.case in check_calls, **_served(checks.get(r.case))}}
+                        if r.arm == "extracted" else {}),
                      **({"appeal": _appeal_record(appeals[r.arm][r.case])} if r.case in appeals.get(r.arm, {}) else {})}
                     for r in report.results],
         "disagreements": [
@@ -459,6 +485,11 @@ def _eval(data_dir: Path, out_dir: Path, arm_names: list[str] = ("graph",), draf
         if s["without_output"]:
             print(f"warning: {arm}: {s['without_output']} of {s['responses']} responses had no usable output",
                   file=sys.stderr)
+        if check := s.get("support_check"):
+            print(f"{arm} support check: {check['calls']} model calls, {check['responses']} responses, "
+                  f"{check['without_output']} without output")
+            if check["responses"]:
+                print(f"  logs: {check_dir}")
     if draft:
         print(f"drafting: {len(draft_calls)} model calls, {len(drafts)} responses")
         if drafts:

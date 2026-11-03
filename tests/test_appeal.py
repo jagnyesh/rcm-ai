@@ -435,9 +435,17 @@ def _extracting(note, criteria, client):
         "response": {"model": ex.MODEL}})
 
 
+def _all_supported(pairs, client):
+    """A stand-in support check (#22) that judges every span supported."""
+    return Extraction({"items": [{"item": n, "reason": "stand-in", "supported": True} for n in range(1, len(pairs) + 1)]},
+                      "end_turn", {"request_id": "req_check", "response": {"model": ex.MODEL},
+                                   "http_request_body": json.dumps(ex.build_support_request(pairs))})
+
+
 def test_triage_extract_draft_drafts_from_the_extracted_evidence_with_one_client(tmp_path, monkeypatch, capsys):
     seen, clients = [], []
     monkeypatch.setattr(ex, "extract", _extracting)
+    monkeypatch.setattr(ex, "check_support", _all_supported)
 
     code = _triage(tmp_path, monkeypatch, "ev-01", _drafting(seen=seen), "--extract",
                    client=lambda: clients.append(object()) or clients[-1])
@@ -608,6 +616,7 @@ def test_the_eval_reference_names_what_the_gold_label_does(case_id):
 def test_eval_draft_gives_the_extracted_arm_its_own_validated_evidence(tmp_path, monkeypatch):
     seen = []
     monkeypatch.setattr(ex, "extract", _extracting)
+    monkeypatch.setattr(ex, "check_support", _all_supported)
 
     _eval(tmp_path, monkeypatch, _drafting(seen=seen), arms="graph,extracted")
 
