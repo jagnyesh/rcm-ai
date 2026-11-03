@@ -6,6 +6,10 @@ are refused, never pooled.
 """
 
 import json
+import math
+import random
+import statistics
+from itertools import combinations
 from pathlib import Path
 
 
@@ -74,11 +78,84 @@ def _number(x: float) -> str:
     return f"{x:.2f}".rstrip("0").rstrip(".")
 
 
-def report(records: list[dict]) -> list[str]:
+def mcnemar(only_first: int, only_second: int) -> float:
+    """Exact two-sided McNemar p: the smaller disagreement count against Binomial(n, 1/2)."""
+    n = only_first + only_second
+    return min(1.0, 2 * sum(math.comb(n, i) for i in range(min(only_first, only_second) + 1)) / 2 ** n)
+
+
+RESAMPLES = 10000
+
+
+def _signed(x: float) -> str:
+    return ("+" if x > 0 else "") + _number(x)
+
+
+def _interval(diffs: list[float], seed: int) -> tuple[float, float]:
+    """95% percentile interval of the summed difference, resampling whole cases."""
+    rng = random.Random(seed)
+    sums = [sum(rng.choices(diffs, k=len(diffs))) for _ in range(RESAMPLES)]
+    cuts = statistics.quantiles(sums, n=40, method="inclusive")
+    return cuts[0], cuts[-1]
+
+
+def _paired(by_arm: dict, k: int, seed: int) -> list[str]:
+    lines = [f"paired, first arm minus second: 95% interval from {RESAMPLES} case resamples, seed {seed}"]
+    if k == 1:
+        lines.append("  (1 repeat: the interval resamples cases only, not run-to-run variance)")
+    for a, b in combinations(by_arm, 2):
+        cases = sorted(by_arm[a][0])
+        if set(cases) != set(by_arm[b][0]):
+            raise StatsError(f"{a} and {b} ran different cases: {', '.join(sorted(set(cases) ^ set(by_arm[b][0])))}")
+        # Each case's share of repeats right, so resampling a case keeps all its repeats together.
+        diffs = [sum((r[c][0] == r[c][1]) - (q[c][0] == q[c][1]) for r, q in zip(by_arm[a], by_arm[b])) / k
+                 for c in cases]
+        lo, hi = _interval(diffs, seed)
+        lines.append(f"{a} vs {b}: accuracy difference {_signed(sum(diffs))}/{len(cases)} "
+                     f"(95% interval {_signed(lo)} to {_signed(hi)})")
+        for i, (ra, rb) in enumerate(zip(by_arm[a], by_arm[b]), 1):
+            right_a = {c for c, (gold, got) in ra.items() if gold == got}
+            right_b = {c for c, (gold, got) in rb.items() if gold == got}
+            only_a, only_b = sorted(right_a - right_b), sorted(right_b - right_a)
+            label = "McNemar" if k == 1 else f"McNemar repeat {i}"
+            lines.append(f"  {label}: right only in {a} {len(only_a)}" + (f" ({', '.join(only_a)})" if only_a else "")
+                         + f", only in {b} {len(only_b)}" + (f" ({', '.join(only_b)})" if only_b else "")
+                         + f"; p = {mcnemar(len(only_a), len(only_b)):.3g}")
+    return lines
+
+
+def cochran_q(rows: list[list[bool]]) -> float | None:
+    """Cochran's Q over cases (rows) and arms (columns); None when no case splits the arms."""
+    k = len(rows[0])
+    cols = [sum(col) for col in zip(*rows)]
+    total = sum(cols)
+    denominator = k * total - sum(sum(row) ** 2 for row in rows)
+    return (k - 1) * (k * sum(c * c for c in cols) - total * total) / denominator if denominator else None
+
+
+def _cochran(by_arm: dict, k: int) -> list[str]:
+    # The chi-square tail in closed form needs 2 degrees of freedom, so exactly three arms.
+    if len(by_arm) != 3:
+        return []
+    arms = list(by_arm)
+    lines = []
+    for i in range(k):
+        cases = sorted(by_arm[arms[0]][i])
+        q = cochran_q([[by_arm[a][i][c][0] == by_arm[a][i][c][1] for a in arms] for c in cases])
+        lines.append("no case split the arms, so Q is undefined" if q is None
+                     else f"Q = {_number(q)}, p = {math.exp(-q / 2):.3g} (2 degrees of freedom)")
+    head = f"Cochran's Q across {', '.join(arms)}:"
+    if k == 1:
+        return [f"{head} {lines[0]}"]
+    return [head] + [f"  repeat {i}: {line}" for i, line in enumerate(lines, 1)]
+
+
+def report(records: list[dict], seed: int = 0) -> list[str]:
     k = len(records)
+    by_arm = _outcomes(records)
     lines = [f"stats: {k} repeat{'s' if k > 1 else ''} at {records[0]['git_sha']}, "
              f"eval set {records[0]['eval_set']['sha256'][:12]}"]
-    for arm, repeats in _outcomes(records).items():
+    for arm, repeats in by_arm.items():
         n = len(repeats[0])
         right = [sum(gold == got for gold, got in repeat.values()) for repeat in repeats]
         line = f"{arm}: accuracy {_number(sum(right) / k)}/{n} in {k} repeat{'s' if k > 1 else ''}"
@@ -98,4 +175,4 @@ def report(records: list[dict]) -> list[str]:
         missed = [f"{case} {t}/{k}" for case, t in times.items() if t < k]
         lines.append(f"  right in fewer than {k} of {k}: {', '.join(missed)}" if missed
                      else f"  every case right in all {k}")
-    return lines
+    return lines + _paired(by_arm, k, seed) + _cochran(by_arm, k)

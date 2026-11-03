@@ -4,6 +4,7 @@ arm's accuracy across them. It refuses records that measured different things.
 Every record here is synthetic, written to a temporary directory; no model is called."""
 
 import json
+import re
 
 import pytest
 
@@ -149,3 +150,105 @@ def test_a_missing_file_is_refused(tmp_path, capsys):
     code, _, err = _stats(capsys, tmp_path / "absent.json")
 
     assert code == 2 and "is not an eval run record" in err
+
+
+# The 2026-11-01 run's misses: extracted handed off ev-09 and ev-11 to ev-13, llm-only upheld ev-18.
+GOLD_20 = {f"ev-{i:02d}": "overturnable" if i <= 9 else "uphold" if i <= 14 else "needs_human" for i in range(1, 21)}
+MISSES = {"graph": {}, "extracted": {c: "needs_human" for c in ("ev-09", "ev-11", "ev-12", "ev-13")},
+          "llm-only": {"ev-18": "uphold"}}
+
+
+def _run(tmp_path, name="r1", misses=MISSES):
+    return _record(tmp_path, name, {arm: {c: (g, got.get(c, g)) for c, g in GOLD_20.items()} for arm, got in misses.items()})
+
+
+def test_mcnemar_compares_each_pair_of_arms_on_the_cases_they_disagree_on(tmp_path, capsys):
+    code, out, _ = _stats(capsys, _run(tmp_path))
+
+    assert code == 0
+    assert ("extracted vs llm-only: " in out and "  McNemar: right only in extracted 1 (ev-18), "
+            "only in llm-only 4 (ev-09, ev-11, ev-12, ev-13); p = 0.375\n" in out)
+    assert "  McNemar: right only in graph 4 (ev-09, ev-11, ev-12, ev-13), only in extracted 0; p = 0.125\n" in out
+
+
+def test_arms_that_never_disagree_give_p_1_and_a_zero_difference(tmp_path, capsys):
+    _, out, _ = _stats(capsys, _run(tmp_path, misses={"graph": {}, "extracted": {}}))
+
+    assert "graph vs extracted: accuracy difference 0/20 (95% interval 0 to 0)\n" in out
+    assert "  McNemar: right only in graph 0, only in extracted 0; p = 1\n" in out
+
+
+def test_the_paired_difference_has_a_bootstrap_interval_that_holds_its_estimate(tmp_path, capsys):
+    _, out, _ = _stats(capsys, _run(tmp_path))
+
+    line = next(l for l in out.splitlines() if l.startswith("graph vs extracted: "))
+    estimate, lo, hi = (float(x) for x in
+                        re.fullmatch(r".*difference \+?(\S+)/20 \(95% interval \+?(\S+) to \+?(\S+)\)", line).groups())
+    assert estimate == 4 and lo < estimate < hi
+
+
+def test_the_same_seed_gives_the_same_interval_and_the_seed_is_printed(tmp_path, capsys):
+    path = _run(tmp_path)
+
+    _, default, _ = _stats(capsys, path)
+    _, first, _ = _stats(capsys, path, "--seed", "7")
+    _, again, _ = _stats(capsys, path, "--seed", "7")
+
+    assert "seed 0" in default and "seed 7" in first and first == again
+
+
+def test_one_repeat_warns_that_the_interval_resamples_cases_only(tmp_path, capsys):
+    _, one, _ = _stats(capsys, _run(tmp_path))
+    _, two, _ = _stats(capsys, _run(tmp_path, "r1"), _run(tmp_path, "r2"))
+
+    warning = "the interval resamples cases only, not run-to-run variance"
+    assert warning in one and warning not in two
+
+
+def test_repeats_average_the_difference_and_run_mcnemar_on_each(tmp_path, capsys):
+    paths = [_record(tmp_path, "r1", {"graph": _arm(), "extracted": _arm(ev10="needs_human")}),
+             _record(tmp_path, "r2", {"graph": _arm(), "extracted": _arm()})]
+
+    _, out, _ = _stats(capsys, *paths)
+
+    assert "graph vs extracted: accuracy difference +0.5/3 (95% interval " in out
+    assert "  McNemar repeat 1: right only in graph 1 (ev-10), only in extracted 0; p = 1\n" in out
+    assert "  McNemar repeat 2: right only in graph 0, only in extracted 0; p = 1\n" in out
+
+
+def test_arms_that_ran_different_cases_are_refused(tmp_path, capsys):
+    short = _arm()
+    del short["ev-15"]
+
+    code, out, err = _stats(capsys, _record(tmp_path, "r1", {"graph": _arm(), "extracted": short}))
+
+    assert (code, out) == (2, "") and "graph and extracted ran different cases: ev-15" in err
+
+
+def test_cochrans_q_tests_whether_the_three_arms_differ(tmp_path, capsys):
+    code, out, _ = _stats(capsys, _run(tmp_path))
+
+    assert code == 0
+    assert "Cochran's Q across graph, extracted, llm-only: Q = 5.2, p = 0.0743 (2 degrees of freedom)\n" in out
+
+
+def test_cochrans_q_is_not_reported_for_fewer_than_three_arms(tmp_path, capsys):
+    _, out, _ = _stats(capsys, _run(tmp_path, misses={"graph": {}, "extracted": MISSES["extracted"]}))
+
+    assert "Cochran" not in out
+
+
+def test_cochrans_q_runs_on_each_repeat(tmp_path, capsys):
+    tie = {"graph": {}, "extracted": {"ev-18": "uphold"}, "llm-only": {"ev-18": "uphold"}}
+
+    _, out, _ = _stats(capsys, _run(tmp_path, "r1"), _run(tmp_path, "r2", misses=tie))
+
+    assert ("Cochran's Q across graph, extracted, llm-only:\n"
+            "  repeat 1: Q = 5.2, p = 0.0743 (2 degrees of freedom)\n"
+            "  repeat 2: Q = 2, p = 0.368 (2 degrees of freedom)\n") in out
+
+
+def test_cochrans_q_is_undefined_when_no_case_splits_the_arms(tmp_path, capsys):
+    _, out, _ = _stats(capsys, _run(tmp_path, misses={"graph": {}, "extracted": {}, "llm-only": {}}))
+
+    assert "Cochran's Q across graph, extracted, llm-only: no case split the arms, so Q is undefined\n" in out
