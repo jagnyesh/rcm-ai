@@ -20,12 +20,13 @@ It makes no model call and needs no API key. For three eval cases, one per verdi
 | `uv run rcm-ai triage <case>` | none |
 | `uv run rcm-ai eval` (graph arm only) | none |
 | `uv run rcm-ai ingest` | none |
-| `uv run rcm-ai triage <case> --extract` | at most 1 |
+| `uv run rcm-ai stats <run record>... [--seed N]` | none: reports each arm's accuracy across run records of one commit, eval set and configuration, read as repeats, and compares each pair of arms: McNemar's exact test per repeat and the accuracy difference with a 95% bootstrap interval over cases; with three arms, Cochran's Q per repeat |
+| `uv run rcm-ai triage <case> --extract` | at most 2: an extraction, then a support check if it validates |
 | `uv run rcm-ai triage <case> --draft` | 1 for an overturnable verdict |
-| `uv run rcm-ai eval --arms graph,extracted,llm-only` | 35 in the last run: an extraction for each claim not decided by the claim alone, and a baseline verdict for every claim |
-| `uv run rcm-ai eval --arms graph,extracted,llm-only --draft` | 61 in the last run: the above plus a draft for each overturnable verdict of each arm |
+| `uv run rcm-ai eval --arms graph,extracted,llm-only` | 35 in the 2026-11-01 run: an extraction for each claim not decided by the claim alone, and a baseline verdict for every claim. The support check (#22) now adds one per extraction that validates: 13 on 2026-11-02 |
+| `uv run rcm-ai eval --arms graph,extracted,llm-only --draft` | 61 in the 2026-11-01 run: the above plus a draft for each overturnable verdict of each arm |
 
-Commands that call the model need Anthropic API credentials, such as `ANTHROPIC_API_KEY`. The eval's metrics are defined in [data/eval/README.md](data/eval/README.md). Run the tests with `uv run pytest -q`; they take about two minutes and skip the 3 live tests without credentials.
+Commands that call the model need Anthropic API credentials, such as `ANTHROPIC_API_KEY`. The eval's metrics are defined in [data/eval/README.md](data/eval/README.md). Run the tests with `uv run pytest -q`; they take about two minutes and skip the 26 live tests without credentials.
 
 ## Problem
 
@@ -113,6 +114,13 @@ None of the following changes that result. What the graph did that this run's ba
 
 With each case's own evidence the graph scored 20/20, but that score is in-sample: the graph was built and fixed against these same 20 cases. It scored 9/20 on its first eval run (`a2b10ac`), and the cases' evidence blocks gained `criteria_not_met` spans along the way. Within one run, the graph arms differ only in their evidence, so the gap to 16/20 comes from working with extracted evidence: codes outside what the graph loads, a criterion the extractor didn't mark, and an uphold withheld because extraction can miss a diagnosis.
 
+**Support check (#22), 2026-11-02.** One run of the graph and extracted arms at `fdca15b` with the #22 change not yet committed (so the record says `-dirty`; its support-check prompt sha256, `5574c42a`, is the committed file's), model `claude-opus-5-5` at effort high, N = 20 (eval set sha256 `e794b683`, which differs from `fdbc346c` only by the review tags), 28 model calls: 15 extractions and 13 support checks.
+- The graph arm scored 20/20. The extracted arm scored 17/20, with 0 false overturnable, 0 false uphold and 9 hand-offs (6 correct).
+- The check judged every span in the 13 extractions it saw supported, so it changed no verdict. The misses are the earlier ones: ev-09 and ev-13 (codes outside the loaded slices) and ev-11 (the insulin criterion not marked failed). ev-12, missed on 2026-11-01, passed: run-to-run variance in extraction, not the check.
+- The baseline wasn't re-run. Its 19/20, in each of four earlier runs, is still above 17/20.
+- On constructed failures the check works: a negated span ("on insulin" inside "not on insulin,"), a span reused for a criterion the note no longer documents, and E11.65 on a span documenting diabetes "without complications" were each handed off (`span_not_supported`, 3 live calls).
+- On each case's own gold evidence it passed 19 of 20 (20 live calls). The miss is ev-11: it judged that "on a sulfonylurea" doesn't show the patient isn't insulin-treated, since a sulfonylurea doesn't exclude insulin. The extractor has read ev-11 the same way in every run. Whether the gold label's reading holds is for #15. Until then, a perfect extraction of ev-11 hands off instead of upholding. The prompt was not changed to pass it.
+
 These numbers show direction, not production accuracy:
 - the cases are 20 short synthetic notes that each test one issue;
 - the system was developed against those same cases;
@@ -147,7 +155,7 @@ These numbers show direction, not production accuracy:
 - **Partial terminology.** Only the E08–E13, E15–E16, O24 and R73 slices of ICD-10-CM are loaded. Real notes document conditions coded outside them: from the eval notes the model has extracted Z90.411, N18.31, Z79.4, Z79.84 and Z98.84, and the extracted arm hands those claims off.
 - **One denial type.** Only CARC 50 and initial coverage of E2102 and E2103 are adjudicated. Continued coverage, supply allowances, CARC 11 and other denial reasons are handed off, and a real remittance often carries several CARC and RARC codes.
 - **Short notes.** Each eval note is a few sentences testing one issue. Real notes are long, cover several problems and are dated. Nothing checks the six-month visit window, because cases carry no dates. Whoever supplies the evidence, the extractor or the case's author, decides from the note's wording whether the visit qualifies.
-- **Span checks prove presence, not support.** A negated phrase or a reused span passes validation (#22).
+- **Span support is judged by a model.** Since #22 a second call checks each extracted span against its note sentence and the code or criterion it's attached to. That check is a model judging a model, it sees one sentence of context, and its prompt hasn't had human review (#28).
 - **One diagnosis per path.** A claim with several billed diagnoses establishes only the one on its winning path, so a letter that names the others fails the check. No eval case exercises this.
 - **Pinned versions.** The graph holds one version of each LCD and article, and ingest refuses two at once, so a policy revision means re-ingesting. The LCD's link to the article cites v49, an older version than the v65 loaded.
 - **No production controls.** There is no de-identification, access control or audit trail, and the logs keep each note's full text. That's safe only because every note is synthetic.
@@ -207,9 +215,12 @@ LCD coverage criteria live in `data/curated/L33822-cgm-criteria.json`, curated b
 
 One failure rejects the whole extraction and the claim goes to `needs_human`, and so does a refusal or a truncated response. There is no fallback model. On extracted evidence, an uncovered billed diagnosis is upheld only when the note rules out the covered condition, because the model may have missed a covered diagnosis the note documents.
 
-**Known limit:** validation proves each span is in the note, not that it supports what it's attached to. A negated phrase ("on insulin" inside "not on insulin"), one span reused for another criterion, or a code whose span describes a different condition all pass. Checking that a span entails its claim, with an NLI model or a second model pass, is not built.
+**Support check (#22).** Being in the note doesn't make a span support what it's attached to. A negated phrase ("on insulin" inside "not on insulin"), one span reused for another criterion, or a code whose span describes a different condition all pass the checks above. So an extraction that passes them gets a second call, with the same model and settings and `src/rcm_ai/prompts/check_support.md`. For each span it sees the note sentence holding it and the code's ICD-10-CM title or the criterion's policy text, never the rest of the note, so it judges that span and can't find support elsewhere. A span judged unsupported hands the claim off (`span_not_supported`) with the pair and the checker's reason. So does a check that is refused, truncated, or doesn't judge every span exactly once (`support_check_failed`). Limits:
+- Sentences break at `.`, `!` or `?` followed by whitespace, or at a line break. A negation in the sentence before the span isn't seen, and an abbreviation like "Dr." splits a sentence early.
+- The prompt was written after reading the gold spans, so its gold-evidence result under Results is not fully held-out.
+- The checker is a model judging a model. It is not an NLI model; that option was ruled out because it would add a large untested dependency, and general NLI models know nothing of ICD-10-CM conventions such as "without complications".
 
-These commands call the Anthropic API and need credentials (for example `ANTHROPIC_API_KEY`). A one-call check fails fast with exit code 2 without them. The API rejects `temperature`, so runs are not deterministic. Each run record reads the model, effort and the prompt and schema hashes from the request bodies actually sent. It counts calls made and responses returned, and per case records whether the model was called, the model that answered and the request id. Each extraction log keeps the exact request bytes and is written as soon as the call returns.
+These commands call the Anthropic API and need credentials (for example `ANTHROPIC_API_KEY`). A one-call check fails fast with exit code 2 without them. The API rejects `temperature`, so runs are not deterministic. Each run record reads the model, effort and the prompt and schema hashes from the request bodies actually sent, for the extraction and, under `support_check`, for the support check. It counts calls made and responses returned, and per case records whether the model was called, the model that answered and the request id. Each extraction and support-check log keeps the exact request bytes and is written as soon as the call returns.
 
 First runs, 2026-10-31, 20 cases (labels await review in #15):
 - **Graph arm:** 20/20.
