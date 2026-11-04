@@ -296,5 +296,3 @@ For criteria hops, the line number is where the LCD record starts (the record sp
 uv sync
 uv run pytest -xvs
 ```
-
-Workflow: `docs/DAILY_DEV_WORKFLOW.md`.
