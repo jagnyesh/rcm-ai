@@ -1,0 +1,609 @@
+<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><style>body{margin:0}[hidden]{display:none!important}</style><title>rcm-ai Architecture Explorer</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&display=swap">
+<style>
+/* Layout: a field-manual spread. Toolbar across the top, the plate (diagram) on the left, the reference column on the right. */
+:root {
+  --paper: #f2ede3;
+  --paper-deep: #e9e2d4;
+  --card: #faf7f1;
+  --ink: #1e1c19;
+  --ink-soft: #4b463e;
+  --ink-faint: #8a8174;
+  --rule: #cbc1ae;
+  --accent: #7b4a12;
+  --trace: #1f5c57;
+  --fail: #9b2f21;
+  --degrade: #a87412;
+  --ok: #56683f;
+  --z-public: #dfe2cc;
+  --z-curated: #eadbbd;
+  --z-synthetic: #ead2c4;
+  --z-model: #efc3b0;
+  --z-validated: #cfe0d6;
+  --z-deterministic: #e2dccf;
+  --f-display: "Source Serif 4", "Iowan Old Style", Georgia, serif;
+  --f-body: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+html, body { height: 100%; }
+body {
+  background: var(--paper); color: var(--ink); font-family: var(--f-body); font-size: 14px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 18px 28px;
+}
+h1, h2, h3 { font-family: var(--f-display); font-weight: 600; text-wrap: balance; margin: 0; }
+.mono, code { font-family: var(--f-mono); font-size: 0.86em; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.masthead { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 24px; border-bottom: 1.5px solid var(--ink); padding-bottom: 10px; }
+.masthead h1 { font-size: 26px; letter-spacing: -0.01em; }
+.masthead h1 span { font-weight: 500; color: var(--ink-soft); }
+.masthead .meta { font-family: var(--f-mono); font-size: 11.5px; color: var(--ink-soft); }
+.lede { max-width: 78ch; color: var(--ink-soft); margin: 10px 0 14px; }
+
+.toolbar { display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--rule); }
+.ctl { display: flex; align-items: center; gap: 8px; }
+.ctl > .lbl { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-faint); }
+.seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--ink-soft); border-radius: 3px; overflow: hidden; }
+.seg button { white-space: nowrap; background: transparent; border: 0; padding: 4px 10px; font-size: 12.5px; cursor: pointer; border-left: 1px solid var(--rule); }
+.seg button:first-child { border-left: 0; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+.toggle { background: transparent; border: 1px solid var(--ink-soft); border-radius: 3px; padding: 4px 10px; font-size: 12.5px; cursor: pointer; }
+.toggle[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+
+.modebar { min-height: 44px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding: 8px 0; border-bottom: 1px solid var(--rule); font-size: 13px; }
+.modebar .hint { color: var(--ink-soft); }
+.modebar .readout { font-family: var(--f-mono); font-size: 12px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: var(--ink-soft); }
+.legend i { display: inline-block; width: 12px; height: 12px; border: 1px solid var(--ink-soft); vertical-align: -2px; margin-right: 5px; }
+
+.spread { display: grid; grid-template-columns: minmax(0, 1fr) 410px; gap: 0 22px; margin-top: 12px; align-items: start; }
+@media (max-width: 1020px) { .spread { grid-template-columns: minmax(0, 1fr); } }
+.plate { position: relative; min-width: 0; border: 1px solid var(--rule); background: var(--card); }
+.plate-scroll { overflow: auto; max-height: 76vh; }
+@media (max-width: 1020px) { .plate-scroll { max-height: 64vh; } }
+.zoom { position: absolute; right: 8px; bottom: 8px; display: flex; gap: 4px; }
+.zoom button { width: 30px; height: 28px; border: 1px solid var(--ink-soft); background: var(--card); cursor: pointer; font-family: var(--f-mono); border-radius: 3px; }
+.plate-cap { font-size: 11.5px; color: var(--ink-faint); padding: 6px 10px; border-top: 1px solid var(--rule); font-family: var(--f-mono); }
+#loading { padding: 40px; color: var(--ink-soft); font-family: var(--f-mono); font-size: 12px; }
+
+svg text { font-family: var(--f-body); }
+.grp-box { fill: none; stroke: var(--rule); stroke-width: 1; }
+.grp-lbl { font-family: var(--f-display); font-size: 13px; font-weight: 600; fill: var(--ink-soft); letter-spacing: 0.04em; }
+.edge { fill: none; stroke: var(--ink-faint); stroke-width: 1; transition: stroke 0.2s, opacity 0.2s; }
+.edge.hot { stroke: var(--trace); stroke-width: 2; }
+.edge.dim { opacity: 0.18; }
+.node { cursor: pointer; }
+.node rect.body { stroke: var(--ink-soft); stroke-width: 1; transition: fill 0.25s, opacity 0.2s; }
+.node .nm { font-size: 12.5px; font-weight: 500; fill: var(--ink); }
+.node .sub { font-family: var(--f-mono); font-size: 10px; fill: var(--ink-soft); }
+.node .tag { font-family: var(--f-mono); font-size: 8.5px; fill: var(--ink-faint); letter-spacing: 0.06em; }
+.node:hover rect.body { stroke: var(--ink); }
+.node:focus { outline: none; }
+.node:focus-visible rect.ring { stroke: var(--accent); stroke-width: 2; stroke-dasharray: 3 2; }
+.node rect.ring { fill: none; stroke: none; }
+.node.selected rect.body { stroke: var(--ink); stroke-width: 2.2; }
+.node.dim { opacity: 0.22; }
+.node.also rect.body { stroke: var(--trace); stroke-width: 1.6; stroke-dasharray: 4 2; }
+.node.visited rect.body { stroke: var(--trace); stroke-width: 1.6; }
+.node.current rect.body { stroke: var(--trace); stroke-width: 3; }
+.node.down rect.body { fill: url(#hatch) !important; stroke: var(--fail); stroke-width: 2; }
+.node.fx-fail rect.body { stroke: var(--fail); stroke-width: 2; }
+.node.fx-degrade rect.body { stroke: var(--degrade); stroke-width: 2; }
+.node.fx-ok rect.body { stroke: var(--ok); stroke-width: 1.6; stroke-dasharray: 5 3; }
+.badge { font-family: var(--f-mono); font-size: 9px; font-weight: 500; letter-spacing: 0.08em; }
+.dot { fill: var(--trace); }
+
+.panel { min-width: 0; border-top: 3px solid var(--ink); padding-top: 12px; }
+@media (max-width: 1020px) { .panel { margin-top: 18px; } }
+.panel h2 { font-size: 21px; }
+.panel .pid { font-family: var(--f-mono); font-size: 12px; color: var(--ink-soft); margin: 2px 0 8px; }
+.chips { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
+.chip { font-family: var(--f-mono); font-size: 10.5px; border: 1px solid var(--ink-faint); border-radius: 2px; padding: 1px 6px; color: var(--ink-soft); background: var(--card); }
+.chip.zone { border-color: var(--ink-soft); color: var(--ink); }
+.tabs { display: flex; flex-wrap: wrap; border-bottom: 1px solid var(--ink-soft); margin-top: 6px; }
+.tabs button { background: none; border: 0; border-bottom: 2px solid transparent; padding: 6px 9px 5px; cursor: pointer; font-size: 12.5px; color: var(--ink-soft); margin-bottom: -1px; }
+.tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--ink); font-weight: 600; }
+.tabs button .k { font-family: var(--f-mono); font-size: 9.5px; color: var(--ink-faint); margin-right: 4px; }
+.tabbody { padding: 12px 0 4px; }
+.tabbody p { margin: 0 0 10px; max-width: 62ch; }
+dl.kv { display: grid; grid-template-columns: 1fr; gap: 2px 0; margin: 0; }
+dl.kv dt { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-faint); margin-top: 9px; }
+dl.kv dd { margin: 0; }
+.prodbox { border-left: 3px solid var(--accent); background: var(--paper-deep); padding: 8px 10px; margin: 0 0 12px; font-size: 13px; }
+.prodbox b { font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.08em; color: var(--accent); font-weight: 500; display: block; }
+.adr h3 { font-size: 16px; margin-bottom: 6px; }
+.adr .src { font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.06em; color: var(--ink-faint); }
+.adr ul { padding-left: 18px; margin: 6px 0 0; }
+.adr li { margin-bottom: 6px; }
+.refs { margin-top: 14px; border-top: 1px solid var(--rule); padding-top: 8px; }
+.refs div { font-family: var(--f-mono); font-size: 11px; color: var(--ink-soft); overflow-wrap: anywhere; }
+.fxlist { list-style: none; padding: 0; margin: 8px 0; }
+.fxlist li { padding: 5px 0 5px 10px; border-left: 3px solid var(--rule); margin-bottom: 4px; font-size: 13px; }
+.fxlist li.fail { border-left-color: var(--fail); }
+.fxlist li.degrade { border-left-color: var(--degrade); }
+.fxlist li.ok { border-left-color: var(--ok); }
+.fxlist .who { font-family: var(--f-mono); font-size: 11px; }
+.fxlist .ty { font-family: var(--f-mono); font-size: 9.5px; letter-spacing: 0.08em; text-transform: uppercase; margin-right: 6px; }
+.fail-t { color: var(--fail); } .degrade-t { color: var(--degrade); } .ok-t { color: var(--ok); }
+.hops { list-style: none; padding: 0; margin: 8px 0; counter-reset: hop; }
+.hops li { position: relative; padding: 6px 0 6px 30px; border-top: 1px solid var(--rule); font-size: 13px; }
+.hops li::before { counter-increment: hop; content: counter(hop); position: absolute; left: 0; top: 6px; font-family: var(--f-mono); font-size: 11px; width: 20px; text-align: right; color: var(--ink-faint); }
+.hops li.on::before { color: var(--trace); font-weight: 500; }
+.hops li .who { font-family: var(--f-mono); font-size: 11px; color: var(--ink-soft); display: block; }
+.hops li.pending { color: var(--ink-faint); }
+.armcard { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 10px 0; }
+.armcard div { border-top: 1px solid var(--ink-soft); padding-top: 4px; }
+.armcard b { display: block; font-family: var(--f-display); font-size: 20px; font-variant-numeric: tabular-nums; }
+.armcard span { font-size: 11px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.06em; }
+.note { font-size: 12px; color: var(--ink-soft); border-top: 1px solid var(--rule); padding-top: 8px; margin-top: 10px; }
+.kbd { font-family: var(--f-mono); font-size: 11px; border: 1px solid var(--ink-faint); border-bottom-width: 2px; border-radius: 3px; padding: 0 4px; background: var(--card); }
+.keys { display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; font-size: 13px; margin-top: 8px; }
+
+.sheet-wrap[hidden] { display: none; }
+.sheet-wrap { position: fixed; inset: 0; background: rgba(30, 28, 25, 0.35); display: flex; justify-content: flex-end; z-index: 20; }
+.sheet { width: min(720px, 100%); height: 100%; overflow-y: auto; background: var(--paper); border-left: 1.5px solid var(--ink);
+  padding: calc(18px + env(safe-area-inset-top, 0px)) max(22px, env(safe-area-inset-right, 0px)) calc(28px + env(safe-area-inset-bottom, 0px)) 22px; }
+.sheet h2 { font-size: 24px; margin-bottom: 4px; }
+.sheet h3 { font-size: 16px; margin: 20px 0 6px; }
+.sheet p { max-width: 64ch; margin: 0 0 10px; }
+.sheet .close { float: right; }
+.tbl { overflow-x: auto; }
+.tbl table { border-collapse: collapse; font-family: var(--f-mono); font-size: 11.5px; width: 100%; }
+.tbl td, .tbl th { border-top: 1px solid var(--rule); padding: 5px 8px 5px 0; text-align: left; vertical-align: top; }
+.tbl th { font-family: var(--f-body); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-faint); font-weight: 500; }
+pre.sparql { background: var(--card); border: 1px solid var(--rule); padding: 10px 12px; overflow-x: auto; font-family: var(--f-mono); font-size: 11.5px; line-height: 1.55; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<header class="masthead">
+  <h1>rcm-ai <span>architecture, component by component</span></h1>
+  <div class="meta" id="meta"></div>
+</header>
+<p class="lede">A graph-grounded triage prototype for Medicare glucose-monitor denials (CARC 50). A small terminology-and-policy graph decides coverage and cites a source row for every step; the model only extracts evidence and drafts the appeal. Select a component to read how it works, how it fails, and why it was built that way.</p>
+
+<div class="toolbar" role="toolbar" aria-label="View controls">
+  <div class="ctl"><span class="lbl">Mode</span>
+    <div class="seg" id="modes">
+      <button data-mode="explore" aria-pressed="true">Explore</button><button data-mode="trace" aria-pressed="false">Trace</button><button data-mode="failure" aria-pressed="false">Failure</button><button data-mode="arms" aria-pressed="false">Arms</button>
+    </div>
+  </div>
+  <div class="ctl"><span class="lbl">Overlay</span>
+    <div class="seg" id="overlays">
+      <button data-ov="none" aria-pressed="true">None</button><button data-ov="trust" aria-pressed="false">Trust zone</button><button data-ov="determinism" aria-pressed="false">Determinism</button><button data-ov="arm" aria-pressed="false">Arm use</button>
+    </div>
+  </div>
+  <div class="ctl">
+    <button class="toggle" id="prodToggle" aria-pressed="false">Production mapping</button>
+    <button class="toggle" id="soundToggle" aria-pressed="false">Sound</button>
+    <button class="toggle" id="primerBtn">Read the graph</button>
+  </div>
+</div>
+<div class="modebar" id="modebar"></div>
+
+<div class="spread">
+  <section class="plate" aria-label="Architecture diagram">
+    <div class="plate-scroll" id="scroll"><div id="loading">Laying out 20 components with ELK…</div></div>
+    <div class="zoom"><button id="zOut" aria-label="Zoom out">−</button><button id="zFit" aria-label="Fit to width">⤢</button><button id="zIn" aria-label="Zoom in">+</button></div>
+    <div class="plate-cap" id="cap"></div>
+  </section>
+  <aside class="panel" id="panel" aria-live="polite"></aside>
+</div>
+
+<div class="sheet-wrap" id="primer" hidden role="dialog" aria-modal="true" aria-labelledby="primerTitle"></div>
+
+<script type="application/json" id="model">{"meta": {"system": "rcm-ai", "commit": "e641c00", "asOf": "2026-11-03", "note": "Every figure comes from the repository at e641c00, its README, or a run record. Graph size and timings were measured once on a laptop on 2026-11-03. Rejected alternatives marked 'reconstructed' are argued from the code and issue history, not quoted from a written ADR."}, "zones": {"public": {"label": "Public source", "desc": "Verbatim CMS or CDC files, pinned by sha256"}, "curated": {"label": "Curated judgment", "desc": "Hand-structured from public text; awaiting human review (#28)"}, "synthetic": {"label": "Synthetic input", "desc": "Claude-written cases and notes; labels unreviewed (#15)"}, "model": {"label": "Unvalidated model output", "desc": "What the model returned, before any check"}, "validated": {"label": "Validated evidence", "desc": "Model output that passed deterministic checks"}, "deterministic": {"label": "Deterministic", "desc": "Plain code: same input, same output"}}, "arms": {"graph": {"label": "graph", "who": "Gold evidence; the graph decides", "acc": "20/20", "fo": 0, "fu": 0, "handoffs": "6 (6 correct)", "cites": "0/38", "isolates": "The rules and data, with extraction taken out. In-sample: the graph was fixed against these cases (9/20 on its first run, a2b10ac)."}, "extracted": {"label": "extracted", "who": "Model extracts; the graph decides", "acc": "16/20", "fo": 0, "fu": 0, "handoffs": "10 (6 correct)", "cites": "0/33", "isolates": "The whole system. Its four misses (ev-09, ev-11, ev-12, ev-13) are all hand-offs. 17/20 on 2026-11-02 with the support check."}, "llm-only": {"label": "llm-only", "who": "Model reads note and LCD text, and decides", "acc": "19/20", "fo": 0, "fu": 1, "handoffs": "5 (5 correct)", "cites": "3/24", "isolates": "The same model without the knowledge layer. Its one miss is a false uphold of ev-18. 19/20 in each of four runs."}}, "groups": [{"id": "g.sources", "label": "Sources"}, {"id": "g.knowledge", "label": "Knowledge layer"}, {"id": "g.inputs", "label": "Inputs"}, {"id": "g.evidence", "label": "Evidence"}, {"id": "g.decision", "label": "Decision"}, {"id": "g.appeals", "label": "Appeals"}, {"id": "g.evaluation", "label": "Evaluation"}], "nodes": [{"id": "source.icd10cm-tabular", "name": "ICD-10-CM tabular", "group": "g.sources", "c4": "Data", "kind": "data file", "determinism": "static", "trust": "public", "arms": ["graph", "extracted", "llm-only"], "prodShort": "Annual code-set release", "prod": "The annual ICD-10-CM release (effective October 1), loaded into a terminology service and selected by date of service, so a claim from September is coded against the prior year.", "role": "The diagnosis vocabulary. Four verbatim excerpts of the CDC FY2027 tabular XML give each code its title, its parent, its Excludes1 notes and its seventh-character expansions. Without it the graph can't say what E11.65 means, that it sits under E11, or that E11 excludes E08.", "data": {"inputs": "CDC NCHS icd10cm-table-and-index-2027.zip (source sha256 99b5c2be…), excerpted by line range", "outputs": "399 diagnosis records: E08–E13 (322), O24 (57), E15–E16 (13), R73 (7)", "schema": "Tabular XML: diag/name, desc, excludes1/note, sevenChrDef. Graph: skos:prefLabel, skos:broader, rcm:excludes1, rcm:seventhFrom", "checks": "File sha256 and record count against MANIFEST.json; every record parsed and loaded, 0 rejected"}, "failure": {"what": "A fixture is missing, edited, or its hash no longer matches the manifest.", "degrades": "A code outside the four slices can't be checked. The extracted arm rejects it and hands the case off: ev-09 (N18.31) and ev-13 (Z98.84) miss this way.", "fails": "A hash or count mismatch stops build_graph, so ingest, triage and eval exit 2.", "blast": "Every arm, because all three are scored through a run that builds the graph first.", "recovery": "Restore the file from git or re-excerpt from the pinned source zip at the manifest's line ranges, then update the manifest's sha256."}, "cost": {"calls": "None", "measured": "Part of the 0.23 s graph build", "comparability": "Version string ICD-10-CM FY2027 is stored on every row's named graph and printed on every hop"}, "adr": {"title": "Verbatim excerpts, not the whole tabular", "context": "The full FY2027 tabular is one large XML file. The eval only exercises diabetes, pregnancy diabetes, glucose regulation and prediabetes codes.", "decision": "Commit verbatim line-range excerpts wrapped in the source root element, each with its own sha256, source sha256 and line range in MANIFEST.json.", "rejected": [{"alt": "Load the whole tabular", "why": "A large file to commit and review for codes no case touches. Codes outside the slices are handed off instead of guessed."}, {"alt": "Query a remote terminology server", "why": "Adds a network dependency and a version that can change under a run; the excerpts pin the version to the byte."}], "source": "reconstructed"}, "refs": ["data/fixtures/MANIFEST.json", "src/rcm_ai/icd10cm.py:89", "src/rcm_ai/provenance.py:37"]}, {"id": "source.lcd-export", "name": "LCD L33822 export", "group": "g.sources", "c4": "Data", "kind": "data file", "determinism": "static", "trust": "public", "arms": ["graph", "extracted", "llm-only"], "prodShort": "CMS Coverage Database feed", "prod": "The CMS Coverage Database download or API, refreshed when the LCD is revised, with the LCD chosen by MAC jurisdiction and date of service.", "role": "The coverage policy for glucose monitors. Three CSVs from the MCD Current LCD Data export of 2026-10-26: the LCD's text with initial criteria (1)–(5), the 31 HCPCS codes it lists, and its 3 related documents, one of which is billing article A52464.", "data": {"inputs": "MCD Current LCD Data export, 2026-10-26; LCD L33822 v70, revision effective 2024-10-01", "outputs": "lcd (1 row), lcd_x_hcpc_code (31 rows; E2103 at line 31), lcd_related_documents (3 rows; A52464 at line 3)", "schema": "CSV with keyed columns. Graph: rcm:listsHcpcs, rcm:relatedArticle, rcm:citedVersion, rcm:criteriaApplyTo, rcm:applicabilityQuote", "checks": "Duplicate keys raise IngestError with both line numbers; LCD HTML text normalized before quoting (graph.py:67)"}, "failure": {"what": "A revision changes the criteria text, or a new export drops a HCPCS row.", "degrades": "An item no LCD lists hands off as no_lcd_for_item; an item outside the modeled criteria as item_not_in_criteria.", "fails": "A hash mismatch stops the build: exit 2 everywhere but stats.", "blast": "Every coverage path starts here (hop 1 and hop 2 of every overturnable verdict).", "recovery": "Re-pin the new export; the curated criteria quote the LCD verbatim, so a text change also shows up as a quote that no longer matches."}, "cost": {"calls": "None", "measured": "Part of the 0.23 s build", "comparability": "Every hop prints the export date and LCD version"}, "adr": {"title": "Keep the version skew visible", "context": "LCD L33822 v70 links article A52464 citing v49, but the loaded article is v65.", "decision": "Load the link with its cited version and print it on the path: \"LCD L33822 is related to article A52464 (link cites v49)\".", "rejected": [{"alt": "Silently use the current article", "why": "A reviewer could not see that the policy's own link points at an older version."}, {"alt": "Load article v49", "why": "The current covered list is v65; v49 is not the list in force."}], "source": "reconstructed"}, "refs": ["data/fixtures/cms/lcd-L33822-v70.csv", "data/fixtures/cms/lcd_x_hcpc_code-L33822-v70.csv:31", "src/rcm_ai/graph.py:67"]}, {"id": "source.billing-article", "name": "Billing article A52464", "group": "g.sources", "c4": "Data", "kind": "data file", "determinism": "static", "trust": "public", "arms": ["graph", "extracted", "llm-only"], "prodShort": "Article covered-code list", "prod": "The policy article's covered-diagnosis list from the same CMS feed, versioned by effective date.", "role": "The list of diagnoses that support the item. 461 rows of article A52464 v65 (effective 2025-02-18). E11.65 is covered (line 343); E11.9 is covered too, which is why ev-10 turns on the glycemic-control criterion and not on the code.", "data": {"inputs": "MCD Current Article Data export, 2026-10-26", "outputs": "461 covered ICD-10-CM codes", "schema": "CSV: article id, version, ICD-10 code range. Graph: rcm:coversDiagnosis", "checks": "Rows that fail validation are counted as rejected, and any rejection marks the covered list incomplete"}, "failure": {"what": "Rows are rejected at ingest, or the list omits a code the note documents.", "degrades": "With rejected rows the graph won't uphold on \"not covered\": it hands off as covered_list_incomplete.", "fails": "A hash mismatch stops the build: exit 2.", "blast": "Hop 5 of every overturnable path, and every uphold for an uncovered diagnosis.", "recovery": "Re-pin the export; ingest prints parsed, rejected, loaded and in-graph counts per file."}, "cost": {"calls": "None", "measured": "461 rows, 0 rejected", "comparability": "Version v65 and its effective date print on the hop"}, "adr": {"title": "An incomplete list can't justify an uphold", "context": "An uphold for an uncovered diagnosis rests on absence from the list, and absence is only meaningful if the whole list loaded.", "decision": "If any covered-list row was rejected, a billed code that isn't on the list hands off instead of upholding.", "rejected": [{"alt": "Uphold on what loaded", "why": "A dropped row would turn into a written-off claim: the costly false uphold."}], "source": "repo"}, "refs": ["data/fixtures/cms/article_x_icd10_covered-A52464-v65.csv:343", "src/rcm_ai/graph.py:189", "src/rcm_ai/adjudicate.py:205"]}, {"id": "source.curated-criteria", "name": "Curated CGM criteria", "group": "g.sources", "c4": "Data", "kind": "data file", "determinism": "static", "trust": "curated", "arms": ["graph", "extracted", "llm-only"], "prodShort": "Policy team's criteria set", "prod": "Criteria authored and versioned by a clinical policy team, with dual review before release.", "role": "The LCD's initial criteria as a tree the code can walk. Each criterion is a verbatim LCD quote. cgm-1 is satisfied by a covered diagnosis; cgm-4 is met by any of 4a (insulin-treated) or 4b (problematic hypoglycemia, itself 4b1 or 4b2).", "data": {"inputs": "LCD L33822 v70 text", "outputs": "cgm-1-diabetes, cgm-2-training, cgm-3-fda-indication, cgm-4-glycemic-control (4a, 4b → 4b1, 4b2), cgm-5-visit; applies to E2102 and E2103", "schema": "JSON: id, quote, any_of, satisfied_by. Graph: rcm:requires, rcm:quote, rcm:anyOf, rcm:satisfiedBy", "checks": "Each quote must be found in the LCD text it cites; each criterion gets a named graph pointing at the LCD row"}, "failure": {"what": "The tree misreads the policy, for example treating an all-of as any-of.", "degrades": "Nothing fails: every arm would agree with a wrong rule. Only human review catches it (#28).", "fails": "A quote that no longer matches the LCD text stops the build.", "blast": "Every criterion step of every verdict, in all three arms (the baseline is given these quotes too).", "recovery": "Correct the tree; the eval set re-scores every case against it."}, "cost": {"calls": "None", "measured": "9 criteria, 3 levels deep", "comparability": "File is in git; changes show in the commit SHA of each run record"}, "adr": {"title": "Structure by hand, text by quote", "context": "The LCD states criteria as prose. Code needs their structure (all of, any of) and which one the diagnosis itself satisfies.", "decision": "Hand-curate the structure, but store only verbatim quotes as text, so every step can point at the words it rests on.", "rejected": [{"alt": "Have a model parse the LCD at run time", "why": "The rule would change from run to run and couldn't be reviewed once."}, {"alt": "Paraphrase the criteria", "why": "The baseline's first prompt paraphrased the label rules and widened \"coding error\" beyond Excludes1; quotes avoid that drift."}], "source": "reconstructed"}, "refs": ["data/curated/L33822-cgm-criteria.json", "src/rcm_ai/graph.py:451"]}, {"id": "ingest.provenance", "name": "Provenance check", "group": "g.knowledge", "c4": "Component", "kind": "deterministic code", "determinism": "deterministic", "trust": "deterministic", "arms": ["graph", "extracted", "llm-only"], "prodShort": "Signed release pipeline", "prod": "A release pipeline that verifies signed source artifacts and their hashes in CI before a graph snapshot is published.", "role": "Refuses to build from anything but the pinned files. verify_fixtures compares each fixture's sha256 and record count with MANIFEST.json before a single triple is written.", "data": {"inputs": "data/fixtures/ and MANIFEST.json (path, table, sha256, source_url, source_sha256, source_lines, version, retrieved, license, record_count)", "outputs": "Verified FixtureSource list, or ProvenanceError", "schema": "provenance.FixtureSource", "checks": "sha256 of each file; record count by kind; tables the graph can load"}, "failure": {"what": "A fixture changed without the manifest, or the manifest names a table the graph can't load.", "degrades": "Nothing degrades: the check is all-or-nothing.", "fails": "ProvenanceError or IngestError; every command that builds the graph exits 2.", "blast": "The whole system except stats and existing run records.", "recovery": "Fix the file or the manifest; uv run rcm-ai ingest reports per-file counts."}, "cost": {"calls": "None", "measured": "Part of the 0.23 s build", "comparability": "Same files, same hashes, same graph"}, "adr": {"title": "Fail closed on provenance", "context": "Every hop prints file:line [version]. That claim is only true if the file is the one the manifest describes.", "decision": "Hash every fixture at startup and refuse to build on any mismatch.", "rejected": [{"alt": "Warn and continue", "why": "A path citing line 343 of an edited file would look exactly like a valid one."}], "source": "reconstructed"}, "refs": ["src/rcm_ai/provenance.py:37", "data/fixtures/MANIFEST.json"]}, {"id": "graph.coverage", "name": "Coverage graph", "group": "g.knowledge", "c4": "Component", "kind": "deterministic code", "determinism": "deterministic", "trust": "deterministic", "arms": ["graph", "extracted", "llm-only"], "prodShort": "Versioned graph snapshot", "prod": "An in-process graph rebuilt per source release, or a managed triplestore holding one snapshot per policy effective date.", "role": "The knowledge layer. An in-memory rdflib Dataset in which each source row's triples live in a named graph of their own, so a SPARQL answer returns each fact with the row it came from. Its queries give titles, ancestors, Excludes1 rules, the LCDs listing an item, coverage paths and criteria.", "data": {"inputs": "Verified fixtures and curated criteria", "outputs": "CoverageGraph: title, ancestors, excludes1_rules, lcds_listing, on_covered_list, coverage_paths, applicability, criteria", "schema": "Named graph IRI urn:src:{path}#L{line}, described in the default graph by rcm:path, rcm:version, rcm:line. Namespaces urn:rcm:, urn:icd10cm:, urn:hcpcs:, urn:lcd:, urn:article:, urn:criterion:, urn:excludes1:", "checks": "Query results are memoized per argument"}, "failure": {"what": "The build raises, or a query returns nothing for a code outside the slices.", "degrades": "An empty answer hands off with a named reason (diagnosis_not_in_terminology, no_lcd_for_item).", "fails": "A build error exits 2 for triage, eval and demo.", "blast": "Every arm, including llm-only, which is given the criteria text the graph holds.", "recovery": "Rebuild; it's stateless and takes a fraction of a second."}, "cost": {"calls": "None", "measured": "1,062 named graphs, 6,889 quads, built in 0.23 s; first coverage_paths query 0.091 s (laptop, 2026-11-03, one run)", "comparability": "Deterministic for a given commit"}, "adr": {"title": "One named graph per source row", "context": "The point of the graph is a justification a reviewer can check row by row.", "decision": "Put each row's triples in a named graph whose IRI is the row, and describe the row in the default graph. One SPARQL query then returns, per fact, the graph it matched in.", "rejected": [{"alt": "A property graph (labeled property graph database)", "why": "Provenance would be a property copied onto every edge, and it needs a server for 6.9k facts."}, {"alt": "RDF reification or RDF-star", "why": "Four extra triples per fact, or tooling not all of rdflib supports; named graphs give row-level grouping for free."}, {"alt": "Plain dictionaries in Python", "why": "Works for one LCD, but the hierarchy, Excludes1 and coverage joins become hand-written loops with no query to show a reviewer."}], "source": "reconstructed"}, "refs": ["src/rcm_ai/graph.py:1", "src/rcm_ai/graph.py:212", "src/rcm_ai/graph.py:308", "src/rcm_ai/graph.py:324"]}, {"id": "input.eval-set", "name": "Eval set", "group": "g.inputs", "c4": "Data", "kind": "data file", "determinism": "static", "trust": "synthetic", "arms": ["graph", "extracted", "llm-only"], "prodShort": "Reviewed historical denials", "prod": "De-identified historical denials with appeal outcomes as labels, each label confirmed by a coder and a payer-policy reviewer.", "role": "Twenty synthetic denied CGM claims with gold verdicts: 9 overturnable, 5 uphold, 6 needs_human, plus 2 specificity and 2 Excludes1 findings. The set is locked by case count and sha256, so a run can't quietly score a partial set.", "data": {"inputs": "Claude-drafted cases, 2026-10-30", "outputs": "EvalSet(cases, expected 20, sha256)", "schema": "Case schema plus gold {verdict, path, findings, label_status, known_system_gap} and a review tag", "checks": "Case count equals set.json's expected_cases; every case marked synthetic"}, "failure": {"what": "A case file is missing or malformed.", "degrades": "Nothing degrades.", "fails": "Empty or partial set: eval exits 2 before any model call.", "blast": "Every eval and every downstream statistic. A wrong label silently moves every arm's accuracy.", "recovery": "Restore the case; a corrected label follows the locking rule in data/eval/README.md."}, "cost": {"calls": "None", "measured": "20 cases; sha256 e794b683 (fdbc346c on 2026-11-01, differing only by review tags)", "comparability": "Run records store the sha256; stats refuses records with different sets"}, "adr": {"title": "Lock the set, keep the gap", "context": "The graph was fixed against these cases. A label adjusted to match the system would hide that.", "decision": "Gold is the policy-correct answer. A case the system gets wrong for a known reason carries known_system_gap; the label is never changed to match.", "rejected": [{"alt": "Drop or relabel hard cases", "why": "Raises accuracy by deleting the evidence against the system."}], "source": "repo"}, "refs": ["data/eval/README.md", "data/eval/set.json", "src/rcm_ai/evaluate.py:103"]}, {"id": "input.case", "name": "Denied claim + note", "group": "g.inputs", "c4": "Data", "kind": "data file", "determinism": "static", "trust": "synthetic", "arms": ["graph", "extracted", "llm-only"], "prodShort": "835/837 + DocumentReference", "prod": "An X12 835 remittance with CARC 50 joined to its 837 claim, and the note pulled from the EHR as a FHIR R4 DocumentReference. This crosses into the PHI zone.", "role": "One unit of work: a claim (HCPCS item, billed ICD-10-CM codes, CARC, initial or continued coverage), the clinical note, and, for the graph arm, an evidence block as a perfect extractor would return it.", "data": {"inputs": "A JSON case file", "outputs": "Case(claim, note, evidence?)", "schema": "schemas.Case, Claim, Evidence(diagnoses, criteria_met, criteria_not_met), each item with a verbatim span", "checks": "Must be marked \"synthetic\": true; codes checked for format; a case with no evidence needs --extract"}, "failure": {"what": "A malformed or unreadable case, or one with no evidence run without --extract.", "degrades": "Nothing degrades.", "fails": "Rejected on stderr with exit 2.", "blast": "That case only.", "recovery": "Fix the file; the error names the field."}, "cost": {"calls": "None", "measured": "Notes are 4 to 6 sentences", "comparability": "Inside the eval set's sha256"}, "adr": {"title": "Refuse anything not marked synthetic", "context": "The CLI reads a JSON file someone could fill with a real note.", "decision": "load_case requires \"synthetic\": true, and every note begins SYNTHETIC NOTE.", "rejected": [{"alt": "Trust the user", "why": "One real note in a prompt log is a disclosure; the flag makes it a deliberate act."}], "source": "repo"}, "refs": ["src/rcm_ai/schemas.py:109", "src/rcm_ai/schemas.py:132"]}, {"id": "model.extract", "name": "Evidence extractor", "group": "g.evidence", "c4": "Component", "kind": "model call", "determinism": "model", "trust": "model", "model": "claude-opus-5-5 · effort high · max_tokens 16000", "arms": ["extracted"], "prodShort": "Extractor on BAA endpoint", "prod": "The same call on a model endpoint covered by a business associate agreement, sent only the note sections it needs.", "role": "Reads the note and returns the evidence: each documented diagnosis with its code and span, and each offered criterion met or not met, with the span that shows it. It is called only after the claim alone can't decide: out-of-scope and billed-code conflicts hand off first, with no call.", "data": {"inputs": "The note and the criteria the graph offers for the claim's item", "outputs": "Extraction(raw JSON, stop_reason, served model, request id)", "schema": "extract_evidence.schema.json via structured outputs (output_config.format json_schema)", "checks": "None here; everything it returns is checked downstream"}, "failure": {"what": "A refusal, a truncation at max_tokens, malformed JSON, or an API error.", "degrades": "A response with no usable JSON hands the case off as extraction_rejected. It scores like an abstention and is counted under no output.", "fails": "An exception from the client is an arm error: eval reports it and exits 3.", "blast": "The extracted arm only. Graph and llm-only are unaffected.", "recovery": "Re-run; each call is logged to eval-<stamp>-extractions/ with its request id."}, "cost": {"calls": "1 per case not decided by the claim alone: 15 per eval run", "measured": "Tokens and latency not recorded in run records", "comparability": "Run record stores model, effort, max_tokens, prompt_sha256 and schema hash read from the request body sent"}, "adr": {"title": "Effort is the only control", "context": "Opus 5.5 takes no temperature and can't turn thinking off; effort is the remaining dial, and its default is medium.", "decision": "Effort high, because judging \"level 2 hypoglycemia\" from prose is the hardest step. Structured outputs enforce the schema.", "rejected": [{"alt": "Default effort", "why": "Criteria judgments are where the arm misses; cheaper calls would trade accuracy on exactly those."}, {"alt": "Free-text output parsed by regex", "why": "Every malformed answer would need its own handling; the schema moves that to the API."}], "source": "repo"}, "refs": ["src/rcm_ai/extract.py:25", "src/rcm_ai/extract.py:102", "src/rcm_ai/extract.py:264", "src/rcm_ai/prompts/extract_evidence.md"]}, {"id": "ingest.parse-extraction", "name": "Extraction validator", "group": "g.evidence", "c4": "Component", "kind": "deterministic code", "determinism": "deterministic", "trust": "validated", "arms": ["extracted"], "prodShort": "Validation gate", "prod": "The same gate, plus a check that the DocumentReference the spans came from is still the current version.", "role": "Turns model output into evidence the graph will accept, or rejects it whole. Each span must be verbatim in the note and at least 10 characters; each criterion must have been offered and not be one the code decides; each code must be in the loaded slices.", "data": {"inputs": "Raw extraction, note, graph, offered criteria", "outputs": "Parsed(evidence, spans, problems)", "schema": "Evidence with Span(start, end) offsets into the note", "checks": "Schema match; span in note; MIN_SPAN 10; criterion offered; cgm-1 not listable as met; anyOf alternatives each recorded; ICD-10-CM code exists in the loaded category"}, "failure": {"what": "Any one problem in the extraction.", "degrades": "The whole extraction is rejected and the case hands off as extraction_rejected, listing every problem. No partial evidence is used.", "fails": "Nothing exits.", "blast": "One case in the extracted arm.", "recovery": "None needed per case; repeated rejections point at the prompt or the slices."}, "cost": {"calls": "None", "measured": "Shortest gold span is 11 characters (\"Prediabetes\")", "comparability": "Deterministic"}, "adr": {"title": "Reject whole, never repair", "context": "A model can return a span that isn't in the note, or a code the graph can't check.", "decision": "Any problem rejects the extraction and hands the case to a human.", "rejected": [{"alt": "Drop the bad items and keep the rest", "why": "A dropped not-met span could turn an uphold into an overturnable verdict."}, {"alt": "Fuzzy-match spans", "why": "A span that isn't verbatim can't be quoted in an appeal."}, {"alt": "Shorter spans than 10 characters", "why": "\"CGM\" or \"insulin\" matches too many places to show anything."}], "source": "repo"}, "refs": ["src/rcm_ai/extract.py:32", "src/rcm_ai/extract.py:149", "src/rcm_ai/extract.py:254"]}, {"id": "model.support-check", "name": "Span support check", "group": "g.evidence", "c4": "Component", "kind": "model call", "determinism": "model", "trust": "validated", "model": "claude-opus-5-5 · effort high · max_tokens 16000", "arms": ["extracted"], "prodShort": "Second-read check", "prod": "The same second read on the BAA endpoint; disagreements routed to a coder queue with the sentence shown.", "role": "A verbatim span can still not show its fact: negated (\"not on insulin\"), reused for another criterion, or under the wrong code. For each validated span the checker sees the span, the note sentence holding it, and the ICD-10-CM title or the criterion's policy quote, and says whether it supports the claim.", "data": {"inputs": "Pairs: span, sentence (sentence_around), and the code title or criterion quote", "outputs": "items [{item, supported, reason}]", "schema": "check_support.schema.json; prompt check_support.md (sha256 5574c42a)", "checks": "Every item judged; unsupported spans named with the checker's reason"}, "failure": {"what": "A refusal, a truncation, or an item left unjudged.", "degrades": "Unsupported spans hand off as span_not_supported; a check that can't complete hands off as support_check_failed. It never upgrades a verdict.", "fails": "A client exception is an arm error: exit 3.", "blast": "The extracted arm only.", "recovery": "Re-run; checks are logged to eval-<stamp>-support/."}, "cost": {"calls": "1 per validated extraction: 13 on 2026-11-02", "measured": "3 of 3 constructed failures handed off; gold evidence passed 19 of 20 (ev-11 is a label question for #15)", "comparability": "Its own config block in the run record: arms.extracted.support_check"}, "adr": {"title": "The span plus its sentence", "context": "Issue #22 proposed checking the span alone. A span alone can't show negation: \"on insulin\" is verbatim inside \"not on insulin,\".", "decision": "Give the checker the sentence that holds the span, and the title or quote it is claimed to support.", "rejected": [{"alt": "The span alone", "why": "Misses negation and qualifiers, the failure it exists to catch."}, {"alt": "The whole note", "why": "The checker could find support elsewhere and approve a span that doesn't show the fact."}, {"alt": "Tune the prompt until ev-11 passes", "why": "ev-11 turns on whether a sulfonylurea rules out insulin; that is a label question for #15, not a prompt bug."}], "source": "repo"}, "refs": ["src/rcm_ai/extract.py:194", "src/rcm_ai/extract.py:201", "src/rcm_ai/extract.py:226", "src/rcm_ai/extract.py:276"]}, {"id": "decide.adjudicate", "name": "Adjudicator", "group": "g.decision", "c4": "Component", "kind": "deterministic code", "determinism": "deterministic", "trust": "deterministic", "arms": ["graph", "extracted"], "prodShort": "Versioned rules service", "prod": "A rules service versioned by policy effective date, so a re-review applies the rules in force on the date of service.", "role": "Decides coverage with no model call. In order: hand off an out-of-scope claim; hand off an Excludes1 conflict; check each billed code is documented; query the graph for the item → LCD → article → code path; check each criterion: met, not met, contradicted or missing.", "data": {"inputs": "Claim, Evidence, CoverageGraph", "outputs": "Verdict(outcome, path of Hops, findings, reasons)", "schema": "Reasons: denial_out_of_scope, coverage_out_of_scope, no_lcd_for_item, item_not_in_criteria, coding_conflict, diagnosis_not_documented, diagnosis_not_in_terminology, diagnosis_not_billable, covered_diagnosis_not_billed, covered_list_incomplete, diagnosis_not_covered, criterion_conflicting, criterion_not_met, criterion_not_documented", "checks": "For extracted evidence, triage_note turns an uphold for an uncovered diagnosis into covered_diagnosis_not_ruled_out unless the note rules the covered condition out"}, "failure": {"what": "A rule is wrong, or evidence is incomplete.", "degrades": "Uncertainty hands off: a contradiction or a gap is needs_human, never uphold. An uphold must rest on something the note says.", "fails": "A code bug raises; triage exits with a traceback, eval reports an arm error and exits 3.", "blast": "Graph and extracted arms; also the citation reference for every arm's letters.", "recovery": "The eval re-scores all 20 cases in about a second with no model call (graph arm)."}, "cost": {"calls": "None", "measured": "Graph arm: 20 cases with no model call", "comparability": "Deterministic for a commit"}, "adr": {"title": "Rules decide; absence is a hand-off", "context": "A missing criterion is not evidence that it isn't met. Writing off a claim for missing documentation is the costly false uphold.", "decision": "Deterministic adjudication. Uphold only on a documented failing condition or an uncovered diagnosis on a complete list; a gap goes to a human with \"request records\".", "rejected": [{"alt": "Let the model decide with the graph as context", "why": "Then the graph informs but doesn't decide, and the justification is again the model's word."}, {"alt": "Treat undocumented as not met", "why": "Turns every thin note into an uphold; ev-18 is exactly that case."}], "source": "repo"}, "refs": ["src/rcm_ai/adjudicate.py:136", "src/rcm_ai/adjudicate.py:153", "src/rcm_ai/adjudicate.py:162", "src/rcm_ai/extract.py:290"]}, {"id": "model.baseline", "name": "LLM-only baseline", "group": "g.decision", "c4": "Component", "kind": "model call", "determinism": "model", "trust": "model", "model": "claude-opus-5-5 · effort high · max_tokens 16000", "arms": ["llm-only"], "prodShort": "Offline control only", "prod": "Not deployed. Kept as the control arm in the offline evaluation.", "role": "The control: the same model reads the same note, given the LCD's criteria text, and returns its own verdict, reasons and evidence fields. Only who decides differs from the extracted arm.", "data": {"inputs": "Claim, note, and the criteria quotes from the graph", "outputs": "Verdict with model_reason reasons; evidence fields logged but not checked", "schema": "llm_only_verdict.md with a JSON schema", "checks": "Only that the response is a verdict"}, "failure": {"what": "A refusal, truncation, or a response that isn't a verdict.", "degrades": "Hands off as no_verdict, counted under no output.", "fails": "A client exception: exit 3.", "blast": "The llm-only arm only.", "recovery": "Re-run; logged to eval-<stamp>-llm-only/."}, "cost": {"calls": "1 per case: 20 per eval run", "measured": "19/20 in each of four runs; one false uphold (ev-18) on 2026-11-01", "comparability": "Own config block in the run record"}, "adr": {"title": "Give the baseline the policy", "context": "A baseline deciding from memory would lose for lack of the policy text, which says nothing about the graph.", "decision": "Give it the LCD's criteria quotes, so the comparison isolates who decides.", "rejected": [{"alt": "Memory only", "why": "Measures access to the policy, not the knowledge layer."}, {"alt": "Paraphrased label rules", "why": "Its first prompt did this and widened \"coding error\" beyond Excludes1."}], "source": "repo"}, "refs": ["src/rcm_ai/baseline.py:33", "src/rcm_ai/baseline.py:50", "src/rcm_ai/prompts/llm_only_verdict.md"]}, {"id": "output.verdict", "name": "Verdict", "group": "g.decision", "c4": "Data", "kind": "artifact", "determinism": "deterministic", "trust": "deterministic", "arms": ["graph", "extracted", "llm-only"], "prodShort": "Work item in denial queue", "prod": "A work item in the denial worklist, with the justification path attached and each hop linked to its source row.", "role": "The answer: overturnable with a justification path, uphold with the condition the note shows failing, or needs_human with a reason. In the grounded arms every hop names a file, a line, a version and the text to look for.", "data": {"inputs": "Adjudicator or baseline", "outputs": "Verdict(outcome, path, findings, reasons)", "schema": "Hop(statement, Source(path, line, version, look_for)); Finding (specificity, Excludes1); Reason(kind, statement, quote, source, span)", "checks": "Outcome is one of overturnable, uphold, needs_human"}, "failure": {"what": "Not applicable on its own.", "degrades": "—", "fails": "—", "blast": "Feeds drafting, the citation reference, and scoring.", "recovery": "—"}, "cost": {"calls": "None", "measured": "ev-01: a 10-hop path", "comparability": "Stored per case in the run record with its reasons"}, "adr": {"title": "Three outcomes, one of them a hand-off", "context": "A two-way classifier must guess on unclear cases.", "decision": "needs_human is a first-class outcome, scored by abstention rate and precision.", "rejected": [{"alt": "Binary overturn or uphold", "why": "Every unclear case becomes one of the two costly errors."}], "source": "repo"}, "refs": ["src/rcm_ai/schemas.py:68", "src/rcm_ai/schemas.py:95"]}, {"id": "model.draft-appeal", "name": "Appeal drafter", "group": "g.appeals", "c4": "Component", "kind": "model call", "determinism": "model", "trust": "model", "model": "claude-opus-5-5 · effort high · max_tokens 16000", "arms": ["graph", "extracted", "llm-only"], "prodShort": "Draft in appeal packet", "prod": "Drafts the letter into the appeal packet for a person to edit and sign.", "role": "Writes the redetermination letter for an overturnable verdict, opt-in with --draft. It gets the claim, the path's statements, the findings and the note's quotes (diagnoses unlabeled by code). Every arm uses the same drafter with its own verdict and evidence.", "data": {"inputs": "Claim, path statements, findings, note quotes", "outputs": "One letter field", "schema": "draft_appeal.md", "checks": "None here; the citation check reads the result"}, "failure": {"what": "A failed call, no letter, or a log that can't be written.", "degrades": "triage still prints the verdict.", "fails": "triage exits 3; eval reports \"eval incomplete … citation metrics are not comparable\" and exits 3.", "blast": "Appeal metrics only; verdict accuracy is unaffected.", "recovery": "Re-run with --draft; drafts are logged to eval-<stamp>-drafts/."}, "cost": {"calls": "1 per overturnable verdict per arm: 26 letters on 2026-11-01", "measured": "61 calls in that run with drafting, 35 without", "comparability": "drafting config block in the run record (not yet compared by stats; #36)"}, "adr": {"title": "Drafting is opt-in", "context": "Verdict accuracy needs no letters, and letters double the paid calls of a run.", "decision": "Only --draft calls the drafter.", "rejected": [{"alt": "Always draft", "why": "Every verdict-only experiment would pay for letters it doesn't score."}], "source": "repo"}, "refs": ["src/rcm_ai/appeal.py:149", "src/rcm_ai/appeal.py:171", "src/rcm_ai/prompts/draft_appeal.md"]}, {"id": "check.citations", "name": "Citation checker", "group": "g.appeals", "c4": "Component", "kind": "deterministic code", "determinism": "deterministic", "trust": "deterministic", "arms": ["graph", "extracted", "llm-only"], "prodShort": "Packet assembly gate", "prod": "A gate in packet assembly: a letter citing anything the path doesn't establish is blocked from sending.", "role": "Reads every HCPCS, ICD-10-CM, LCD and article ID in a letter and fails it if any isn't established by the reference: the graph's verdict on the case's gold evidence when gold overturns, else nothing.", "data": {"inputs": "Letter, reference path and findings", "outputs": "CitationCheck(citations, unsupported); passed when nothing is unsupported", "schema": "appeal.CitationCheck", "checks": "Each cited ID against established(path, findings); the more specific code a specificity finding names is accepted"}, "failure": {"what": "A letter cites a code or policy the path doesn't establish.", "degrades": "Nothing degrades: it's a gate.", "fails": "triage and demo exit 4: a failing letter must not be sent, whatever else went wrong.", "blast": "That letter.", "recovery": "Redraft; the check prints what was unsupported."}, "cost": {"calls": "None", "measured": "2026-11-01: graph 0/38, extracted 0/33, llm-only 3/24 unsupported", "comparability": "Re-checking that run's 26 letters with today's checker gives the same counts"}, "adr": {"title": "Check IDs deterministically, and say what that misses", "context": "A letter can be wrong in two ways: citing the wrong thing, or saying the wrong thing about the right thing.", "decision": "A deterministic check of cited IDs. It favors the graph by construction, and it can't tell \"will be corrected and resubmitted\" from \"be considered on appeal\"; the README says both.", "rejected": [{"alt": "A model judges each sentence", "why": "Needs its own validation like #22's gold run; left for a later issue (#36 out of scope)."}, {"alt": "Score against each arm's own verdict", "why": "Every letter would pass its own premise."}], "source": "repo"}, "refs": ["src/rcm_ai/appeal.py:88", "src/rcm_ai/appeal.py:120", "src/rcm_ai/appeal.py:126"]}, {"id": "eval.harness", "name": "Eval harness", "group": "g.evaluation", "c4": "Component", "kind": "deterministic code", "determinism": "deterministic", "trust": "deterministic", "arms": ["graph", "extracted", "llm-only"], "prodShort": "Offline eval in CI", "prod": "The offline evaluation run in CI on every rule, prompt or source change, gating release.", "role": "Runs each arm on each case and scores it: accuracy, false overturnable and false uphold counted apart, abstention rate and precision, no-output count, each case where arms disagree, and with --draft the citation metrics.", "data": {"inputs": "EvalSet, arms (EvalCase → Verdict)", "outputs": "EvalReport(arms: ArmMetrics, results: CaseResult, disagreements)", "schema": "evaluate.ArmMetrics, CaseResult, Disagreement", "checks": "Graph and extracted misses marked known gap or UNEXPLAINED"}, "failure": {"what": "An arm raises on a case.", "degrades": "The other arms still score.", "fails": "Any arm error: exit 3.", "blast": "That run.", "recovery": "Fix and re-run; nothing persists until the record is written."}, "cost": {"calls": "graph 0; extracted 15 + 13 support checks; llm-only 20; drafting adds 1 per overturnable verdict", "measured": "61 calls on 2026-11-01 with --draft", "comparability": "One record per run"}, "adr": {"title": "Count the costly errors apart", "context": "Accuracy treats a hand-off and a written-off claim as the same miss.", "decision": "Report false overturnable and false uphold separately from accuracy, and abstention precision for hand-offs.", "rejected": [{"alt": "Accuracy alone", "why": "Would rank llm-only (19/20, one false uphold) above extracted (16/20, no costly errors) with no qualification."}], "source": "repo"}, "refs": ["src/rcm_ai/evaluate.py:48", "src/rcm_ai/evaluate.py:129", "src/rcm_ai/__init__.py:312"]}, {"id": "eval.run-record", "name": "Run record", "group": "g.evaluation", "c4": "Data", "kind": "artifact", "determinism": "static", "trust": "deterministic", "arms": ["graph", "extracted", "llm-only"], "prodShort": "Retained eval artifact", "prod": "A retained evaluation artifact with case IDs only, never note text, in the logs.", "role": "eval-results/eval-<stamp>.json: what was measured and under what conditions. Date, git SHA (marked -dirty if uncommitted), eval set sha256, each arm's metrics and the configuration actually sent, and every case's result with its reasons.", "data": {"inputs": "EvalReport plus the request bodies sent", "outputs": "JSON file (gitignored)", "schema": "date, git_sha, eval_set{sha256}, arms{model, effort, max_tokens, prompt_sha256, schema_canonical_sha256, calls, support_check}, results[{arm, case, gold, outcome, correct, appeal?}], disagreements, drafting?", "checks": "Config read from what was sent, not from constants"}, "failure": {"what": "The record can't be written.", "degrades": "—", "fails": "The run's results are printed but not saved.", "blast": "Stats on that run.", "recovery": "Re-run."}, "cost": {"calls": "None", "measured": "One file per run", "comparability": "This file is what makes two runs comparable"}, "adr": {"title": "Record what was sent", "context": "A constant in the code says what should have been sent; the request body says what was.", "decision": "_sent_config reads model, effort, max_tokens and the prompt and schema hashes from the request bodies.", "rejected": [{"alt": "Record the constants", "why": "A stale constant or an override would make two different runs look identical."}], "source": "repo"}, "refs": ["src/rcm_ai/__init__.py:272", "src/rcm_ai/__init__.py:446"]}, {"id": "stats.report", "name": "rcm-ai stats", "group": "g.evaluation", "c4": "Component", "kind": "deterministic code", "determinism": "deterministic", "trust": "deterministic", "arms": ["graph", "extracted", "llm-only"], "prodShort": "Release-gate report", "prod": "The release-gate report across repeated runs.", "role": "Reads run records as repeats of one run. Refuses records that measured different things. Reports each arm's mean and range, the costly errors per repeat, McNemar's exact test and a 95% bootstrap interval for each pair of arms, and Cochran's Q for three.", "data": {"inputs": "One or more run records", "outputs": "Text report", "schema": "Refusal fields: eval set, git SHA, arms, each arm's and support check's model, effort, max_tokens, prompt and schema hashes", "checks": "Dirty SHA refused unless --allow-dirty; case sets must match across repeats and across arms"}, "failure": {"what": "Records differ in what they measured.", "degrades": "—", "fails": "\"stats refused: …\" naming the field; exit 2.", "blast": "None beyond the report.", "recovery": "Pass records from one commit and configuration."}, "cost": {"calls": "None", "measured": "2026-11-01: McNemar p = 0.375 (extracted vs llm-only), 0.125 (graph vs extracted); Cochran's Q = 5.2, p = 0.0743; difference −3/20, interval −7 to +1 (seed 0, 10,000 resamples)", "comparability": "Its whole job"}, "adr": {"title": "Raw counts decide; statistics qualify", "context": "On 20 cases no test can reach p < 0.05 unless at least 6 disagreements go one way. The premise was falsified on raw counts on 2026-11-01.", "decision": "The falsification rule stays raw counts (#33). Statistics are reported beside it as within or outside noise. Intervals come from a bootstrap over cases, keeping a case's repeats together.", "rejected": [{"alt": "Let a significance test decide", "why": "Applied now, it would turn a known \"falsified\" into \"inconclusive\" after the fact."}, {"alt": "Mixed-effects logistic model", "why": "Fits repeated binary outcomes, but needs statsmodels; the bootstrap gives a paired interval with no dependency (#31)."}], "source": "repo"}, "refs": ["src/rcm_ai/stats.py:47", "src/rcm_ai/stats.py:81", "src/rcm_ai/stats.py:127", "src/rcm_ai/stats.py:153"]}, {"id": "cli.demo", "name": "Offline demo", "group": "g.evaluation", "c4": "Container", "kind": "CLI", "determinism": "deterministic", "trust": "deterministic", "arms": ["graph"], "prodShort": "Onboarding walkthrough", "prod": "An onboarding walkthrough for analysts: no production counterpart.", "role": "uv run rcm-ai demo: three cases, one per verdict (ev-01, ev-10, ev-18), each step with its source row. For ev-01 it replays the appeal letter recorded on 2026-11-01 and re-checks its citations. No API key, no model call.", "data": {"inputs": "data/demo/demo.json (case ids and the recorded letter), the graph", "outputs": "Printed walkthrough", "schema": "Recorded letter with date, model and git SHA", "checks": "The recorded letter's citations against today's verdict"}, "failure": {"what": "Today's graph no longer establishes what the recorded letter cites.", "degrades": "—", "fails": "Exit 4, as in triage: a failing letter must not be sent.", "blast": "The demo.", "recovery": "Re-record the letter."}, "cost": {"calls": "None", "measured": "Runs in about a second", "comparability": "Letter labeled with its recording date and SHA"}, "adr": {"title": "Replay, don't call", "context": "A demo that needs an API key won't be run by most readers.", "decision": "Replay a recorded letter, labeled as recorded, and re-check it live.", "rejected": [{"alt": "Draft live", "why": "Needs credentials and gives a different letter each time."}], "source": "repo"}, "refs": ["src/rcm_ai/__init__.py:189", "data/demo/demo.json"]}], "edges": [{"from": "source.icd10cm-tabular", "to": "ingest.provenance", "label": "XML excerpts"}, {"from": "source.lcd-export", "to": "ingest.provenance", "label": "LCD CSVs"}, {"from": "source.billing-article", "to": "ingest.provenance", "label": "covered list CSV"}, {"from": "ingest.provenance", "to": "graph.coverage", "label": "verified rows"}, {"from": "source.curated-criteria", "to": "graph.coverage", "label": "criteria tree"}, {"from": "input.eval-set", "to": "input.case", "label": "each case"}, {"from": "input.case", "to": "model.extract", "label": "note"}, {"from": "graph.coverage", "to": "model.extract", "label": "offered criteria"}, {"from": "model.extract", "to": "ingest.parse-extraction", "label": "raw extraction"}, {"from": "graph.coverage", "to": "ingest.parse-extraction", "label": "codes, criteria"}, {"from": "ingest.parse-extraction", "to": "model.support-check", "label": "span pairs"}, {"from": "graph.coverage", "to": "model.support-check", "label": "titles, quotes"}, {"from": "model.support-check", "to": "decide.adjudicate", "label": "checked evidence"}, {"from": "input.case", "to": "decide.adjudicate", "label": "claim; gold evidence (graph arm)"}, {"from": "graph.coverage", "to": "decide.adjudicate", "label": "SPARQL"}, {"from": "input.case", "to": "model.baseline", "label": "claim, note"}, {"from": "graph.coverage", "to": "model.baseline", "label": "criteria text"}, {"from": "decide.adjudicate", "to": "output.verdict", "label": "verdict + path"}, {"from": "model.baseline", "to": "output.verdict", "label": "verdict + reasons"}, {"from": "output.verdict", "to": "model.draft-appeal", "label": "overturnable only"}, {"from": "model.draft-appeal", "to": "check.citations", "label": "letter"}, {"from": "output.verdict", "to": "check.citations", "label": "reference path"}, {"from": "output.verdict", "to": "eval.harness", "label": "outcome"}, {"from": "check.citations", "to": "eval.harness", "label": "citation result"}, {"from": "eval.harness", "to": "eval.run-record", "label": "metrics, config"}, {"from": "eval.run-record", "to": "stats.report", "label": "repeats"}, {"from": "output.verdict", "to": "cli.demo", "label": "path"}, {"from": "check.citations", "to": "cli.demo", "label": "recheck"}], "failures": {"source.icd10cm-tabular": {"graph.coverage": ["fail", "build_graph stops on the hash mismatch: exit 2"], "stats.report": ["ok", "Reads saved run records only"]}, "source.lcd-export": {"graph.coverage": ["fail", "build_graph stops: exit 2"], "stats.report": ["ok", "Reads saved run records only"]}, "source.billing-article": {"graph.coverage": ["fail", "build_graph stops: exit 2"], "stats.report": ["ok", "Reads saved run records only"]}, "source.curated-criteria": {"stats.report": ["ok", "Reads saved run records only"]}, "ingest.provenance": {"stats.report": ["ok", "Reads saved run records only"]}, "graph.coverage": {"stats.report": ["ok", "Reads saved run records only"]}, "input.eval-set": {"input.case": ["fail", "Partial or empty set: eval exits 2 before any call"], "cli.demo": ["ok", "Reads its own three cases"], "stats.report": ["ok", "Old records still readable"]}, "input.case": {"stats.report": ["ok", "Reads saved run records only"]}, "model.extract": {"ingest.parse-extraction": ["degrade", "No usable JSON: extraction_rejected"], "decide.adjudicate": ["degrade", "Extracted arm hands off; graph arm still adjudicates gold evidence"], "output.verdict": ["degrade", "Extracted cases become needs_human"], "eval.harness": ["degrade", "A client exception is an arm error: exit 3"], "cli.demo": ["ok", "Uses gold evidence, no model"], "check.citations": ["ok", "Other arms' letters still checked"], "model.draft-appeal": ["ok", "Fewer overturnable verdicts to draft"], "stats.report": ["ok", "Reads saved run records only"]}, "ingest.parse-extraction": {"model.support-check": ["degrade", "Nothing validated to check"], "decide.adjudicate": ["degrade", "Extracted arm hands off as extraction_rejected"], "output.verdict": ["degrade", "Extracted cases become needs_human"], "eval.harness": ["ok", "Scores the hand-offs"], "cli.demo": ["ok", "Unaffected"], "check.citations": ["ok", "Unaffected"], "model.draft-appeal": ["ok", "Unaffected"], "stats.report": ["ok", "Unaffected"]}, "model.support-check": {"decide.adjudicate": ["degrade", "Extracted arm hands off as support_check_failed"], "output.verdict": ["degrade", "Extracted cases become needs_human; never upgraded"], "eval.harness": ["degrade", "A client exception: exit 3"], "cli.demo": ["ok", "Unaffected"], "check.citations": ["ok", "Unaffected"], "model.draft-appeal": ["ok", "Unaffected"], "stats.report": ["ok", "Unaffected"]}, "decide.adjudicate": {"output.verdict": ["fail", "No verdict for graph or extracted arms"], "check.citations": ["fail", "No reference to check any arm's letter against"], "eval.harness": ["fail", "Arm error: exit 3"], "stats.report": ["ok", "Reads saved run records only"]}, "model.baseline": {"output.verdict": ["degrade", "llm-only hands off as no_verdict"], "eval.harness": ["degrade", "A client exception: exit 3"], "model.draft-appeal": ["ok", "Grounded arms still draft"], "check.citations": ["ok", "Unaffected"], "cli.demo": ["ok", "Unaffected"], "stats.report": ["ok", "Unaffected"]}, "output.verdict": {"stats.report": ["ok", "Reads saved run records only"]}, "model.draft-appeal": {"check.citations": ["degrade", "No letter to check"], "eval.harness": ["fail", "eval incomplete: citation metrics not comparable; exit 3"], "cli.demo": ["ok", "Replays a recorded letter"], "stats.report": ["ok", "Verdict statistics unaffected"]}, "check.citations": {"eval.harness": ["degrade", "Verdicts still scored; citation metrics missing"], "cli.demo": ["fail", "A failing letter: exit 4"], "stats.report": ["ok", "Unaffected"]}, "eval.harness": {"eval.run-record": ["fail", "No record for this run"], "stats.report": ["ok", "Earlier records still readable"]}, "eval.run-record": {"stats.report": ["degrade", "Can't include this run; others still compare"]}, "stats.report": {}, "cli.demo": {}}, "traces": [{"id": "ev-01-extracted", "label": "ev-01 · extracted arm · overturnable", "note": "Evidence shown is the case's gold evidence block. The extracted arm returned overturnable for ev-01 on 2026-11-01 and 2026-11-02; its exact spans are in the run logs, not reproduced here. The draft step runs only with --draft.", "hops": [{"node": "input.case", "calls": 0, "text": "Claim E2103 for E11.65, denied CARC 50, initial coverage. Note: \"Type 2 diabetes mellitus with hyperglycemia. On multiple daily insulin injections. …\""}, {"node": "model.extract", "calls": 1, "also": ["graph.coverage"], "text": "The graph offers cgm-1 to cgm-5 for E2103. The model returns E11.65 and four criteria met, each with a verbatim span."}, {"node": "ingest.parse-extraction", "calls": 0, "text": "Every span is in the note and at least 10 characters; E11.65 is in the loaded E08–E13 slice; cgm-1 is left to the code."}, {"node": "model.support-check", "calls": 1, "text": "Five pairs: E11.65's title and four criterion quotes, each with its sentence. All judged supported."}, {"node": "decide.adjudicate", "calls": 0, "also": ["graph.coverage"], "text": "A 10-hop path. 1 E2103 listed in L33822 (lcd_x_hcpc_code:31) · 3 L33822 → A52464, link cites v49 (related_documents:3) · 4 E11.65 in the tabular (E08-E13.xml:1474) · 5 A52464 covers E11.65 (article:343) · 6–10 cgm-1 to cgm-5 met (lcd-L33822-v70.csv:2)."}, {"node": "output.verdict", "calls": 0, "text": "overturnable, with the 10 hops as its justification."}, {"node": "model.draft-appeal", "calls": 1, "text": "With --draft: a redetermination letter quoting the note for each criterion."}, {"node": "check.citations", "calls": 0, "text": "Cited E2103, L33822, A52464, E11.65: all established by the path. Passed."}]}, {"id": "ev-10-graph", "label": "ev-10 · graph arm · uphold", "note": "Graph arm: the case's own evidence, no model call.", "hops": [{"node": "input.case", "calls": 0, "text": "Claim E2103 for E11.9. Note: \"Type 2 diabetes mellitus without complications, managed on metformin alone. No hypoglycemia reported. …\""}, {"node": "decide.adjudicate", "calls": 0, "also": ["graph.coverage"], "text": "E11.9 is covered, so the code doesn't decide it. cgm-4 needs 4a or 4b: the note shows 4a not met (\"managed on metformin alone\") and 4b not met (\"No hypoglycemia reported.\")."}, {"node": "output.verdict", "calls": 0, "text": "uphold, reason criterion_not_met, resting on two quotes from the note and the LCD text \"meets at least one of the criteria below\" (lcd-L33822-v70.csv:2)."}]}, {"id": "ev-18-graph", "label": "ev-18 · graph arm · needs_human", "note": "Graph arm: the case's own evidence, no model call.", "hops": [{"node": "input.case", "calls": 0, "text": "Claim E2103 for E11.65. Note: \"Discussed starting insulin; patient will decide after talking with family.\" Nothing on hypoglycemia."}, {"node": "decide.adjudicate", "calls": 0, "also": ["graph.coverage"], "text": "cgm-1, 2, 3 and 5 are met. cgm-4 is neither met nor documented as not met."}, {"node": "output.verdict", "calls": 0, "text": "needs_human, reason criterion_not_documented: \"request records\". Absence is a hand-off, not an uphold."}]}, {"id": "ev-18-llm", "label": "ev-18 · llm-only arm · false uphold", "note": "The 2026-11-01 run. With its first prompt the baseline didn't make this error, so it depends on the prompt.", "hops": [{"node": "input.case", "calls": 0, "text": "The same claim and note."}, {"node": "model.baseline", "calls": 1, "also": ["graph.coverage"], "text": "Given the note and the LCD criteria quotes, the model decides on its own."}, {"node": "output.verdict", "calls": 0, "text": "uphold. Gold is needs_human: the note doesn't settle glycemic control either way. A claim written off that should have been worked."}]}], "primer": {"triples": [["urn:icd10cm:E11.65", "skos:prefLabel", "\"Type 2 diabetes mellitus with hyperglycemia\""], ["urn:icd10cm:E11.65", "skos:broader", "urn:icd10cm:E11.6"], ["urn:icd10cm:E11.6", "skos:broader", "urn:icd10cm:E11"], ["urn:article:A52464", "rcm:coversDiagnosis", "urn:icd10cm:E11.65"], ["urn:lcd:L33822", "rcm:listsHcpcs", "urn:hcpcs:E2103"]], "namedGraph": [["urn:src:cdc/icd10cm-tabular-2027-E08-E13.xml#L1474", "rcm:path", "\"cdc/icd10cm-tabular-2027-E08-E13.xml\""], ["urn:src:cdc/icd10cm-tabular-2027-E08-E13.xml#L1474", "rcm:version", "\"ICD-10-CM FY2027 (effective 2026-10-01)\""], ["urn:src:cdc/icd10cm-tabular-2027-E08-E13.xml#L1474", "rcm:line", "1474"]], "sparql": "SELECT ?lcd ?article ?citedVersion ?title ?anchor ?seventhFrom\n       ?gList ?gRel ?gConcept ?gCov WHERE {\n  GRAPH ?gList    { ?lcd rcm:listsHcpcs ?hcpcs }\n  GRAPH ?gRel     { ?lcd rcm:relatedArticle ?article .\n                    ?article rcm:citedVersion ?citedVersion }\n  GRAPH ?gConcept { ?dx skos:prefLabel ?title ; rcm:sourceAnchor ?anchor\n                    OPTIONAL { ?dx rcm:seventhFrom ?seventhFrom } }\n  GRAPH ?gCov     { ?article rcm:coversDiagnosis ?dx }\n}", "bindings": [["?gList", "cms/lcd_x_hcpc_code-L33822-v70.csv:31", "hop 1: E2103 is listed in LCD L33822"], ["?gRel", "cms/lcd_related_documents-L33822-v70.csv:3", "hop 3: L33822 is related to A52464 (link cites v49)"], ["?gConcept", "cdc/icd10cm-tabular-2027-E08-E13.xml:1474", "hop 4: E11.65 is an ICD-10-CM code"], ["?gCov", "cms/article_x_icd10_covered-A52464-v65.csv:343", "hop 5: A52464 covers E11.65"]]}}</script>
+<script src="https://cdn.jsdelivr.net/npm/elkjs@0.12.0/lib/elk.bundled.js"></script>
+<script>
+(() => {
+const M = JSON.parse(document.getElementById('model').textContent);
+const byId = Object.fromEntries(M.nodes.map(n => [n.id, n]));
+const NODE_W = 206, NODE_H = 54;
+const TABS = ['Role', 'Data', 'Failure', 'Cost & determinism', 'Decisions'];
+const S = { mode: 'explore', overlay: 'none', selected: 'graph.coverage', tab: 0, prod: false, sound: false,
+  down: new Set(), arm: 'extracted', trace: M.traces[0].id, step: -1, playing: false, zoom: 1 };
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const $ = id => document.getElementById(id);
+const NS = 'http://www.w3.org/2000/svg';
+const mk = (tag, attrs = {}, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; };
+
+$('meta').textContent = `${M.meta.commit} · ${M.nodes.length} components · ${M.edges.length} flows · as of ${M.meta.asOf}`;
+
+/* ---------- sound: Web Audio, synthesized, off by default ---------- */
+let ac = null;
+function audio() { if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { ac = null; } } return ac; }
+function noise(ctx, dur) { const b = ctx.createBuffer(1, Math.max(1, ctx.sampleRate * dur), ctx.sampleRate); const d = b.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; const s = ctx.createBufferSource(); s.buffer = b; return s; }
+function sfx(kind) {
+  if (!S.sound) return; const ctx = audio(); if (!ctx) return; const t = ctx.currentTime;
+  const out = ctx.createGain(); out.connect(ctx.destination);
+  if (kind === 'relay') {
+    const n = noise(ctx, 0.03), bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 2600; bp.Q.value = 3;
+    out.gain.setValueAtTime(0.22, t); out.gain.exponentialRampToValueAtTime(0.001, t + 0.03);
+    n.connect(bp).connect(out); n.start(t); n.stop(t + 0.03);
+    const o = ctx.createOscillator(), g = ctx.createGain(); o.frequency.value = 1700; g.gain.setValueAtTime(0.05, t + 0.012); g.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
+    o.connect(g).connect(ctx.destination); o.start(t + 0.01); o.stop(t + 0.045);
+  } else if (kind === 'detent') {
+    const o = ctx.createOscillator(); o.type = 'triangle'; o.frequency.setValueAtTime(520, t); o.frequency.exponentialRampToValueAtTime(380, t + 0.04);
+    out.gain.setValueAtTime(0.07, t); out.gain.exponentialRampToValueAtTime(0.001, t + 0.05); o.connect(out); o.start(t); o.stop(t + 0.06);
+  } else if (kind === 'thud') {
+    const o = ctx.createOscillator(); o.frequency.setValueAtTime(92, t); o.frequency.exponentialRampToValueAtTime(42, t + 0.22);
+    out.gain.setValueAtTime(0.4, t); out.gain.exponentialRampToValueAtTime(0.001, t + 0.28); o.connect(out); o.start(t); o.stop(t + 0.3);
+    const n = noise(ctx, 0.08), lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 300; const g = ctx.createGain();
+    g.gain.setValueAtTime(0.25, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.08); n.connect(lp).connect(g).connect(ctx.destination); n.start(t); n.stop(t + 0.08);
+  } else if (kind === 'tick') {
+    const o = ctx.createOscillator(); o.frequency.value = 880; out.gain.setValueAtTime(0.03, t); out.gain.exponentialRampToValueAtTime(0.001, t + 0.03); o.connect(out); o.start(t); o.stop(t + 0.035);
+  }
+}
+
+/* ---------- colors from the model's attributes ---------- */
+const ZONE_FILL = { public: 'var(--z-public)', curated: 'var(--z-curated)', synthetic: 'var(--z-synthetic)', model: 'var(--z-model)', validated: 'var(--z-validated)', deterministic: 'var(--z-deterministic)' };
+const DET = { static: ['Static data', 'var(--z-public)'], deterministic: ['Deterministic code', 'var(--z-deterministic)'], model: ['Model-dependent', 'var(--z-model)'] };
+const ARMKEY = n => { const a = n.arms; if (a.length === 3) return 'all'; return a.join('+'); };
+const ARMFILL = { all: ['All three arms', 'var(--z-deterministic)'], 'graph+extracted': ['Grounded arms only', 'var(--z-validated)'], extracted: ['extracted only', 'var(--z-public)'], 'llm-only': ['llm-only only', 'var(--z-model)'], graph: ['Demo (graph arm)', 'var(--z-curated)'] };
+function fillOf(n) {
+  if (S.overlay === 'trust') return ZONE_FILL[n.trust];
+  if (S.overlay === 'determinism') return DET[n.determinism][1];
+  if (S.overlay === 'arm') return (ARMFILL[ARMKEY(n)] || ARMFILL.all)[1];
+  return 'var(--card)';
+}
+
+/* ---------- failure propagation from the model ---------- */
+const out = {}; M.edges.forEach(e => (out[e.from] ||= []).push(e.to));
+const RANK = { ok: 0, degrade: 1, fail: 2 };
+function effects() {
+  const fx = {};
+  for (const d of S.down) {
+    const explicit = M.failures[d] || {};
+    const seen = new Set([d]); const q = (out[d] || []).map(c => [c, 'fail', `Its input, ${byId[d].name}, is down`]);
+    while (q.length) {
+      const [c, inheritTy, inheritTx] = q.shift(); if (seen.has(c)) continue; seen.add(c);
+      const [ty, tx] = explicit[c] || [inheritTy, inheritTx];
+      if (!fx[c] || RANK[ty] > RANK[fx[c].ty]) fx[c] = { ty, tx, from: d };
+      if (ty === 'ok') continue;
+      for (const g of out[c] || []) q.push([g, ty, `Downstream of ${byId[c].name}`]);
+    }
+  }
+  for (const d of S.down) delete fx[d];
+  return fx;
+}
+
+/* ---------- layout with ELK ---------- */
+const elk = new ELK();
+const graph = {
+  id: 'root',
+  layoutOptions: {
+    'elk.algorithm': 'layered', 'elk.direction': 'DOWN',
+    'elk.hierarchyHandling': 'INCLUDE_CHILDREN',
+    'elk.json.shapeCoords': 'ROOT', 'elk.json.edgeCoords': 'ROOT',
+    'elk.edgeRouting': 'ORTHOGONAL',
+    'elk.layered.spacing.nodeNodeBetweenLayers': '46', 'elk.spacing.nodeNode': '18',
+    'elk.spacing.edgeNode': '14', 'elk.spacing.edgeEdge': '7', 'elk.layered.spacing.edgeNodeBetweenLayers': '14',
+    'elk.layered.nodePlacement.strategy': 'NETWORK_SIMPLEX',
+    'elk.layered.considerModelOrder.strategy': 'NODES_AND_EDGES',
+    'elk.padding': '[top=14,left=14,bottom=14,right=14]'
+  },
+  children: M.groups.map(g => ({
+    id: g.id, layoutOptions: { 'elk.padding': '[top=34,left=14,bottom=14,right=14]' },
+    children: M.nodes.filter(n => n.group === g.id).map(n => ({ id: n.id, width: NODE_W, height: NODE_H }))
+  })),
+  edges: M.edges.map((e, i) => ({ id: 'e' + i, sources: [e.from], targets: [e.to] }))
+};
+
+let svg, nodeEls = {}, edgeEls = {}, edgeIdx = {}, layout, centers = {}, lastFollowed = null;
+elk.layout(graph).then(res => { layout = res; draw(); }).catch(err => { $('loading').textContent = 'Layout failed: ' + err.message; });
+
+function draw() {
+  const W = Math.ceil(layout.width), H = Math.ceil(layout.height);
+  svg = mk('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': 'rcm-ai components and data flows' });
+  svg.dataset.w = W; svg.dataset.h = H;
+  const defs = mk('defs', {}, svg);
+  const mkr = mk('marker', { id: 'arrow', viewBox: '0 0 8 8', refX: '7.5', refY: '4', markerWidth: '7', markerHeight: '7', orient: 'auto-start-reverse' }, defs);
+  mk('path', { d: 'M0,0.6 L7.5,4 L0,7.4 z', fill: 'var(--ink-faint)' }, mkr);
+  const mk2 = mk('marker', { id: 'arrowHot', viewBox: '0 0 8 8', refX: '7.5', refY: '4', markerWidth: '7', markerHeight: '7', orient: 'auto-start-reverse' }, defs);
+  mk('path', { d: 'M0,0.6 L7.5,4 L0,7.4 z', fill: 'var(--trace)' }, mk2);
+  const pat = mk('pattern', { id: 'hatch', width: '7', height: '7', patternUnits: 'userSpaceOnUse', patternTransform: 'rotate(45)' }, defs);
+  mk('rect', { width: '7', height: '7', fill: 'var(--card)' }, pat);
+  mk('line', { x1: '0', y1: '0', x2: '0', y2: '7', stroke: 'var(--fail)', 'stroke-width': '1.6', 'stroke-opacity': '0.45' }, pat);
+
+  const gGroups = mk('g', {}, svg), gEdges = mk('g', {}, svg), gNodes = mk('g', {}, svg);
+  layout.children.forEach(g => {
+    const meta = M.groups.find(x => x.id === g.id);
+    mk('rect', { class: 'grp-box', x: g.x, y: g.y, width: g.width, height: g.height, rx: 2 }, gGroups);
+    const t = mk('text', { class: 'grp-lbl', x: g.x + 14, y: g.y + 22 }, gGroups); t.textContent = meta.label.toUpperCase();
+  });
+  const allEdges = [];
+  (function collect(n) { (n.edges || []).forEach(e => allEdges.push(e)); (n.children || []).forEach(collect); })(layout);
+  allEdges.forEach(e => {
+    const i = +e.id.slice(1), def = M.edges[i];
+    const pts = []; (e.sections || []).forEach(s => { pts.push(s.startPoint, ...(s.bendPoints || []), s.endPoint); });
+    const p = mk('path', { class: 'edge', d: pts.map((q, k) => (k ? 'L' : 'M') + q.x + ',' + q.y).join(' '), 'marker-end': 'url(#arrow)' }, gEdges);
+    const tt = mk('title', {}, p); tt.textContent = `${byId[def.from].name} → ${byId[def.to].name}: ${def.label}`;
+    edgeEls[i] = { el: p, pts, def }; edgeIdx[def.from + '>' + def.to] = i;
+  });
+  layout.children.forEach(g => (g.children || []).forEach(c => {
+    const n = byId[c.id];
+    const gr = mk('g', { class: 'node', transform: `translate(${c.x},${c.y})`, tabindex: '0', role: 'button', 'aria-label': `${n.name}, ${n.id}` }, gNodes);
+    mk('rect', { class: 'ring', x: -4, y: -4, width: NODE_W + 8, height: NODE_H + 8, rx: 4 }, gr);
+    mk('rect', { class: 'body', width: NODE_W, height: NODE_H, rx: 2.5 }, gr);
+    const kind = n.determinism === 'model' ? 'MODEL' : n.kind === 'data file' ? 'DATA' : n.kind === 'artifact' ? 'ARTIFACT' : n.kind === 'CLI' ? 'CLI' : 'CODE';
+    const tag = mk('text', { class: 'tag', x: NODE_W - 8, y: 13, 'text-anchor': 'end' }, gr); tag.textContent = kind;
+    const nm = mk('text', { class: 'nm', x: 10, y: 24 }, gr); nm.textContent = n.name;
+    const sub = mk('text', { class: 'sub', x: 10, y: 42 }, gr); sub.textContent = n.id;
+    gr.addEventListener('click', () => activate(n.id));
+    gr.addEventListener('keydown', ev => onNodeKey(ev, n.id));
+    nodeEls[n.id] = { g: gr, body: gr.querySelector('rect.body'), sub, tag, kind };
+    centers[n.id] = { x: c.x + NODE_W / 2, y: c.y + NODE_H / 2 };
+  }));
+  const dot = mk('circle', { class: 'dot', r: 5, cx: -20, cy: -20 }, svg); dot.id = 'dot';
+  $('scroll').innerHTML = ''; $('scroll').appendChild(svg);
+  fit(); render();
+}
+
+/* ---------- zoom ---------- */
+function applyZoom() { if (!svg) return; svg.setAttribute('width', Math.round(svg.dataset.w * S.zoom)); svg.setAttribute('height', Math.round(svg.dataset.h * S.zoom)); }
+function fit() { const w = $('scroll').clientWidth - 2; S.zoom = Math.max(0.45, Math.min(1, w / svg.dataset.w)); applyZoom(); }
+$('zIn').onclick = () => { S.zoom = Math.min(1.6, S.zoom * 1.2); applyZoom(); };
+$('zOut').onclick = () => { S.zoom = Math.max(0.35, S.zoom / 1.2); applyZoom(); };
+$('zFit').onclick = fit;
+window.addEventListener('resize', () => { if (svg) fit(); });
+
+/* ---------- interactions ---------- */
+function activate(id) {
+  if (S.mode === 'failure') {
+    if (S.down.has(id)) S.down.delete(id); else { S.down.add(id); sfx('thud'); }
+    S.selected = id; render(); return;
+  }
+  S.selected = id; sfx('relay'); render();
+}
+function onNodeKey(ev, id) {
+  const k = ev.key;
+  if (k === 'Enter' || k === ' ') { ev.preventDefault(); activate(id); return; }
+  const dir = { ArrowRight: [1, 0], ArrowLeft: [-1, 0], ArrowDown: [0, 1], ArrowUp: [0, -1] }[k];
+  if (!dir) return;
+  ev.preventDefault();
+  const c = centers[id]; let best = null, bestScore = Infinity;
+  for (const o in centers) {
+    if (o === id) continue; const dx = centers[o].x - c.x, dy = centers[o].y - c.y;
+    const along = dx * dir[0] + dy * dir[1]; if (along <= 4) continue;
+    const across = Math.abs(dx * dir[1] - dy * dir[0]); const score = along + across * 2.2;
+    if (score < bestScore) { bestScore = score; best = o; }
+  }
+  if (best) { nodeEls[best].g.focus(); sfx('tick'); }
+}
+document.addEventListener('keydown', ev => {
+  if (!$('primer').hidden) { if (ev.key === 'Escape') closePrimer(); return; }
+  if (ev.target.closest && ev.target.closest('input, textarea')) return;
+  if (/^[1-5]$/.test(ev.key) && S.selected && S.mode !== 'trace') { S.tab = +ev.key - 1; sfx('detent'); renderPanel(); }
+  if (ev.key === 'Escape') { S.selected = null; render(); }
+});
+
+document.querySelectorAll('#modes button').forEach(b => b.onclick = () => { setMode(b.dataset.mode); });
+function setMode(m) {
+  stopTrace(); S.mode = m; if (m !== 'failure') S.down.clear(); if (m === 'trace') S.step = -1;
+  document.querySelectorAll('#modes button').forEach(x => x.setAttribute('aria-pressed', x.dataset.mode === m));
+  sfx('detent'); render();
+}
+document.querySelectorAll('#overlays button').forEach(b => b.onclick = () => {
+  S.overlay = b.dataset.ov; document.querySelectorAll('#overlays button').forEach(x => x.setAttribute('aria-pressed', x === b)); sfx('detent'); render();
+});
+$('prodToggle').onclick = () => { S.prod = !S.prod; $('prodToggle').setAttribute('aria-pressed', S.prod); sfx('detent'); render(); };
+$('soundToggle').onclick = () => { S.sound = !S.sound; $('soundToggle').setAttribute('aria-pressed', S.sound); if (S.sound) { audio(); if (ac && ac.state === 'suspended') ac.resume(); sfx('relay'); } };
+
+/* ---------- trace ---------- */
+let anim = null;
+function curTrace() { return M.traces.find(t => t.id === S.trace); }
+function stopTrace() { S.playing = false; if (anim) cancelAnimationFrame(anim); anim = null; const d = $('dot'); if (d) { d.setAttribute('cx', -20); d.setAttribute('cy', -20); } }
+function stepTrace() {
+  const t = curTrace(); if (S.step >= t.hops.length - 1) { S.playing = false; render(); return; }
+  const from = S.step >= 0 ? t.hops[S.step].node : null; S.step++; const to = t.hops[S.step].node;
+  const i = from ? edgeIdx[from + '>' + to] : undefined;
+  render();
+  if (i === undefined || matchMedia('(prefers-reduced-motion: reduce)').matches) { sfx('tick'); if (S.playing) setTimeout(() => S.playing && stepTrace(), 900); return; }
+  const pts = edgeEls[i].pts; const segs = []; let L = 0;
+  for (let k = 1; k < pts.length; k++) { const l = Math.hypot(pts[k].x - pts[k - 1].x, pts[k].y - pts[k - 1].y); segs.push([pts[k - 1], pts[k], L, l]); L += l; }
+  const dur = Math.max(450, Math.min(1100, L * 2.2)), t0 = performance.now(), dot = $('dot');
+  const tickf = now => {
+    const f = Math.min(1, (now - t0) / dur), d = f * L; const s = segs.find(z => d <= z[2] + z[3]) || segs[segs.length - 1];
+    const r = s[3] ? (d - s[2]) / s[3] : 1; dot.setAttribute('cx', s[0].x + (s[1].x - s[0].x) * r); dot.setAttribute('cy', s[0].y + (s[1].y - s[0].y) * r);
+    if (f < 1) anim = requestAnimationFrame(tickf); else { anim = null; sfx('tick'); if (S.playing) setTimeout(() => S.playing && stepTrace(), 650); }
+  };
+  anim = requestAnimationFrame(tickf);
+}
+
+/* ---------- render ---------- */
+function render() { if (!svg) { renderModebar(); renderPanel(); return; } styleCanvas(); renderModebar(); renderPanel(); renderCaption(); }
+
+function styleCanvas() {
+  const fx = S.mode === 'failure' ? effects() : {};
+  const t = S.mode === 'trace' ? curTrace() : null;
+  const visited = new Set(), alsoSet = new Set(); let current = null; const hotEdges = new Set();
+  if (t) for (let k = 0; k <= S.step; k++) { const h = t.hops[k]; visited.add(h.node); (h.also || []).forEach(a => k === S.step && alsoSet.add(a)); if (k === S.step) current = h.node; if (k > 0) { const i = edgeIdx[t.hops[k - 1].node + '>' + h.node]; if (i !== undefined) hotEdges.add(i); } }
+  const traceNodes = t ? new Set(t.hops.map(h => h.node).concat(t.hops.flatMap(h => h.also || []))) : null;
+  for (const id in nodeEls) {
+    const n = byId[id], e = nodeEls[id], cl = ['node'];
+    if (S.selected === id && S.mode !== 'trace') cl.push('selected');
+    if (S.mode === 'arms' && !n.arms.includes(S.arm)) cl.push('dim');
+    if (t && !traceNodes.has(id)) cl.push('dim');
+    if (t && visited.has(id)) cl.push(id === current ? 'current' : 'visited');
+    if (t && alsoSet.has(id)) cl.push('also');
+    if (S.down.has(id)) cl.push('down');
+    if (fx[id]) cl.push('fx-' + fx[id].ty);
+    e.g.setAttribute('class', cl.join(' '));
+    e.body.style.fill = fillOf(n);
+    e.sub.textContent = S.prod ? n.prodShort : n.id;
+    e.sub.style.fontFamily = S.prod ? 'var(--f-body)' : '';
+    e.sub.style.fontStyle = S.prod ? 'italic' : '';
+    let b = '', bc = '';
+    if (S.down.has(id)) { b = 'DOWN'; bc = 'var(--fail)'; }
+    else if (fx[id]) { b = { fail: 'FAILS', degrade: 'DEGRADES', ok: 'UNAFFECTED' }[fx[id].ty]; bc = `var(--${fx[id].ty})`; }
+    else if (t && visited.has(id)) { const calls = t.hops.slice(0, S.step + 1).filter(h => h.node === id).reduce((a, h) => a + h.calls, 0); if (calls) { b = `+${calls} CALL`; bc = 'var(--trace)'; } }
+    e.tag.textContent = b || e.kind; e.tag.style.fill = bc; e.tag.setAttribute('class', b ? 'tag badge' : 'tag');
+  }
+  if (t && current && current !== lastFollowed) {
+    lastFollowed = current;
+    const sc = $('scroll'), c = centers[current], z = S.zoom, top = c.y * z - sc.clientHeight / 2;
+    sc.scrollTo({ top: Math.max(0, top), left: Math.max(0, c.x * z - sc.clientWidth / 2), behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  }
+  if (!t || S.step < 0) lastFollowed = null;
+  for (const i in edgeEls) {
+    const { el, def } = edgeEls[i]; const cl = ['edge'];
+    if (hotEdges.has(+i)) cl.push('hot');
+    const dimmed = (S.mode === 'arms' && (!byId[def.from].arms.includes(S.arm) || !byId[def.to].arms.includes(S.arm))) || (t && !hotEdges.has(+i));
+    if (dimmed) cl.push('dim');
+    if (S.mode === 'failure' && (S.down.has(def.from) || (fx[def.from] && fx[def.from].ty !== 'ok')) && fx[def.to] && fx[def.to].ty !== 'ok') { el.style.stroke = `var(--${fx[def.to].ty})`; } else el.style.stroke = '';
+    el.setAttribute('class', cl.join(' ')); el.setAttribute('marker-end', hotEdges.has(+i) ? 'url(#arrowHot)' : 'url(#arrow)');
+  }
+}
+
+function legendHTML() {
+  if (S.overlay === 'trust') return Object.entries(M.zones).map(([k, z]) => `<span title="${esc(z.desc)}"><i style="background:${ZONE_FILL[k]}"></i>${esc(z.label)}</span>`).join('');
+  if (S.overlay === 'determinism') return Object.values(DET).map(([l, c]) => `<span><i style="background:${c}"></i>${l}</span>`).join('');
+  if (S.overlay === 'arm') return Object.values(ARMFILL).map(([l, c]) => `<span><i style="background:${c}"></i>${esc(l)}</span>`).join('');
+  return '';
+}
+
+function renderModebar() {
+  const mb = $('modebar'); let h = '';
+  if (S.mode === 'explore') h = `<span class="hint">Select a component, or move with the arrow keys and press Enter. Keys <span class="kbd">1</span>–<span class="kbd">5</span> switch tabs.</span>`;
+  if (S.mode === 'trace') {
+    const t = curTrace(), calls = t.hops.slice(0, S.step + 1).reduce((a, h) => a + h.calls, 0);
+    h = `<div class="seg" id="traceSel">${M.traces.map(x => `<button data-t="${x.id}" aria-pressed="${x.id === S.trace}">${esc(x.label)}</button>`).join('')}</div>
+      <button class="toggle" id="tPlay">${S.playing ? 'Pause' : S.step >= t.hops.length - 1 ? 'Replay' : 'Play'}</button>
+      <button class="toggle" id="tStep">Step</button>
+      <span class="readout">hop ${Math.max(0, S.step + 1)}/${t.hops.length} · model calls ${calls}</span>`;
+  }
+  if (S.mode === 'failure') {
+    const n = S.down.size;
+    h = `<span class="hint">Select components to take them down; select again to restore.</span>
+      <span class="legend"><span><b class="fail-t">Fails</b>: exits with an error</span><span><b class="degrade-t">Degrades</b>: hands off to a human or loses a metric</span><span><b class="ok-t">Unaffected</b>: explicitly isolated</span></span>
+      ${n ? `<button class="toggle" id="fReset">Restore all (${n} down)</button>` : ''}`;
+  }
+  if (S.mode === 'arms') {
+    h = `<div class="seg" id="armSel">${Object.keys(M.arms).map(a => `<button data-a="${a}" aria-pressed="${a === S.arm}">${a}</button>`).join('')}</div>
+      <span class="hint">${esc(M.arms[S.arm].who)}. Components the arm doesn't use are dimmed.</span>`;
+  }
+  const lg = legendHTML(); if (lg) h += `<span class="legend" style="margin-left:auto">${lg}</span>`;
+  mb.innerHTML = h;
+  const ts = $('traceSel'); if (ts) ts.querySelectorAll('button').forEach(b => b.onclick = () => { stopTrace(); S.trace = b.dataset.t; S.step = -1; sfx('detent'); render(); });
+  const tp = $('tPlay'); if (tp) tp.onclick = () => { const t = curTrace(); if (S.playing) { stopTrace(); render(); return; } if (S.step >= t.hops.length - 1) S.step = -1; S.playing = true; stepTrace(); };
+  const tsp = $('tStep'); if (tsp) tsp.onclick = () => { stopTrace(); const t = curTrace(); if (S.step >= t.hops.length - 1) S.step = -1; stepTrace(); };
+  const fr = $('fReset'); if (fr) fr.onclick = () => { S.down.clear(); sfx('relay'); render(); };
+  const as = $('armSel'); if (as) as.querySelectorAll('button').forEach(b => b.onclick = () => { S.arm = b.dataset.a; sfx('detent'); render(); });
+}
+
+function renderCaption() {
+  $('cap').textContent = S.prod ? 'Production mapping on: second lines show a hypothetical deployment. Topology unchanged; nothing in this view exists in the repo.' :
+    'Layout by ELK layered, orthogonal routing. Second line of each box is its stable ID.';
+}
+
+function kv(pairs) { return `<dl class="kv">${pairs.filter(p => p[1]).map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>`; }
+
+function nodeHeader(n) {
+  const z = M.zones[n.trust];
+  return `<h2>${esc(n.name)}</h2><div class="pid">${esc(n.id)}</div>
+    <div class="chips"><span class="chip">C4 ${esc(n.c4)}</span><span class="chip">${esc(n.kind)}</span><span class="chip zone" style="background:${ZONE_FILL[n.trust]}" title="${esc(z.desc)}">${esc(z.label)}</span>${n.arms.map(a => `<span class="chip">arm: ${a}</span>`).join('')}${n.model ? `<span class="chip">${esc(n.model)}</span>` : ''}</div>`;
+}
+
+function tabBody(n) {
+  const prod = S.prod ? `<div class="prodbox"><b>PRODUCTION MAPPING · HYPOTHETICAL</b>${esc(n.prod)}</div>` : '';
+  switch (S.tab) {
+    case 0: return prod + `<p>${esc(n.role)}</p>` + kv([['Trust zone', M.zones[n.trust].label + ': ' + M.zones[n.trust].desc], ['Determinism', DET[n.determinism][0]]]);
+    case 1: return prod + kv([['Inputs', n.data.inputs], ['Outputs', n.data.outputs], ['Schema', n.data.schema], ['What is checked', n.data.checks]]);
+    case 2: return kv([['What goes wrong', n.failure.what], ['What degrades', n.failure.degrades], ['What fails outright', n.failure.fails], ['Blast radius', n.failure.blast], ['Recovery', n.failure.recovery]]) +
+      `<p class="note">Take it down in Failure mode to see every component downstream.</p>`;
+    case 3: return kv([['Model calls', n.cost.calls], ['Measured', n.cost.measured], ['What makes runs comparable', n.cost.comparability], ['Model settings', n.model || 'No model call']]);
+    case 4: { const a = n.adr; return `<div class="adr"><h3>${esc(a.title)}</h3><div class="src">${a.source === 'repo' ? 'FROM THE REPO AND ISSUE HISTORY' : 'RECONSTRUCTED FROM THE CODE'}</div>` +
+      kv([['Context', a.context], ['Decision', a.decision]]) + `<dl class="kv"><dt>Alternatives rejected</dt><dd><ul>${a.rejected.map(r => `<li><b>${esc(r.alt)}.</b> ${esc(r.why)}</li>`).join('')}</ul></dd></dl></div>`; }
+  }
+}
+
+function overview() {
+  const a = M.arms;
+  return `<h2>The system in one page</h2>
+    <p style="margin-top:8px">A denial analyst has to cross-check the note, the claim's codes, the ICD-10-CM hierarchy and Excludes1 rules, and the coverage policy. rcm-ai lets a graph built from public CMS and CDC files make that decision, and measures it against the same model deciding alone.</p>
+    <div class="armcard">${Object.keys(a).map(k => `<div><span>${k}</span><b>${a[k].acc}</b><span>false uphold ${a[k].fu}</span></div>`).join('')}</div>
+    <p class="note" style="border:0;padding:0">2026-11-01, one run, 20 synthetic cases with unreviewed labels. extracted vs llm-only: McNemar p = 0.375, within noise. The premise is falsified on raw accuracy under the rule fixed in advance.</p>
+    <h3 style="font-size:15px;margin-top:14px">Keys</h3>
+    <div class="keys"><span><span class="kbd">Tab</span></span><span>Focus the diagram's components</span><span><span class="kbd">← → ↑ ↓</span></span><span>Move to the nearest component that way</span><span><span class="kbd">Enter</span></span><span>Select (in Failure mode, take it down)</span><span><span class="kbd">1</span>–<span class="kbd">5</span></span><span>Switch tabs</span><span><span class="kbd">Esc</span></span><span>Back to this page</span></div>
+    <p class="note">${esc(M.meta.note)}</p>`;
+}
+
+function renderPanel() {
+  const p = $('panel');
+  if (S.mode === 'trace') {
+    const t = curTrace();
+    p.innerHTML = `<h2>${esc(t.label)}</h2><div class="pid">${t.hops.length} hops · ${t.hops.reduce((a, h) => a + h.calls, 0)} model calls end to end</div>
+      <ol class="hops">${t.hops.map((h, k) => `<li class="${k <= S.step ? 'on' : 'pending'}"><span class="who">${esc(h.node)}${h.calls ? ` · model call (Σ ${t.hops.slice(0, k + 1).reduce((a, x) => a + x.calls, 0)})` : ' · no model call'}</span>${esc(h.text)}</li>`).join('')}</ol>
+      <p class="note">${esc(t.note)} Run records don't store latency or tokens, so the trace counts model calls instead.</p>`;
+    return;
+  }
+  if (S.mode === 'failure' && S.down.size) {
+    const fx = effects(); const groups = { fail: [], degrade: [], ok: [] };
+    Object.entries(fx).forEach(([id, f]) => groups[f.ty].push([id, f]));
+    const li = (ty, arr) => arr.map(([id, f]) => `<li class="${ty}"><span class="ty ${ty}-t">${{ fail: 'fails', degrade: 'degrades', ok: 'unaffected' }[ty]}</span><span class="who">${esc(id)}</span><br>${esc(f.tx)}</li>`).join('');
+    const downs = [...S.down].map(id => byId[id]);
+    p.innerHTML = `<h2>${downs.length === 1 ? esc(downs[0].name) + ' is down' : downs.length + ' components down'}</h2>
+      <div class="pid">${downs.map(d => esc(d.id)).join(' · ')}</div>
+      ${downs.map(d => `<p style="margin:8px 0"><b>${esc(d.name)}.</b> ${esc(d.failure.what)} ${esc(d.failure.fails)}</p>`).join('')}
+      <ul class="fxlist">${li('fail', groups.fail)}${li('degrade', groups.degrade)}${li('ok', groups.ok)}</ul>
+      ${Object.keys(fx).length ? '' : '<p>Nothing downstream.</p>'}`;
+    return;
+  }
+  if (S.mode === 'arms' && !S.selected) {
+    const a = M.arms[S.arm];
+    p.innerHTML = `<h2>The ${esc(a.label)} arm</h2><div class="pid">${esc(a.who)}</div>
+      <div class="armcard"><div><span>accuracy</span><b>${a.acc}</b></div><div><span>false overturnable</span><b>${a.fo}</b></div><div><span>false uphold</span><b>${a.fu}</b></div></div>
+      ${kv([['Hand-offs', a.handoffs], ['Unsupported citations', a.cites], ['What it isolates', a.isolates]])}
+      <p class="note">2026-11-01 run at 6ed732a, 20 cases, labels unreviewed (#15).</p>`;
+    return;
+  }
+  if (!S.selected) { p.innerHTML = overview(); return; }
+  const n = byId[S.selected];
+  let armNote = '';
+  if (S.mode === 'arms') { const a = M.arms[S.arm]; armNote = `<p class="note" style="margin-top:0;border:0;padding:0">${n.arms.includes(S.arm) ? 'Used' : 'Not used'} by the ${esc(a.label)} arm (${a.acc}, false uphold ${a.fu}).</p>`; }
+  p.innerHTML = nodeHeader(n) + armNote +
+    `<div class="tabs" role="tablist">${TABS.map((t, k) => `<button role="tab" aria-selected="${k === S.tab}" data-k="${k}"><span class="k">${k + 1}</span>${t}</button>`).join('')}</div>
+     <div class="tabbody" role="tabpanel">${tabBody(n)}</div>
+     <div class="refs">${n.refs.map(r => `<div>${esc(r)}</div>`).join('')}</div>
+     <p style="margin-top:12px"><button class="toggle" id="toOverview">Overview</button></p>`;
+  p.querySelectorAll('.tabs button').forEach(b => b.onclick = () => { S.tab = +b.dataset.k; sfx('detent'); renderPanel(); });
+  $('toOverview').onclick = () => { S.selected = null; render(); };
+}
+
+/* ---------- the graph primer ---------- */
+function openPrimer() {
+  const P = M.primer; const row = r => `<tr>${r.map(c => `<td>${esc(c)}</td>`).join('')}</tr>`;
+  $('primer').innerHTML = `<div class="sheet">
+    <button class="toggle close" id="primerClose">Close</button>
+    <h2 id="primerTitle">Reading this knowledge graph</h2>
+    <p style="color:var(--ink-soft)">Built from this repository's graph, not a textbook example.</p>
+    <h3>1. Facts are triples</h3>
+    <p>Every fact is a subject, a predicate and an object. Names are IRIs, so <code>urn:icd10cm:E11.65</code> means one thing everywhere. A coverage path is a chain of these facts joined on shared names.</p>
+    <div class="tbl"><table><tr><th>subject</th><th>predicate</th><th>object</th></tr>${P.triples.map(row).join('')}</table></div>
+    <h3>2. Hierarchy is just more triples</h3>
+    <p><code>skos:broader</code> points from a code to its parent. Walking it from E11.65 gives E11.6, then E11, then the section E08–E13. That walk is how the adjudicator finds an Excludes1 rule declared on E11 that applies to E11.65: E11 excludes E08, E09 and O24.4, among others (tabular lines 1142–1144).</p>
+    <h3>3. Named graphs carry provenance</h3>
+    <p>A dataset can hold many graphs, each with its own name. Here each source row's triples go in a graph named after that row, and the default graph describes the row. A query that asks <i>which graph</i> a fact matched in therefore gets its file, line and version for free.</p>
+    <div class="tbl"><table><tr><th>named graph (the row)</th><th>predicate</th><th>object</th></tr>${P.namedGraph.map(row).join('')}</table></div>
+    <h3>4. One query, four rows cited</h3>
+    <p>This is <code>coverage_paths</code> (graph.py:212). Each <code>GRAPH ?g { … }</code> block matches part of the path and binds the row it came from. Called with <code>?hcpcs = E2103</code> and <code>?dx = E11.65</code>:</p>
+    <pre class="sparql">${esc(P.sparql)}</pre>
+    <div class="tbl"><table><tr><th>variable</th><th>bound to row</th><th>becomes</th></tr>${P.bindings.map(row).join('')}</table></div>
+    <p style="margin-top:10px">Those four rows are hops 1, 3, 4 and 5 of ev-01's justification path. Open <code>data/fixtures/cms/article_x_icd10_covered-A52464-v65.csv</code> at line 343 and you'll find E11.65.</p>
+    <h3>5. What the graph does not do</h3>
+    <p>It doesn't reason or rank. No probabilities, no inference beyond what the code walks. Every answer is a lookup of stated facts, which is what makes the verdict auditable and what keeps it from guessing outside the four ICD-10-CM slices it holds.</p>
+    <p class="note">Size: ${esc(byId['graph.coverage'].cost.measured)}.</p>
+  </div>`;
+  $('primer').hidden = false; $('primerClose').onclick = closePrimer; $('primerClose').focus(); sfx('relay');
+}
+function closePrimer() { $('primer').hidden = true; $('primerBtn').focus(); }
+$('primerBtn').onclick = openPrimer;
+$('primer').addEventListener('click', e => { if (e.target === $('primer')) closePrimer(); });
+
+render();
+})();
+</script>
