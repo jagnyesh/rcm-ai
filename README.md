@@ -4,6 +4,12 @@ Exploratory prototype: graph-grounded triage of Medicare medical-necessity denia
 
 **The eval labels are unconfirmed.** Claude drafted all 20 eval cases and labeled them, and no human has reviewed a label yet (#15). Every accuracy number below is agreement with those labels; a corrected label changes it.
 
+## Architecture explorer
+
+[![The rcm-ai architecture explorer](docs/architecture/rcm-ai-explorer.png)](https://jagnyesh.github.io/rcm-ai/architecture/rcm-ai-explorer.html)
+
+[Open the interactive explorer](https://jagnyesh.github.io/rcm-ai/architecture/rcm-ai-explorer.html): each component's role, data, failure modes and design decisions, with the source lines behind it, and modes that trace a case, show failures and compare the arms. The page is [docs/architecture/rcm-ai-explorer.html](docs/architecture/rcm-ai-explorer.html); it reflects `e641c00`.
+
 ## Quickstart
 
 You need [uv](https://docs.astral.sh/uv/), which installs Python 3.13 if you don't have it. From a clone:
