@@ -216,6 +216,14 @@ uv run rcm-ai eval
 
 It asserts the case count from `data/eval/set.json` and fails with exit code 2 on an empty or partial set. It prints per-arm accuracy, false-overturnable and false-uphold cases, abstention rate and abstention precision, and lists each miss, marking a graph or extracted miss as a known gap or UNEXPLAINED; any arm error makes the run exit 3. Per-case results, with the date, git SHA, model id and the reasons behind each verdict, go to `eval-results/` (gitignored). `--arms` picks the arms: `graph` (the default, using each case's supplied evidence), `extracted` and `llm-only` (see below). With more than one arm, eval also prints each case where the arms' outcomes differ, with the reasons of each arm that missed gold, and records every such case, with all arms' reasons, under `disagreements`. `--draft` adds appeal drafting and the unsupported-citation rate per arm (see below).
 
+To pass or fail a run, gate its record against the floors in `data/eval/thresholds.json`:
+
+```bash
+uv run rcm-ai gate eval-results/eval-<stamp>.json
+```
+
+It checks each arm the thresholds name and the record holds, and exits 1 if any falls below a floor: the graph arm must score 20/20, and the extracted arm at least 15/20 (its range across six runs was 15 to 17), both with no false overturnable, no false uphold and no errors, and with `--draft`, no letter failing the citation check. The llm-only arm is the baseline, so it's reported, not gated. An arm the record lacks is skipped, and a record on a different number of cases is refused with exit code 2. The floors are fixed like the eval set: raise one only in its own commit, and never lower one to pass a run.
+
 LCD coverage criteria live in `data/curated/L33822-cgm-criteria.json`, curated by Claude with verbatim quotes from the LCD text and awaiting review (#28). In scope: initial coverage of the CGM device (E2102, E2103) for medical-necessity denials (CARC 50). Supply allowances, continued coverage, and other denial reasons return `needs_human`. Evidence spans must appear verbatim in the case note, and evidence naming an unknown criterion is rejected.
 
 ### LLM evidence extraction
@@ -304,3 +312,5 @@ For criteria hops, the line number is where the LCD record starts (the record sp
 uv sync
 uv run pytest -xvs
 ```
+
+CI (`.github/workflows/ci.yml`) runs on every pull request and push to main, with no model call and no secret: the tests, `export-demo --check`, and the graph arm on the locked eval set through the gate. The run record is kept as a workflow artifact. `.github/workflows/live-eval.yml` runs the model arms by hand from the Actions tab; it needs an `ANTHROPIC_API_KEY` repository secret and stops before any call without one.
