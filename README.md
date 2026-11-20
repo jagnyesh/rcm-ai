@@ -16,7 +16,7 @@ Exploratory prototype: graph-grounded triage of Medicare medical-necessity denia
 
 `public/` is a static page that walks all 20 eval cases from a recorded run: what each source file loaded, each verdict with its steps and source rows, each arm's outcome against the label, and the recorded appeal letter. It makes no model call. Its data, `public/demo-cases.json`, is written by `uv run rcm-ai export-demo`, and a test fails when it falls behind the code or data. The per-arm outcomes come from `data/demo/run-2026-11-01.json`, transcribed from the Results below.
 
-Preview it locally with `uv run --with uvicorn uvicorn rcm_ai.web:app`, then open http://127.0.0.1:8000. `src/rcm_ai/web.py` (served on Vercel through `app.py`) also serves `GET /api/health`; live mode (`POST /api/live`) is off. Hosting on Vercel and the decisions behind it are in [docs/adr/](docs/adr/README.md).
+Preview it locally with `uv run --with uvicorn uvicorn rcm_ai.web:app`, then open http://127.0.0.1:8000. `src/rcm_ai/web.py` (served on Vercel through `app.py`) also serves `GET /api/health` and live mode, `POST /api/live`: one bundled case, its note optionally edited, through extraction, the span check, the graph and, if overturnable, a drafted letter and its citation check, each step streamed to the page. Live mode runs only while `LIVE_MODE=on`, `DEMO_ACCESS_CODE` and `ANTHROPIC_API_KEY` are all set, and needs the code (ADR 0006, 0008) `LIVE_MODE=stand-in` runs the same steps with canned answers from each case's answer key and no model call, so the page can be tried without a key; it still needs the code. Hosting on Vercel and the decisions behind it are in [docs/adr/](docs/adr/README.md).
 
 ## Quickstart
 

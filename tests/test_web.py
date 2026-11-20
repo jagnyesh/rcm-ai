@@ -5,7 +5,8 @@ from rcm_ai import web
 client = TestClient(web.app)
 
 
-def test_health_reports_each_loaded_source_and_that_live_mode_is_off():
+def test_health_reports_each_loaded_source_and_that_live_mode_is_off(monkeypatch):
+    monkeypatch.delenv("LIVE_MODE", raising=False)
     r = client.get("/api/health")
     assert r.status_code == 200
     body = r.json()
@@ -25,11 +26,13 @@ def test_health_reports_a_graph_that_wont_load(tmp_path, monkeypatch):
     assert r.json()["graph"]["loaded"] is False
 
 
-def test_live_mode_is_off_and_calls_no_model(monkeypatch):
+def test_live_mode_is_off_without_its_switch_and_calls_no_model(monkeypatch):
+    monkeypatch.delenv("LIVE_MODE", raising=False)
     monkeypatch.setenv("ANTHROPIC_API_KEY", "should-not-be-used")
-    r = client.post("/api/live", json={"case": "ev-01"})
+    monkeypatch.setenv("DEMO_ACCESS_CODE", "code")
+    r = client.post("/api/live", json={"case": "ev-01"}, headers={"X-Access-Code": "code"})
     assert r.status_code == 503
-    assert "not enabled" in r.json()["detail"]
+    assert "switched off" in r.json()["detail"]
 
 
 def test_the_local_preview_serves_the_page():
