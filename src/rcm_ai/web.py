@@ -2,7 +2,8 @@
 
 Recorded mode needs none of this: the page in public/ reads public/demo-cases.json from the CDN.
 This app writes nothing to disk. Live mode (ADR 0006, 0008, and rcm_ai.live) runs only when
-LIVE_MODE is "on" and the API key and access code are set; otherwise it answers 503.
+LIVE_MODE is "on" and the API key and access code are set, or "stand-in" with the access code
+(canned answers, no model call); otherwise it answers 503.
 """
 
 import os
@@ -39,13 +40,13 @@ def _cases() -> dict:
     return {ec.case.id: ec.case for ec in load_eval_set(data_dir() / "eval").cases}
 
 
-def _backend() -> lv.Backend:
-    return lv.anthropic_backend()
+def _backend(case) -> lv.Backend:
+    return lv.stand_in_backend(case.evidence) if lv.mode() == "stand-in" else lv.anthropic_backend()
 
 
 @app.get("/api/health")
 def health() -> JSONResponse:
-    body = {"commit": os.environ.get("VERCEL_GIT_COMMIT_SHA"), "live_mode": "on" if lv.status()[0] else "off"}
+    body = {"commit": os.environ.get("VERCEL_GIT_COMMIT_SHA"), "live_mode": lv.mode() if lv.status()[0] else "off"}
     try:
         graph = _graph()
     except (IngestError, ProvenanceError, OSError) as e:
@@ -77,7 +78,7 @@ def live(request: LiveRequest, x_access_code: str | None = Header(default=None))
     note = case.note if request.note is None else request.note
     if not note.strip() or len(note) > lv.NOTE_LIMIT:
         return JSONResponse({"detail": f"The note must be 1 to {lv.NOTE_LIMIT} characters."}, status_code=422)
-    return StreamingResponse(lv.stream(case.claim, note, _graph(), _backend()),
+    return StreamingResponse(lv.stream(case.claim, note, _graph(), _backend(case)),
                              media_type="application/x-ndjson", headers={"Cache-Control": "no-store"})
 
 

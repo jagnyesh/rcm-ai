@@ -3,7 +3,8 @@ real pipeline, with each step sent to the page as it finishes.
 
 Three settings gate it, all on the server:
 - LIVE_MODE must be "on". It is the off switch: any other value, or none, turns live mode off
-  without touching the key or the code.
+  without touching the key or the code. "stand-in" runs the same steps with canned answers built
+  from the case's answer key and no model call, so the page can be tried without a key.
 - DEMO_ACCESS_CODE: the code a visitor types; compared in constant time.
 - ANTHROPIC_API_KEY: read by the SDK only, never sent to the page or logged.
 
@@ -24,7 +25,7 @@ from rcm_ai import appeal as ap
 from rcm_ai import extract as ex
 from rcm_ai.extract import Extraction
 from rcm_ai.graph import CoverageGraph, Criterion
-from rcm_ai.schemas import Claim, Finding, Hop, Reason, Verdict
+from rcm_ai.schemas import Claim, Evidence, Finding, Hop, Reason, Verdict
 
 # The longest bundled note is 343 characters; an edited note gets room, not a novel.
 NOTE_LIMIT = 4000
@@ -35,11 +36,18 @@ OFF = "Live mode is switched off on this deployment. The recorded cases are on t
 NOT_SET_UP = "Live mode is not set up on this deployment. The recorded cases are on the page."
 
 
+def mode(env: Mapping[str, str] = os.environ) -> str:
+    """"on", "stand-in" or "off", from LIVE_MODE alone."""
+    value = env.get("LIVE_MODE", "").strip().lower()
+    return value if value in ("on", "stand-in") else "off"
+
+
 def status(env: Mapping[str, str] = os.environ) -> tuple[bool, str | None]:
-    """Whether live mode can run, and if not, what to tell the visitor."""
-    if env.get("LIVE_MODE", "").strip().lower() != "on":
+    """Whether live mode can run, and if not, what to tell the visitor. A stand-in needs no key."""
+    m = mode(env)
+    if m == "off":
         return False, OFF
-    if not env.get("DEMO_ACCESS_CODE") or not env.get("ANTHROPIC_API_KEY"):
+    if not env.get("DEMO_ACCESS_CODE") or (m == "on" and not env.get("ANTHROPIC_API_KEY")):
         return False, NOT_SET_UP
     return True, None
 
@@ -66,6 +74,53 @@ def anthropic_backend(timeout: float = DEADLINE) -> Backend:
         check=lambda pairs: ex.check_support(pairs, client),
         draft=lambda claim, path, quotes, findings: ap.draft(claim, path, quotes, client, findings=findings),
     )
+
+
+STAND_IN = "stand-in, no model"
+
+
+def _walk(criteria) -> list[Criterion]:
+    return [x for c in criteria for x in (c, *_walk(c.any_of))]
+
+
+def stand_in_backend(evidence: Evidence, pause: float = 1.0) -> Backend:
+    """Canned answers from the case's answer key, after a short pause so the steps arrive one by
+    one. The extraction is the gold evidence, the span check passes every span, and the letter
+    restates the verdict's own steps, so its citations are what the graph established. An edited
+    note isn't read: a gold span it no longer holds shows as a problem, as it would for a model."""
+    served = {"response": {"model": STAND_IN}}
+
+    def extract(note, criteria):
+        time.sleep(pause)
+        # The answer key may fail a criterion with alternatives as a whole; the extraction schema
+        # wants each alternative named, as a model is asked to, so each takes the same span.
+        offered = {c.id: c for c in _walk(criteria)}
+        not_met = []
+        for c in evidence.criteria_not_met:
+            parent = offered.get(c.criterion)
+            ids = [a.id for a in parent.any_of] if parent and parent.any_of else [c.criterion]
+            not_met += [{"criterion": i, "span": c.span} for i in ids]
+        return Extraction({
+            "diagnoses": [{"code": d.code, "span": d.span} for d in evidence.diagnoses],
+            "criteria_met": [{"criterion": c.criterion, "span": c.span} for c in evidence.criteria],
+            "criteria_not_met": not_met,
+        }, "end_turn", served)
+
+    def check(pairs):
+        time.sleep(pause)
+        return Extraction({"items": [{"item": n, "supported": True, "reason": "stand-in"}
+                                     for n in range(1, len(pairs) + 1)]}, "end_turn", served)
+
+    def draft(claim, path, quotes, findings):
+        time.sleep(pause)
+        steps = " ".join(ap.asserted(h).rstrip(".") + "." for h in path)
+        cited = "".join(f'\n- "{span}"' for _, span in quotes)
+        letter = (f"We ask that the denial of {claim.hcpcs} be overturned. {steps}"
+                  + (f"\n\nThe record supports this:{cited}" if cited else "")
+                  + "\n\n(Stand-in letter: written from the verdict's steps, not by a model.)")
+        return Extraction({"letter": letter}, "end_turn", served)
+
+    return Backend(extract, check, draft)
 
 
 class Cancelled(Exception):

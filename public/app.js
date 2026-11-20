@@ -185,7 +185,7 @@ function onLiveEvent(e, ctx) {
   const { out, note } = ctx;
   switch (e.event) {
     case "extraction_started":
-      ctx.extraction = liveStep(out, "The model is reading the note…");
+      ctx.extraction = liveStep(out, `${ctx.who} is reading the note…`);
       break;
     case "extraction_done":
       settle(ctx.extraction,
@@ -195,7 +195,7 @@ function onLiveEvent(e, ctx) {
           : [highlightedNote(note, e.evidence), el("details", {}, el("summary", {}, "Evidence spans"), evidenceList(e.evidence))]);
       break;
     case "support_check_started":
-      ctx.check = liveStep(out, `A second call is checking each of ${e.items} spans in its sentence…`);
+      ctx.check = liveStep(out, `${ctx.who} is checking each of ${e.items} spans in its sentence…`);
       break;
     case "support_check_done":
       settle(ctx.check, el("strong", {}, "Span check"), " ",
@@ -209,7 +209,7 @@ function onLiveEvent(e, ctx) {
       out.append(el("li", {}, el("strong", {}, "The graph's verdict "), outcome(e.verdict.outcome), ...verdictParts(e.verdict)));
       break;
     case "draft_started":
-      ctx.draft = liveStep(out, "The model is drafting the appeal letter…");
+      ctx.draft = liveStep(out, `${ctx.who} is drafting the appeal letter…`);
       break;
     case "draft_done":
       settle(ctx.draft, el("strong", {}, "Appeal letter"), ` (${e.model || "model"}, drafted now) `,
@@ -225,10 +225,10 @@ function onLiveEvent(e, ctx) {
   }
 }
 
-async function runLive(id, note, code, status) {
+async function runLive(id, note, code, status, standIn) {
   const out = document.getElementById("live-out");
   out.replaceChildren();
-  const ctx = { out, note, calls: null };
+  const ctx = { out, note, calls: null, who: standIn ? "The stand-in" : "The model" };
   const started = Date.now();
   const tick = setInterval(() => { status.textContent = `Running… ${Math.round((Date.now() - started) / 1000)}s`; }, 1000);
   status.textContent = "Running…";
@@ -263,7 +263,7 @@ async function runLive(id, note, code, status) {
   } finally {
     clearInterval(tick);
     const secs = Math.round((Date.now() - started) / 1000);
-    status.textContent = ctx.calls === null ? `Ended after ${secs}s.` : `Done in ${secs}s, ${ctx.calls} model call${ctx.calls === 1 ? "" : "s"}.`;
+    status.textContent = ctx.calls === null ? `Ended after ${secs}s.` : `Done in ${secs}s, ${ctx.calls} ${standIn ? "stand-in" : "model"} call${ctx.calls === 1 ? "" : "s"}.`;
   }
 }
 
@@ -275,10 +275,15 @@ async function initLive(cases, currentId) {
   } catch {
     return;
   }
-  const on = health.live_mode === "on";
-  document.getElementById("meta").textContent =
-    document.getElementById("meta").textContent.replace("live mode off", on ? "live mode on (access code)" : "live mode off");
+  const standIn = health.live_mode === "stand-in";
+  const on = health.live_mode === "on" || standIn;
+  document.getElementById("meta").textContent = document.getElementById("meta").textContent.replace("live mode off",
+    standIn ? "live mode stand-in (access code)" : on ? "live mode on (access code)" : "live mode off");
   if (!on) return;
+  if (standIn) {
+    document.getElementById("live-stand-in").hidden = false;
+    document.getElementById("live-run").textContent = "Run stand-in";
+  }
   document.getElementById("footer-live").textContent =
     "Live mode runs the model on a case you pick, for people with the access code.";
   const select = document.getElementById("live-case");
@@ -299,7 +304,7 @@ async function initLive(cases, currentId) {
     store.set(codeBox.value);
     button.disabled = true;
     try {
-      await runLive(select.value, noteBox.value, codeBox.value, document.getElementById("live-status"));
+      await runLive(select.value, noteBox.value, codeBox.value, document.getElementById("live-status"), standIn);
     } finally {
       button.disabled = false;
     }

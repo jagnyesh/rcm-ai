@@ -126,6 +126,7 @@ ol.live-steps > li { margin-bottom: 12px; }
   <section aria-labelledby="live-h" id="live" hidden>
     <h2 id="live-h">Run it live</h2>
     <p class="legend">Runs one case through the real pipeline now: the model reads the note, a second call checks each span in its sentence, the graph decides, and for an appealable case the model drafts the letter and the checker scores its citations. Edit the note to see the verdict change. It needs the access code, and a run can take a minute or more.</p>
+    <p class="legend" id="live-stand-in" hidden><strong>Stand-in mode:</strong> no model is called on this deployment. Each step's answer is canned from the case's answer key, so the pipeline, the graph and the citation check run for real, but an edited note won't change what's read. Take out a quoted line and the stand-in's evidence fails its check, as a model's would.</p>
     <form class="live-form panel" id="live-form">
       <div class="row">
         <label>Access code <input type="password" id="live-code" autocomplete="off" required></label>
