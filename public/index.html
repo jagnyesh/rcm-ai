@@ -77,6 +77,18 @@ ol.steps li { margin-bottom: 8px; }
 details summary { cursor: pointer; color: var(--trace); }
 footer { margin-top: 32px; border-top: 1px solid var(--rule); padding-top: 10px; color: var(--ink-faint); font-size: 12.5px; max-width: 90ch; }
 .legend { color: var(--ink-faint); font-size: 12px; margin: 4px 0 8px; }
+.live-form { display: grid; gap: 10px; max-width: 90ch; }
+.live-form .row { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: end; }
+.live-form label { display: grid; gap: 4px; font-size: 12.5px; color: var(--ink-soft); }
+.live-form input, .live-form select, .live-form textarea { font: inherit; color: var(--ink); background: var(--paper); border: 1px solid var(--rule); border-radius: 3px; padding: 6px 8px; }
+.live-form textarea { width: 100%; min-height: 8em; resize: vertical; }
+.live-form button { font: inherit; font-weight: 500; padding: 6px 14px; border-radius: 3px; border: 1px solid var(--accent); cursor: pointer; }
+.live-form button.primary { background: var(--accent); color: var(--card); }
+.live-form button.quiet { background: transparent; color: var(--accent); }
+.live-form button:disabled { opacity: 0.55; cursor: progress; }
+ol.live-steps { padding-left: 22px; margin: 12px 0 0; max-width: 100ch; }
+ol.live-steps > li { margin-bottom: 12px; }
+.pending { color: var(--ink-faint); }
 </style>
 </head>
 <body>
@@ -111,9 +123,27 @@ footer { margin-top: 32px; border-top: 1px solid var(--rule); padding-top: 10px;
     <div class="table-wrap"><table id="arms"><thead><tr><th>Arm</th><th>How it decides</th><th>Agrees with the label</th><th>Cases where it differs</th></tr></thead><tbody></tbody></table></div>
   </section>
 
+  <section aria-labelledby="live-h" id="live" hidden>
+    <h2 id="live-h">Run it live</h2>
+    <p class="legend">Runs one case through the real pipeline now: the model reads the note, a second call checks each span in its sentence, the graph decides, and for an appealable case the model drafts the letter and the checker scores its citations. Edit the note to see the verdict change. It needs the access code, and a run can take a minute or more.</p>
+    <form class="live-form panel" id="live-form">
+      <div class="row">
+        <label>Access code <input type="password" id="live-code" autocomplete="off" required></label>
+        <label>Case <select id="live-case"></select></label>
+      </div>
+      <label>Note <textarea id="live-note" maxlength="4000" required></textarea></label>
+      <div class="row">
+        <button type="submit" class="primary" id="live-run">Run live</button>
+        <button type="button" class="quiet" id="live-reset">Reset note</button>
+        <span class="legend" id="live-status" aria-live="polite"></span>
+      </div>
+    </form>
+    <ol class="live-steps" id="live-out" aria-live="polite"></ol>
+  </section>
+
   <footer>
     <p id="footer-run"></p>
-    <p>Live mode, which runs the model on a case you pick, is off on this deployment. Source code and method: <a href="https://github.com/jagnyesh/rcm-ai">github.com/jagnyesh/rcm-ai</a>.</p>
+    <p><span id="footer-live">Live mode, which runs the model on a case you pick, is off on this deployment.</span> Source code and method: <a href="https://github.com/jagnyesh/rcm-ai">github.com/jagnyesh/rcm-ai</a>.</p>
   </footer>
 </main>
 <script src="app.js" defer></script>
