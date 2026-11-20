@@ -1,0 +1,90 @@
+{
+  "run": {
+    "date": "2026-11-01T00:06Z",
+    "git_sha": "6ed732a",
+    "model": "claude-opus-5-5",
+    "effort": "high",
+    "eval_set_sha256_prefix": "fdbc346c",
+    "model_calls": 61,
+    "input_tokens": 97919,
+    "output_tokens": 57502
+  },
+  "source": "Transcribed from the README's Results section for this run (accuracy per arm and each miss by case), not exported from the run record in eval-results/, which is gitignored. Outcomes only: the run's per-case reasons and letters are in that record.",
+  "outcomes": {
+    "graph": {
+      "ev-01": "overturnable",
+      "ev-02": "overturnable",
+      "ev-03": "overturnable",
+      "ev-04": "overturnable",
+      "ev-05": "overturnable",
+      "ev-06": "overturnable",
+      "ev-07": "overturnable",
+      "ev-08": "overturnable",
+      "ev-09": "overturnable",
+      "ev-10": "uphold",
+      "ev-11": "uphold",
+      "ev-12": "uphold",
+      "ev-13": "uphold",
+      "ev-14": "uphold",
+      "ev-15": "needs_human",
+      "ev-16": "needs_human",
+      "ev-17": "needs_human",
+      "ev-18": "needs_human",
+      "ev-19": "needs_human",
+      "ev-20": "needs_human"
+    },
+    "extracted": {
+      "ev-01": "overturnable",
+      "ev-02": "overturnable",
+      "ev-03": "overturnable",
+      "ev-04": "overturnable",
+      "ev-05": "overturnable",
+      "ev-06": "overturnable",
+      "ev-07": "overturnable",
+      "ev-08": "overturnable",
+      "ev-09": "needs_human",
+      "ev-10": "uphold",
+      "ev-11": "needs_human",
+      "ev-12": "needs_human",
+      "ev-13": "needs_human",
+      "ev-14": "uphold",
+      "ev-15": "needs_human",
+      "ev-16": "needs_human",
+      "ev-17": "needs_human",
+      "ev-18": "needs_human",
+      "ev-19": "needs_human",
+      "ev-20": "needs_human"
+    },
+    "llm-only": {
+      "ev-01": "overturnable",
+      "ev-02": "overturnable",
+      "ev-03": "overturnable",
+      "ev-04": "overturnable",
+      "ev-05": "overturnable",
+      "ev-06": "overturnable",
+      "ev-07": "overturnable",
+      "ev-08": "overturnable",
+      "ev-09": "overturnable",
+      "ev-10": "uphold",
+      "ev-11": "uphold",
+      "ev-12": "uphold",
+      "ev-13": "uphold",
+      "ev-14": "uphold",
+      "ev-15": "needs_human",
+      "ev-16": "needs_human",
+      "ev-17": "needs_human",
+      "ev-18": "uphold",
+      "ev-19": "needs_human",
+      "ev-20": "needs_human"
+    }
+  },
+  "review": {
+    "status": "claude-drafted",
+    "expertise": [
+      "coding",
+      "payer-policy"
+    ],
+    "covers": "the transcription of each arm's per-case outcome from the README; replace with the run record's own outcomes when it is committed",
+    "issue": "#15"
+  }
+}
