@@ -1,0 +1,42 @@
+# Every PR and every push to main: the tests, the web demo's data, and the graph arm on the
+# locked eval set, gated by data/eval/thresholds.json. No model call and no secret.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-and-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - name: Install (Python from .python-version, deps from uv.lock)
+        run: uv sync --locked
+      - name: Tests
+        run: uv run pytest -q
+      - name: Web demo data is current
+        run: uv run rcm-ai export-demo --check
+      - name: Graph arm on the locked eval set
+        run: uv run rcm-ai eval --arms graph --out eval-results
+      - name: Gate
+        run: uv run rcm-ai gate eval-results/eval-*.json
+      - name: Keep the run record
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-graph-${{ github.sha }}
+          path: eval-results/eval-*.json
+          if-no-files-found: ignore

@@ -1,0 +1,56 @@
+# Run by hand only. Calls the model (about $1.50 to $2 for extracted and llm-only with
+# drafting, from the 2026-11-01 run's tokens), so it needs an ANTHROPIC_API_KEY repository
+# secret, ideally from its own Anthropic workspace with a spend limit. Until that secret
+# exists, the first step stops the run before any call.
+name: Live eval
+
+on:
+  workflow_dispatch:
+    inputs:
+      arms:
+        description: "Comma-separated arms (graph, extracted, llm-only)"
+        default: "graph,extracted,llm-only"
+      draft:
+        description: "Draft and check appeal letters (more model calls)"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: live-eval
+  cancel-in-progress: false
+
+jobs:
+  live-eval:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+    steps:
+      - name: Require the API key secret
+        run: |
+          if [ -z "$ANTHROPIC_API_KEY" ]; then
+            echo "::error::Add an ANTHROPIC_API_KEY repository secret to run the live eval."
+            exit 1
+          fi
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - run: uv sync --locked --no-dev
+      - name: Eval
+        env:
+          ARMS: ${{ inputs.arms }}
+          DRAFT: ${{ inputs.draft && '--draft' || '' }}
+        run: uv run rcm-ai eval --arms "$ARMS" $DRAFT --out eval-results
+      - name: Gate
+        run: uv run rcm-ai gate eval-results/eval-*.json
+      - name: Keep the run record and model logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: live-eval-${{ github.run_id }}
+          path: eval-results/
+          if-no-files-found: ignore

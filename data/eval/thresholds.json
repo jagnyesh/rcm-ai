@@ -1,0 +1,20 @@
+{
+  "about": "Floors each arm must meet on the locked eval set, checked by `rcm-ai gate`. An arm listed here but missing from a run record is skipped, so a graph-only run is gated on the graph arm alone. An arm in the record with no entry here is reported but not gated. Raise a floor only in its own commit, saying which and why; never lower one to pass a run.",
+  "expected_cases": 20,
+  "arms": {
+    "graph": {
+      "min_correct": 20,
+      "max_false_overturnable": 0,
+      "max_false_uphold": 0,
+      "max_errors": 0
+    },
+    "extracted": {
+      "min_correct": 15,
+      "max_false_overturnable": 0,
+      "max_false_uphold": 0,
+      "max_errors": 0,
+      "max_letters_failing_check": 0,
+      "max_unsupported_citations": 0
+    }
+  }
+}

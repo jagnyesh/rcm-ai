@@ -30,6 +30,10 @@
 - **support check** (extracted arm, #22): each extraction that validates gets a second call judging whether each span, read in its note sentence, supports its code or criterion. A span judged unsupported, or a check that fails, hands the claim off, so it scores like an abstention. The run record counts the check's calls and configuration under `support_check`.
 - **errors:** cases where the arm raised. They count as wrong, never as abstentions, and a run with any errors exits 3, because its metrics aren't comparable to a clean run.
 
+## Thresholds
+
+`thresholds.json` holds the floors `rcm-ai gate` checks a run record against: per arm, a minimum `correct` count and maximums for false overturnable, false uphold, errors and, for drafted runs, letters failing the check and unsupported citations. The floors sit at what the system has already shown, so a gate failure means a regression, not an unmet goal. They follow the locking rule below: a raised floor goes in its own commit saying which and why, and no floor is lowered to pass a run.
+
 ## Locking rule
 
 This set is a locked golden fixture from its first commit, including while labels are `claude-labeled`. Never edit a case or label to match system output. Any change, including a corrected label, goes in its own commit whose message says which case changed and why. The eval harness asserts the case count against `set.json` (`expected_cases`), so adding or removing a case means updating that number in the same commit.

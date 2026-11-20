@@ -17,6 +17,7 @@ from rcm_ai import extract as ex
 from rcm_ai.graph import IngestError, build_graph
 from rcm_ai.provenance import ProvenanceError
 from rcm_ai.schemas import SchemaError, load_case
+from rcm_ai import gate
 from rcm_ai import stats
 
 
@@ -557,6 +558,18 @@ def _stats(paths: list[Path], allow_dirty: bool, seed: int) -> int:
     return 0
 
 
+def _gate(paths: list[Path], thresholds: Path) -> int:
+    try:
+        ok, lines = gate.run(paths, thresholds)
+    except gate.GateError as e:
+        print(f"gate refused: {e}", file=sys.stderr)
+        return 2
+    print("\n".join(lines))
+    if not ok:
+        print("gate failed: at least one arm is below its floor", file=sys.stderr)
+    return 0 if ok else 1
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="rcm-ai")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -588,7 +601,12 @@ def main(argv: list[str] | None = None) -> int:
     st.add_argument("records", type=Path, nargs="+", help="eval run records (eval-<stamp>.json), each a repeat")
     st.add_argument("--allow-dirty", action="store_true", help="accept records that ran on uncommitted code")
     st.add_argument("--seed", type=int, default=0, help="seed for the bootstrap interval (default 0)")
+    gt = sub.add_parser("gate", help="pass or fail eval run records against data/eval/thresholds.json (no model call)")
+    gt.add_argument("records", type=Path, nargs="+", help="eval run records (eval-<stamp>.json)")
+    gt.add_argument("--thresholds", type=Path, default=gate.DEFAULT_THRESHOLDS)
     args = parser.parse_args(argv)
+    if args.command == "gate":
+        return _gate(args.records, args.thresholds)
     if args.command == "stats":
         return _stats(args.records, args.allow_dirty, args.seed)
     if args.command == "ingest":
