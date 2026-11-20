@@ -12,6 +12,8 @@ Exploratory prototype: graph-grounded triage of Medicare medical-necessity denia
 
 ## Web demo
 
+[Open the live demo](https://rcm-ai-eight.vercel.app/): the recorded run below, hosted on Vercel from `main`. It needs no sign-in or API key.
+
 `public/` is a static page that walks all 20 eval cases from a recorded run: what each source file loaded, each verdict with its steps and source rows, each arm's outcome against the label, and the recorded appeal letter. It makes no model call. Its data, `public/demo-cases.json`, is written by `uv run rcm-ai export-demo`, and a test fails when it falls behind the code or data. The per-arm outcomes come from `data/demo/run-2026-11-01.json`, transcribed from the Results below.
 
 Preview it locally with `uv run --with uvicorn uvicorn rcm_ai.web:app`, then open http://127.0.0.1:8000. `src/rcm_ai/web.py` (served on Vercel through `app.py`) also serves `GET /api/health`; live mode (`POST /api/live`) is off. Hosting on Vercel and the decisions behind it are in [docs/adr/](docs/adr/README.md).
