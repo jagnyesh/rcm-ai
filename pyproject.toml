@@ -30,5 +30,6 @@ dev = [
 filterwarnings = ["ignore::DeprecationWarning:rdflib.*"]
 
 [tool.vercel]
-# The web demo's one function (docs/adr/0005); public/ is served by the CDN.
-entrypoint = "rcm_ai.web:app"
+# The web demo's one function (docs/adr/0005): app.py re-exports rcm_ai.web:app, since
+# Vercel resolves the module from the project root, not src/. public/ is served by the CDN.
+entrypoint = "app:app"
