@@ -8,12 +8,14 @@ EXPERTISE = {"coding", "clinical", "payer-policy", "appeals", "legal"}
 
 
 def _reviewable():
-    """Each thing Claude wrote that a person has to review: every case, criteria file and recorded letter."""
+    """Each thing Claude wrote that a person has to review: every case, criteria file, recorded letter and run transcription."""
     for folder in ("eval/cases", "synthetic", "curated"):
         for path in sorted((DATA / folder).glob("*.json")):
             yield str(path.relative_to(DATA)), json.loads(path.read_text()).get("review")
     for case_id, recorded in json.loads((DATA / "demo" / "demo.json").read_text())["letters"].items():
         yield f"demo letter for {case_id}", recorded.get("review")
+    for path in sorted((DATA / "demo").glob("run-*.json")):
+        yield str(path.relative_to(DATA)), json.loads(path.read_text()).get("review")
 
 
 def test_everything_claude_wrote_for_a_person_to_review_carries_a_review_tag():

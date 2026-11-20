@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from rcm_ai.adjudicate import adjudicate
+from rcm_ai import demo_export
 from rcm_ai import appeal as ap
 from rcm_ai import baseline as bl
 from rcm_ai.evaluate import EvalError, load_eval_set, run_eval
@@ -523,6 +524,28 @@ def _appeal_record(a) -> dict:
             "error": a.error, "log_error": a.log_error}
 
 
+def _export_demo(data_dir: Path, out: Path, check: bool) -> int:
+    try:
+        text = demo_export.render(data_dir)
+    except (SchemaError, EvalError, OSError, KeyError, ValueError) as e:
+        print(f"rejected: {type(e).__name__}: {e}", file=sys.stderr)
+        return 2
+    except (IngestError, ProvenanceError) as e:
+        print(f"ingest failed: {e}", file=sys.stderr)
+        return 2
+    if check:
+        current = out.read_text() if out.exists() else None
+        if current != text:
+            print(f"{out} is out of date: run `rcm-ai export-demo`", file=sys.stderr)
+            return 1
+        print(f"{out} is current")
+        return 0
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(text)
+    print(f"wrote {out}")
+    return 0
+
+
 def _stats(paths: list[Path], allow_dirty: bool, seed: int) -> int:
     try:
         records = stats.load(paths, allow_dirty)
@@ -556,6 +579,10 @@ def main(argv: list[str] | None = None) -> int:
     ing.add_argument("--data", type=Path, default=Path("data"))
     demo = sub.add_parser("demo", help="walk three bundled cases end to end, one per verdict (no model call)")
     demo.add_argument("--data", type=Path, default=Path("data"))
+    exp = sub.add_parser("export-demo", help="write the web demo's recorded data (no model call)")
+    exp.add_argument("--data", type=Path, default=Path("data"))
+    exp.add_argument("--out", type=Path, default=demo_export.DEFAULT_OUT)
+    exp.add_argument("--check", action="store_true", help="exit 1 if the file on disk is not current")
     st = sub.add_parser("stats", help="report each arm's accuracy across eval run records of one run, "
                         "and compare each pair of arms (no model call)")
     st.add_argument("records", type=Path, nargs="+", help="eval run records (eval-<stamp>.json), each a repeat")
@@ -566,6 +593,8 @@ def main(argv: list[str] | None = None) -> int:
         return _stats(args.records, args.allow_dirty, args.seed)
     if args.command == "ingest":
         return _ingest(args.data)
+    if args.command == "export-demo":
+        return _export_demo(args.data, args.out, args.check)
     if args.command == "demo":
         return _demo(args.data)
     if args.command == "eval":

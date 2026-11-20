@@ -8,6 +8,7 @@ authors = [
 requires-python = ">=3.13"
 dependencies = [
     "anthropic>=2.3.0",
+    "fastapi>=0.121",
     "rdflib>=7.6.0",
 ]
 
@@ -20,9 +21,14 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
+    "httpx>=0.28.1",
     "pytest>=9.2.0",
 ]
 
 [tool.pytest.ini_options]
 # rdflib's own SPARQL evaluator calls its deprecated Dataset API; ours does not.
 filterwarnings = ["ignore::DeprecationWarning:rdflib.*"]
+
+[tool.vercel]
+# The web demo's one function (docs/adr/0005); public/ is served by the CDN.
+entrypoint = "rcm_ai.web:app"

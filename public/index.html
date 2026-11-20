@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>rcm-ai demo</title>
+<meta name="description" content="Graph-grounded triage of synthetic Medicare CGM medical-necessity denials, with every step traced to its CMS or CDC source row.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&display=swap">
+<style>
+:root {
+  --paper: #f2ede3; --paper-deep: #e9e2d4; --card: #faf7f1;
+  --ink: #1e1c19; --ink-soft: #4b463e; --ink-faint: #8a8174; --rule: #cbc1ae;
+  --accent: #7b4a12; --trace: #1f5c57; --fail: #9b2f21; --degrade: #a87412; --ok: #56683f;
+  --mark: #eadbbd;
+  --f-display: "Source Serif 4", "Iowan Old Style", Georgia, serif;
+  --f-body: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #1b1a17; --paper-deep: #24221e; --card: #22201c;
+    --ink: #ece6da; --ink-soft: #c2baab; --ink-faint: #8f8778; --rule: #4a4438;
+    --accent: #d39a56; --trace: #6fb3ab; --fail: #e0806f; --degrade: #d6a64a; --ok: #9fb27f;
+    --mark: #4a3e28; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #1b1a17; --paper-deep: #24221e; --card: #22201c;
+  --ink: #ece6da; --ink-soft: #c2baab; --ink-faint: #8f8778; --rule: #4a4438;
+  --accent: #d39a56; --trace: #6fb3ab; --fail: #e0806f; --degrade: #d6a64a; --ok: #9fb27f;
+  --mark: #4a3e28; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--paper); color: var(--ink); font-family: var(--f-body); font-size: 14px; line-height: 1.5;
+  padding: 18px max(16px, env(safe-area-inset-right, 0px)) 28px max(16px, env(safe-area-inset-left, 0px));
+}
+main { max-width: 1180px; margin: 0 auto; }
+h1, h2, h3 { font-family: var(--f-display); font-weight: 600; text-wrap: balance; margin: 0; }
+h2 { font-size: 19px; margin: 28px 0 8px; }
+h3 { font-size: 16px; margin: 16px 0 6px; }
+code, .mono { font-family: var(--f-mono); font-size: 0.86em; }
+a { color: var(--trace); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.masthead { border-bottom: 1.5px solid var(--ink); padding-bottom: 10px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 6px 24px; }
+.masthead h1 { font-size: 26px; letter-spacing: -0.01em; }
+.masthead h1 span { font-weight: 500; color: var(--ink-soft); }
+.meta { font-family: var(--f-mono); font-size: 11.5px; color: var(--ink-soft); }
+.lede { max-width: 72ch; color: var(--ink-soft); margin: 12px 0 0; }
+.notice { border-left: 3px solid var(--degrade); background: var(--card); padding: 8px 12px; margin: 14px 0 0; max-width: 90ch; }
+.table-wrap { overflow-x: auto; border: 1px solid var(--rule); background: var(--card); }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { font-weight: 600; background: var(--paper-deep); white-space: nowrap; }
+td.num { font-family: var(--f-mono); text-align: right; white-space: nowrap; }
+.ok { color: var(--ok); } .fail { color: var(--fail); } .faint { color: var(--ink-faint); }
+.layout { display: grid; grid-template-columns: minmax(220px, 300px) 1fr; gap: 18px; margin-top: 8px; }
+@media (max-width: 760px) { .layout { grid-template-columns: 1fr; } }
+.cases { list-style: none; margin: 0; padding: 0; border: 1px solid var(--rule); background: var(--card); max-height: 70vh; overflow-y: auto; }
+@media (max-width: 760px) { .cases { max-height: 40vh; } }
+.cases button { display: grid; grid-template-columns: 52px 1fr auto; gap: 8px; align-items: baseline; width: 100%; text-align: left; border: 0; border-bottom: 1px solid var(--rule); background: transparent; padding: 7px 10px; cursor: pointer; font: inherit; color: inherit; }
+.cases button[aria-current="true"] { background: var(--paper-deep); box-shadow: inset 3px 0 0 var(--accent); }
+.cases .id { font-family: var(--f-mono); font-size: 12px; }
+.cases .dots { font-family: var(--f-mono); font-size: 12px; letter-spacing: 2px; }
+.star { color: var(--accent); }
+.outcome { font-family: var(--f-mono); font-size: 12px; padding: 1px 6px; border: 1px solid currentColor; border-radius: 3px; white-space: nowrap; }
+.o-overturnable { color: var(--ok); } .o-uphold { color: var(--fail); } .o-needs_human { color: var(--degrade); }
+.panel { border: 1px solid var(--rule); background: var(--card); padding: 14px 16px; min-width: 0; }
+.note { background: var(--paper); border: 1px solid var(--rule); padding: 10px 12px; }
+mark { background: var(--mark); color: inherit; padding: 0 2px; }
+ol.steps { padding-left: 22px; margin: 6px 0; }
+ol.steps li { margin-bottom: 8px; }
+.src { font-family: var(--f-mono); font-size: 11.5px; color: var(--ink-soft); overflow-wrap: anywhere; }
+.letter { white-space: pre-wrap; font-family: var(--f-display); font-size: 14px; background: var(--paper); border: 1px solid var(--rule); padding: 12px 14px; max-height: 420px; overflow-y: auto; }
+details summary { cursor: pointer; color: var(--trace); }
+footer { margin-top: 32px; border-top: 1px solid var(--rule); padding-top: 10px; color: var(--ink-faint); font-size: 12.5px; max-width: 90ch; }
+.legend { color: var(--ink-faint); font-size: 12px; margin: 4px 0 8px; }
+</style>
+</head>
+<body>
+<main>
+  <header class="masthead">
+    <h1>rcm-ai <span>· Medicare CGM denial triage</span></h1>
+    <div class="meta" id="meta">Loading…</div>
+  </header>
+  <p class="lede">A denied claim for a continuous glucose monitor goes in. The system checks it against the CMS coverage policy and the CDC diagnosis codes it has loaded, and says whether the denial can be appealed, should stand, or needs a person. Every step names the source row it rests on.</p>
+  <p class="notice"><strong>Synthetic data only.</strong> The 20 cases and their notes were written by Claude, not taken from patients, and their labels haven't been reviewed by a person yet. This page shows a recorded run: it makes no model call.</p>
+
+  <section aria-labelledby="sources-h">
+    <h2 id="sources-h">What was loaded</h2>
+    <p class="legend">Each public source file, its version, when it was retrieved, and how many of its records reached the graph.</p>
+    <div class="table-wrap"><table id="sources"><thead><tr>
+      <th>Source file</th><th>Version</th><th>Retrieved</th><th>Expected</th><th>Parsed</th><th>Rejected</th><th>In graph</th>
+    </tr></thead><tbody></tbody></table></div>
+  </section>
+
+  <section aria-labelledby="cases-h">
+    <h2 id="cases-h">The cases</h2>
+    <p class="legend"><span class="star">★</span> featured case. Dots show each arm against the label, in order graph, extracted, llm-only: <span class="ok">●</span> agrees, <span class="fail">●</span> differs.</p>
+    <div class="layout">
+      <ul class="cases" id="case-list" aria-label="Cases"></ul>
+      <article class="panel" id="case" aria-live="polite"></article>
+    </div>
+  </section>
+
+  <section aria-labelledby="arms-h">
+    <h2 id="arms-h">Three ways to decide</h2>
+    <p class="legend" id="run-line"></p>
+    <div class="table-wrap"><table id="arms"><thead><tr><th>Arm</th><th>How it decides</th><th>Agrees with the label</th><th>Cases where it differs</th></tr></thead><tbody></tbody></table></div>
+  </section>
+
+  <footer>
+    <p id="footer-run"></p>
+    <p>Live mode, which runs the model on a case you pick, is off on this deployment. Source code and method: <a href="https://github.com/jagnyesh/rcm-ai">github.com/jagnyesh/rcm-ai</a>.</p>
+  </footer>
+</main>
+<script src="app.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "functions": {
+    "src/rcm_ai/web.py": {
+      "maxDuration": 300,
+      "excludeFiles": "{tests/**,docs/**,public/**,eval-results/**,data/raw/**}"
+    }
+  },
+  "headers": [
+    {
+      "source": "/demo-cases.json",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }]
+    }
+  ]
+}
