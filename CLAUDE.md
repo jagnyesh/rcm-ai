@@ -64,7 +64,7 @@ When J corrects a session, add one dated line to this file that states the rule,
 
 ### 9. Claims, numbers and size
 
-- Label every claim in a report, PR body or review verdict as measured (you ran it and saw the output), inferred (it follows from what you read) or a guess. An unlabeled claim reads as measured.
+- Label every claim in a report, PR body or review verdict as measured (you ran it and saw the output), inferred (it follows from what you read) or a guess. Readers take an unlabeled claim as measured, so label anything you did not run yourself.
 - Before you trust, report or act on a measured number (a speedup, token count, eval score or cost), name what limits it and rule out that it measured something other than the work you meant. Precedent: in researchflow, a cost aggregator double-charged because `input_tokens` already included `cache_read`.
 - Subtract before you add. Remove dead code and unused paths first, make the smallest change that does the job, and prefer deleting to adding a new abstraction.
 
