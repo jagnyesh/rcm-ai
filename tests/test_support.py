@@ -272,6 +272,7 @@ _has_credentials = bool(os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("A
 live = pytest.mark.skipif(not _has_credentials, reason="needs Anthropic credentials (live model call)")
 
 
+@pytest.mark.live
 @live
 @pytest.mark.parametrize("repro", REPROS)
 def test_live_the_check_hands_off_each_repro_naming_its_unsupported_pair(repro):
@@ -287,6 +288,7 @@ def test_live_the_check_hands_off_each_repro_naming_its_unsupported_pair(repro):
     assert any(bad in r.statement for r in verdict.reasons), verdict.reasons
 
 
+@pytest.mark.live
 @live
 @pytest.mark.parametrize("case_path", sorted(EVAL.glob("*.json")), ids=lambda p: p.stem)
 def test_live_every_gold_span_passes_the_check(case_path):

@@ -72,4 +72,4 @@ When J corrects a session, add one dated line to this file that states the rule,
 - **Model calls cost money.** Run a command that calls a model (the README's command table lists them) only when J asks for that run.
 - **Live mode (J, 2026-11-20):** when J says turn it off, turn it off right away.
 
-<!-- gstack:verify: uv run pytest -q -k "not test_live" -->
+<!-- gstack:verify: uv run pytest -q -m "not live" -->
