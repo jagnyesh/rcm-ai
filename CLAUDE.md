@@ -68,7 +68,7 @@ When J corrects a session, add one dated line to this file that states the rule,
 - **Medium:** the web demo page (`public/**`), CLI plumbing, `evaluate.py`, `stats.py`, `demo_export.py`, CI workflows.
 - **Low:** `docs/**`, `README.md`, tests that aren't eval cases or fixtures, refactors with no behavior change outside the High paths.
 - **Decision log:** one numbered file per decision in `docs/adr/`.
-- **Tests:** `uv run pytest -q`, which needs no key. CI also runs `uv run rcm-ai export-demo --check` and the graph-arm eval through `uv run rcm-ai gate`.
+- **Tests:** `uv run pytest -q`, which needs no key and leaves out the `live` tests that call the model (`pyproject.toml` sets `-m 'not live'`). `-m live` runs them, so only with J's yes. CI also runs `uv run rcm-ai export-demo --check` and the graph-arm eval through `uv run rcm-ai gate`.
 - **Model calls cost money.** Run a command that calls a model (the README's command table lists them) only when J asks for that run.
 - **Live mode (J, 2026-11-20):** when J says turn it off, turn it off right away.
 

@@ -28,8 +28,10 @@ dev = [
 [tool.pytest.ini_options]
 # rdflib's own SPARQL evaluator calls its deprecated Dataset API; ours does not.
 filterwarnings = ["ignore::DeprecationWarning:rdflib.*"]
-# Tests that call the model and cost money. CLAUDE.md's verify line runs -m "not live".
+# Tests that call the model and cost money. Every run leaves them out unless asked:
+# `pytest -m live` replaces this default, since the last -m wins.
 markers = ["live: calls the model; needs credentials and costs money"]
+addopts = "-m 'not live'"
 
 [tool.vercel]
 # The web demo's one function (docs/adr/0005): app.py re-exports rcm_ai.web:app, since
