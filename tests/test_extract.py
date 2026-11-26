@@ -422,6 +422,7 @@ _has_credentials = bool(os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("A
 live = pytest.mark.skipif(not _has_credentials, reason="needs Anthropic credentials (live model call)")
 
 
+@pytest.mark.live
 @live
 def test_live_extraction_of_a_documented_case_is_overturnable_and_logs_the_wire_request(tmp_path):
     import anthropic

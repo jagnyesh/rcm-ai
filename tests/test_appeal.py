@@ -804,6 +804,7 @@ _has_credentials = bool(os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("A
                         or (Path.home() / ".config" / "anthropic").exists())
 
 
+@pytest.mark.live
 @pytest.mark.skipif(not _has_credentials, reason="needs Anthropic credentials (live model call)")
 def test_live_draft_returns_a_letter_and_logs_the_wire_request():
     import anthropic
