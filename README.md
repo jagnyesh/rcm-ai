@@ -40,7 +40,7 @@ It makes no model call and needs no API key. For three eval cases, one per verdi
 | `uv run rcm-ai eval --arms graph,extracted,llm-only` | 35 in the 2026-11-01 run: an extraction for each claim not decided by the claim alone, and a baseline verdict for every claim. The support check (#22) now adds one per extraction that validates: 13 on 2026-11-02 |
 | `uv run rcm-ai eval --arms graph,extracted,llm-only --draft` | 61 in the 2026-11-01 run: the above plus a draft for each overturnable verdict of each arm |
 
-Commands that call the model need Anthropic API credentials, such as `ANTHROPIC_API_KEY`. The eval's metrics are defined in [data/eval/README.md](data/eval/README.md). Run the tests with `uv run pytest -q`; they take about two minutes and skip the 26 live tests without credentials.
+Commands that call the model need Anthropic API credentials, such as `ANTHROPIC_API_KEY`. The eval's metrics are defined in [data/eval/README.md](data/eval/README.md). Run the tests with `uv run pytest -q`; they take about two minutes and leave out the 26 live tests, which call the model. To run those, set credentials and use `uv run pytest -q -m live`.
 
 ## Problem
 
